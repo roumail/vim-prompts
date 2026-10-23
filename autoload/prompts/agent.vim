@@ -1,0 +1,117 @@
+" Starting the agent CLI with vim-dispatch's :Start, the prompt as its first
+" message; the session stays interactive. Installing and configuring the CLI
+" (auth, model) is up to the user; this only checks it is executable.
+
+" name -> {cmd, prompt}: argv is cmd + the persona's args + prompt + [the
+" prompt].
+" Extended (or overridden) by g:prompts_agent_table.
+let s:agents = {
+      \ 'claude': {'cmd': ['claude'], 'prompt': []},
+      \ 'copilot': {'cmd': ['copilot'], 'prompt': ['-i']},
+      \ }
+
+function! s:error(msg) abort
+  echohl ErrorMsg
+  echomsg 'vim-prompts: ' . a:msg
+  echohl None
+endfunction
+
+function! s:table() abort
+  return extend(copy(s:agents), get(g:, 'prompts_agent_table', {}))
+endfunction
+
+function! s:installed(name) abort
+  let l:agent = get(s:table(), a:name, {})
+  return !empty(l:agent) && executable(l:agent.cmd[0])
+endfunction
+
+" The agent to run: g:prompts_agent, else the persona's `agent:` when
+" installed, else the first installed of g:prompts_agents. '' if none, with
+" the error given.
+function! s:pick(meta, forced) abort
+  if !empty(a:forced)
+    if !has_key(s:table(), a:forced)
+      call s:error('unknown agent ' . a:forced . ' (g:prompts_agent_table)')
+      return ''
+    elseif !s:installed(a:forced)
+      call s:error(s:table()[a:forced].cmd[0] . ' is not executable')
+      return ''
+    endif
+    return a:forced
+  endif
+  let l:wanted = get(a:meta, 'agent', '')
+  if !empty(l:wanted) && s:installed(l:wanted)
+    return l:wanted
+  endif
+  let l:agents = get(g:, 'prompts_agents', ['claude', 'copilot'])
+  for l:name in l:agents
+    if s:installed(l:name)
+      if !empty(l:wanted)
+        echomsg 'vim-prompts: ' . l:wanted . ' is not installed, using ' . l:name
+      endif
+      return l:name
+    endif
+  endfor
+  call s:error('no agent CLI found (' . join(l:agents, ', ')
+        \ . '); install one or set g:prompts_agent')
+  return ''
+endfunction
+
+" The persona's `args:` for this agent: a list, or a map of agent -> list
+function! s:args(meta, name) abort
+  let l:args = get(a:meta, 'args', [])
+  let l:args = type(l:args) == v:t_dict ? get(l:args, a:name, []) : l:args
+  return type(l:args) == v:t_list ? copy(l:args) : [l:args]
+endfunction
+
+" The prompt in a new file in the git dir (never committed), one per ask so
+" no two :Start commands are the same; a temp file outside a repo
+let s:asked = 0
+function! s:prompt_file(prompt) abort
+  let s:asked += 1
+  let l:dir = FugitiveGitDir()
+  let l:file = empty(l:dir) ? tempname() . '.md'
+        \ : printf('%s/vim-prompts/prompts/%s-%d.md', l:dir, strftime('%Y%m%d-%H%M%S'), s:asked)
+  call mkdir(fnamemodify(l:file, ':h'), 'p')
+  " A leading - would be taken for an option of the agent
+  call writefile(split((a:prompt =~# '^-' ? ' ' : '') . a:prompt, "\n", 1), l:file)
+  return l:file
+endfunction
+
+" [agent, argv before the prompt] for the persona, or [] with the error given
+function! prompts#agent#command(meta) abort
+  let l:name = s:pick(a:meta, get(g:, 'prompts_agent', ''))
+  if empty(l:name)
+    return []
+  endif
+  let l:agent = s:table()[l:name]
+  return [l:name, l:agent.cmd + s:args(a:meta, l:name) + l:agent.prompt]
+endfunction
+
+" Starts the agent with the prompt ('' just opens it) through vim-dispatch's
+" :Start, so it opens where your :Start strategy puts it (a tmux window, a
+" terminal), and :Ai with nothing focuses the bare session already running. The
+" prompt is passed as "$(cat file)", so its length doesn't matter to tmux;
+" past g:prompts_max_arg the agent is told to read the file. 1 when started.
+function! prompts#agent#launch(prompt, meta) abort
+  let l:command = prompts#agent#command(a:meta)
+  if empty(l:command)
+    return 0
+  endif
+  let [l:name, l:argv] = l:command
+  if empty(a:prompt)
+    let l:argv = l:argv[: -1 - len(s:table()[l:name].prompt)]
+  endif
+  let l:cmd = join(map(l:argv, 'shellescape(v:val)'))
+  if !empty(a:prompt)
+    let l:file = s:prompt_file(a:prompt)
+    let l:cmd .= strlen(a:prompt) <= get(g:, 'prompts_max_arg', 100000)
+          \ ? ' "$(cat ' . shellescape(l:file) . ')"'
+          \ : ' ' . shellescape('My request and its context are in ' . l:file
+          \ . '. Read it first, then follow it.')
+  endif
+  let l:tree = FugitiveWorkTree()
+  execute 'Start -wait=error -title=' . l:name
+        \ . ' -dir=' . fnameescape(empty(l:tree) ? getcwd() : l:tree) . ' ' . l:cmd
+  return 1
+endfunction

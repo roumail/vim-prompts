@@ -1,0 +1,63 @@
+" vim-prompts: ask an AI agent CLI (Claude Code, Copilot CLI) as one of its
+" personas, Copilot Chat style: `:Ai @review #comments why is this here`. The
+" persona's template, rendered with the query and the context asked for
+" (diffs, a :G diff --name-only list, the selection, git-extras review
+" comments), is the agent's first prompt. Commands and <Plug> mappings only;
+" no keys are bound here. Requires tpope/vim-fugitive,
+" tpope/vim-dispatch (the agent runs with :Start) and roumail/git-extras.
+" The agent CLI (install, auth, model) is yours to set up; this only checks
+" that it is executable.
+if exists('g:loaded_prompts')
+  finish
+endif
+let g:loaded_prompts = 1
+
+" Required plugins are checked once every plugin has loaded (VimEnter, or now
+" when loaded later): their g:loaded_* guards tell whether they are installed.
+" Without them nothing below is defined.
+function! s:init() abort
+  let l:missing = filter({
+        \ 'tpope/vim-fugitive': 'g:loaded_fugitive',
+        \ 'tpope/vim-dispatch': 'g:loaded_dispatch',
+        \ 'roumail/git-extras': 'g:loaded_git_extras',
+        \ }, '!exists(v:val)')
+  if !empty(l:missing)
+    echohl WarningMsg
+    echomsg 'vim-prompts: not loaded, requires ' . join(sort(keys(l:missing)), ', ')
+    echohl None
+    return
+  endif
+
+  let l:ns = prompts#namespace()
+  " [@persona] [#source...] [query]: ask the persona (default: `default`)
+  " with its context and the sources asked for; with nothing, open the agent
+  execute 'command! -bang -range -nargs=* -complete=customlist,prompts#complete '
+        \ . l:ns . ' call prompts#ask(<bang>0, <range>, <line1>, <line2>, <q-args>)'
+  " The same, as a draft to edit; :w sends it
+  execute 'command! -bang -range -nargs=* -complete=customlist,prompts#complete '
+        \ . l:ns . 'Draft call prompts#draft(<bang>0, <range>, <line1>, <line2>, <q-args>)'
+  " The personas and what they need that isn't here; ! reloads them
+  execute 'command! -bang ' . l:ns . 'Personas call prompts#list(<bang>0)'
+  call prompts#persona#load()
+
+  " The visual ones leave :'<,'>Ai on the command line to finish
+  execute 'nnoremap <Plug>(prompts-ask) :<C-u>' . l:ns . '<Space>'
+  execute 'xnoremap <Plug>(prompts-ask) :' . l:ns . '<Space>'
+  execute 'nnoremap <Plug>(prompts-draft) :<C-u>' . l:ns . 'Draft<Space>'
+  execute 'xnoremap <Plug>(prompts-draft) :' . l:ns . 'Draft<Space>'
+
+  " A repo's .vim-personas/ come and go with the working directory
+  augroup prompts
+    autocmd!
+    autocmd DirChanged * call prompts#persona#load()
+  augroup END
+endfunction
+
+if v:vim_did_enter
+  call s:init()
+else
+  augroup prompts_init
+    autocmd!
+    autocmd VimEnter * ++once call s:init()
+  augroup END
+endif
