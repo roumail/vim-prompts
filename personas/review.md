@@ -2,6 +2,8 @@
 context: [diff_files, diff_pairs]
 args: {claude: [--permission-mode, plan]}
 ---
+{repository}
+
 I am reviewing a change in Vim. This is a review: don't edit any files.
 
 {context}

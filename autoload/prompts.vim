@@ -1,13 +1,15 @@
-" vim-prompts: ask an agent CLI as one of its personas, the way Copilot Chat
-" is asked: `:Ai @review #comments why is this here`.
+" vim-prompts: ask an agent CLI as one of its personas, in the CLIs' own
+" grammar: `:Ai /review #comments @notes.md why is this here`.
 "
-" - query: what the user types, after the @persona and #sources
+" - query: what the user types, around the /persona, #sources and @files
 " - request: the query plus where it was asked: buffer, line, range or
-"   selection (taken before any window opens), and the context sources
-" - context source: something Vim shows, as text (prompts/source.vim);
-"   #name asks for one, on top of the persona's defaults
+"   selection (taken before any window opens), the repository context, and
+"   the context sources
+" - context source: what Vim shows, or where the agent should look, as text
+"   (prompts/source.vim); #name[:arg] asks for one on top of the persona's,
+"   @path for files
 " - persona: a template plus its default sources and how the agent runs for
-"   it (prompts/persona.vim); @name picks one, else `default`
+"   it (prompts/persona.vim); /name picks one, else `default`
 " - prompt: the persona's template rendered with the request and its context
 "   (prompts/template.vim). It starts the agent (prompts/agent.vim), or opens
 "   as a draft to edit first.
@@ -23,28 +25,72 @@ function! s:error(msg) abort
   echohl None
 endfunction
 
-" {persona, given, query} from `[@persona] [#source...] [query] [-- text]`;
-" #sources may be anywhere before `--`, after which everything is query as
-" typed. {} with the error given on an unknown name.
+" ---------------------------------------------------------------------------
+" Grammar: [/persona] [#source[:arg]...] [@path...] [query] [-- text]. The
+" persona is the first word; #sources and @paths may be anywhere before `--`,
+" after which everything is query as typed. An argument or path with spaces
+" is quoted: #stackoverflow:"vim term_start cwd", @"~/My Notes/a.md".
+
+" @path -> {files, pick: dirs to pick in}; {} with the error given
+function! s:files(path) abort
+  if empty(a:path)
+    let l:tree = FugitiveWorkTree()
+    return {'files': [], 'pick': [empty(l:tree) ? getcwd() : l:tree]}
+  endif
+  let l:path = expand(escape(a:path, '*?[]'))
+  if isdirectory(l:path)
+    return {'files': [], 'pick': [fnamemodify(l:path, ':p:h')]}
+  endif
+  " glob() expands ~ and $VARS too
+  let l:files = filter(glob(a:path, 1, 1), 'filereadable(v:val)')
+  if empty(l:files)
+    call s:error('@' . a:path . ': no such file')
+    return {}
+  endif
+  return {'files': map(l:files, 'fnamemodify(v:val, ":p")'), 'pick': []}
+endfunction
+
+" {persona, given, files, pick, query}; {} with the error given
 function! s:parse(args) abort
-  let [l:head, l:start, l:end] = matchstrpos(a:args, '\%(^\|\s\)--\%(\s\|$\)')
-  let l:words = split(l:start < 0 ? a:args : strpart(a:args, 0, l:start))
-  let l:parsed = {'persona': 'default', 'given': [], 'query': []}
-  if get(l:words, 0, '') =~# '^@.'
+  let [l:_, l:start, l:end] = matchstrpos(a:args, '\%(^\|\s\)--\%(\s\|$\)')
+  let l:head = l:start < 0 ? a:args : strpart(a:args, 0, l:start)
+  let l:words = []
+  let l:pos = 0
+  while 1
+    let [l:word, l:s, l:pos] = matchstrpos(l:head, '[#@]\%(\h\w*:\)\="[^"]*"\|\S\+', l:pos)
+    if l:s < 0
+      break
+    endif
+    call add(l:words, l:word)
+  endwhile
+  let l:parsed = {'persona': 'default', 'given': [], 'files': [], 'pick': [], 'query': []}
+  if get(l:words, 0, '') =~# '^/\a[[:alnum:]_-]*$'
     let l:parsed.persona = remove(l:words, 0)[1:]
   endif
   for l:word in l:words
-    if l:word =~# '^#\h\w*$'
-      if !prompts#source#exists(l:word[1:])
-        call s:error('no context source ' . l:word . ' (#'
-              \ . join(prompts#source#names(), ', #') . '); text after -- is taken as is')
+    let l:word = substitute(l:word, '^\([#@]\%(\h\w*:\)\=\)"\(.*\)"$', '\1\2', '')
+    if l:word =~# '^#\h'
+      let l:source = prompts#source#parse(l:word[1:])
+      if has_key(l:source, 'error')
+        call s:error(l:source.error . '; text after -- is taken as is')
         return {}
       endif
-      call add(l:parsed.given, l:word[1:])
+      call add(l:parsed.given, l:source)
+    elseif l:word =~# '^@'
+      let l:found = s:files(l:word[1:])
+      if empty(l:found)
+        return {}
+      endif
+      let l:parsed.files += l:found.files
+      let l:parsed.pick += l:found.pick
     else
       call add(l:parsed.query, l:word)
     endif
   endfor
+  if len(l:parsed.pick) > 1
+    call s:error('one @ to pick files with, per ask')
+    return {}
+  endif
   if l:start >= 0
     call add(l:parsed.query, trim(a:args[l:end :]))
   endif
@@ -52,12 +98,32 @@ function! s:parse(args) abort
   return l:parsed
 endfunction
 
-" The request; context is filled in by the sources as they are asked for
+" ---------------------------------------------------------------------------
+" The request
+
+" The repo's .vim-prompts/repository.md: what the repository is, for every
+" ask in it
+function! s:repository(bufnr) abort
+  let l:tree = FugitiveWorkTree(a:bufnr)
+  if empty(l:tree)
+    let l:tree = FugitiveWorkTree(FugitiveExtractGitDir(getcwd()))
+  endif
+  let l:file = l:tree . '/.vim-prompts/repository.md'
+  if empty(l:tree) || !filereadable(l:file)
+    return ''
+  endif
+  let l:text = trim(join(readfile(l:file), "\n"))
+  return empty(l:text) ? ''
+        \ : "About this repository (.vim-prompts/repository.md):\n\n" . l:text
+endfunction
+
+" Context is filled in by the sources as they are asked for
 function! s:request(range, line1, line2, query, sources) abort
-  let l:request = {'query': a:query, 'sources': a:sources,
+  let l:request = {'query': a:query, 'sources': a:sources, 'dirs': [],
         \ 'bufnr': bufnr(), 'line': a:range ? a:line1 : line('.'),
         \ 'range': a:range, 'line1': a:line1, 'line2': a:line2,
-        \ 'selection': [], 'charwise': 0, 'context': {}}
+        \ 'selection': [], 'charwise': 0, 'context': {},
+        \ 'repository': s:repository(bufnr())}
   " In a :G diff --name-only buffer the range picks files, not text
   if !a:range || prompts#source#is_file_list(bufnr())
     return l:request
@@ -73,93 +139,132 @@ function! s:request(range, line1, line2, query, sources) abort
   return l:request
 endfunction
 
-" What is missing for the request, '' when nothing: each #source asked for
-" must have context, and so must one of the persona's (the selection counts)
-function! s:missing(persona, request, given) abort
-  for l:name in a:given
-    if empty(prompts#source#context(l:name, a:request))
-      return '#' . l:name . ' has nothing: needs ' . prompts#source#needs(l:name)
+" Adds the @files: one `files` source, and the directories outside the work
+" tree for the agent to be allowed in
+function! s:add_files(request, files) abort
+  if empty(a:files)
+    return
+  endif
+  call add(a:request.sources, {'name': 'files', 'arg': join(uniq(copy(a:files)), "\n")})
+  let l:tree = FugitiveWorkTree(a:request.bufnr)
+  for l:file in a:files
+    if empty(l:tree) || stridx(l:file, l:tree . '/') != 0
+      call add(a:request.dirs, fnamemodify(l:file, ':h'))
     endif
   endfor
-  if empty(a:request.sources) || !empty(a:request.selection)
+  call uniq(sort(a:request.dirs))
+endfunction
+
+" What is missing for the request, '' when nothing: each #source asked for
+" must have context, and a persona with sources needs context from one of
+" the request's (its own, those added, the files) or a selection
+function! s:missing(persona, request, given) abort
+  for l:source in a:given
+    if empty(prompts#source#context(l:source, a:request))
+      return '#' . l:source.name . ' has nothing: needs '
+            \ . prompts#source#info(l:source.name).needs
+    endif
+  endfor
+  let l:own = a:persona.meta.context
+  if empty(l:own) || !empty(a:request.selection)
     return ''
   endif
-  for l:name in a:request.sources
-    if !empty(prompts#source#context(l:name, a:request))
+  for l:source in a:request.sources
+    if !empty(prompts#source#context(l:source, a:request))
       return ''
     endif
   endfor
-  return '@' . a:persona.name . ' needs '
-        \ . join(map(copy(a:request.sources), 'prompts#source#needs(v:val)'), ', or ')
+  return '/' . a:persona.name . ' needs '
+        \ . join(map(copy(l:own), 'prompts#source#info(v:val.name).needs'), ', or ')
 endfunction
 
-" [persona, request, prompt] for the command's arguments, or [] with the
-" error given. ! skips the check for context.
-function! s:prompt(bang, range, line1, line2, args) abort
+" Renders the prompt for the command's arguments and passes [persona,
+" request, prompt] to Then, once the files are picked when @ asks for that.
+" Errors are given instead; ! skips the check for context.
+function! s:prompt(bang, range, line1, line2, args, Then) abort
   let l:parsed = s:parse(a:args)
   if empty(l:parsed)
-    return []
+    return
   endif
   let l:persona = prompts#persona#get(l:parsed.persona)
   if empty(l:persona)
-    return []
+    return
   endif
   let l:sources = copy(l:persona.meta.context)
-  call extend(l:sources, filter(copy(l:parsed.given), 'index(l:sources, v:val) < 0'))
+  for l:source in l:parsed.given
+    if index(l:sources, l:source) < 0
+      call add(l:sources, l:source)
+    endif
+  endfor
   let l:request = s:request(a:range, a:line1, a:line2, l:parsed.query, l:sources)
+  let l:Finish = {files -> s:finish(a:bang, l:persona, l:request, l:parsed,
+        \ l:parsed.files + files, a:Then)}
+  if empty(l:parsed.pick)
+    call l:Finish([])
+  elseif empty(get(g:, 'prompts_file_picker', ''))
+    call s:error('@ without a file needs g:prompts_file_picker (README)')
+  else
+    " The picker may call back at once, or later (fzf runs in a terminal)
+    call call(g:prompts_file_picker, [l:parsed.pick[0], l:Finish])
+  endif
+endfunction
+
+function! s:finish(bang, persona, request, parsed, files, Then) abort
+  call s:add_files(a:request, a:files)
   if !a:bang
-    let l:missing = s:missing(l:persona, l:request, l:parsed.given)
+    let l:missing = s:missing(a:persona, a:request, a:parsed.given)
     if !empty(l:missing)
       call s:error(l:missing . ' (! asks anyway)')
-      return []
+      return
     endif
   endif
-  return [l:persona, l:request, prompts#template#render(l:persona.template, l:request)]
+  call a:Then(a:persona, a:request, prompts#template#render(a:persona.template, a:request))
 endfunction
 
 " Starts the agent; the persona may then clear the comments it was given
-function! s:send(prompt, meta, sources) abort
-  if prompts#agent#launch(a:prompt, a:meta) && get(a:meta, 'consume_comments', 0)
-        \ && index(a:sources, 'comments') >= 0
+function! s:send(prompt, meta, request) abort
+  if prompts#agent#launch(a:prompt, a:meta, a:request.dirs)
+        \ && get(a:meta, 'consume_comments', 0)
+        \ && index(map(copy(a:request.sources), 'v:val.name'), 'comments') >= 0
     call git_extras#comments#clear()
   endif
 endfunction
 
-" :[range]Ai[!] [@persona] [#source...] [query] [-- text]. With nothing, opens the
-" agent bare, or focuses the bare session already running.
+" ---------------------------------------------------------------------------
+" Commands
+
+" :[range]Ai[!] [/persona] [#source...] [@path...] [query] [-- text]. With
+" nothing, opens the agent bare, or focuses the bare session already running.
 function! prompts#ask(bang, range, line1, line2, args) abort
   if empty(trim(a:args)) && !a:range
-    call prompts#agent#launch('', {})
+    call prompts#agent#launch('', {}, [])
     return
   endif
-  let l:prompt = s:prompt(a:bang, a:range, a:line1, a:line2, a:args)
-  if !empty(l:prompt)
-    call s:send(l:prompt[2], l:prompt[0].meta, l:prompt[1].sources)
-  endif
+  call s:prompt(a:bang, a:range, a:line1, a:line2, a:args,
+        \ {persona, request, prompt -> s:send(prompt, persona.meta, request)})
 endfunction
 
 " :[range]AiDraft[!] ...: the same prompt in a buffer to edit; :w sends it
-" (:wq and close), :q! drops it
+" and leaves it open, :wq sends it and closes it, :q! drops it
 function! prompts#draft(bang, range, line1, line2, args) abort
-  let l:prompt = s:prompt(a:bang, a:range, a:line1, a:line2, a:args)
-  if empty(l:prompt)
-    return
-  endif
-  let [l:persona, l:request, l:text] = l:prompt
-  let l:command = prompts#agent#command(l:persona.meta)
+  call s:prompt(a:bang, a:range, a:line1, a:line2, a:args, function('s:open_draft'))
+endfunction
+
+function! s:open_draft(persona, request, prompt) abort
+  let l:command = prompts#agent#command(a:persona.meta, a:request.dirs)
   botright vnew
   setlocal buftype=acwrite bufhidden=wipe noswapfile filetype=markdown
-  execute 'silent file' fnameescape('ai-draft://' . l:persona.name . '/' . bufnr())
-  call setline(1, split(l:text, "\n", 1))
-  if empty(l:request.query)
+  execute 'silent file' fnameescape('ai-draft://' . a:persona.name . '/' . bufnr())
+  call setline(1, split(a:prompt, "\n", 1))
+  if empty(a:request.query)
     " Room for the query, last
     call append('$', ['', ''])
   endif
   normal! G
   setlocal nomodified
-  let b:prompts_draft = {'meta': l:persona.meta, 'sources': l:request.sources}
+  let b:prompts_draft = {'meta': a:persona.meta, 'request': a:request}
   let &l:statusline = '%f  ' . (empty(l:command) ? '(no agent)'
-        \ : substitute(join(l:command[1]), '%', '%%', 'g') . ' <this>')
+        \ : substitute(join(l:command[1] + ['<this>'] + l:command[2]), '%', '%%', 'g'))
         \ . '%=:w sends, :wq sends and closes, :q! drops '
   augroup prompts_draft
     autocmd! * <buffer>
@@ -175,25 +280,29 @@ function! s:send_draft() abort
   endif
   " Left open: :wq sends and closes, :w sends again after more edits
   setlocal nomodified
-  call s:send(l:prompt, b:prompts_draft.meta, b:prompts_draft.sources)
+  call s:send(l:prompt, b:prompts_draft.meta, b:prompts_draft.request)
 endfunction
 
-" @personas first, #sources anywhere before --
+" /personas first; #sources and @files anywhere before --
 function! prompts#complete(lead, cmdline, pos) abort
   if a:cmdline[: a:pos - 1] =~# '\s--\s'
     return []
   elseif a:lead =~# '^#'
-    return map(prompts#source#names(), '"#" . v:val')
-          \ ->filter('stridx(v:val, a:lead) == 0')
-  elseif a:lead =~# '^@' && a:cmdline[: a:pos - 1] =~# '^\S*\s\+\S*$'
-    return map(prompts#persona#names(), '"@" . v:val')
-          \ ->filter('stridx(v:val, a:lead) == 0')
+    let l:names = filter(prompts#source#names(), 'v:val !=# "files"')
+    return filter(map(l:names, {_, n -> '#' . n
+          \ . (prompts#source#info(n).arg ==# 'required' ? ':' : '')}),
+          \ 'stridx(v:val, a:lead) == 0')
+  elseif a:lead =~# '^@'
+    return map(getcompletion(a:lead[1:], 'file'), '"@" . v:val')
+  elseif a:lead =~# '^/' && a:cmdline[: a:pos - 1] =~# '^\S*\s\+\S*$'
+    return filter(map(prompts#persona#names(), '"/" . v:val'),
+          \ 'stridx(v:val, a:lead) == 0')
   endif
   return []
 endfunction
 
-" :AiPersonas[!]: each persona, where it comes from, its default sources,
-" and what it needs that isn't here. With !, reload the persona files first.
+" :AiPersonas[!]: each persona, its context, where it comes from, and what it
+" needs that isn't here. With !, reload the persona and source files first.
 function! prompts#list(reload) abort
   if a:reload
     call prompts#persona#load()
@@ -203,12 +312,13 @@ function! prompts#list(reload) abort
     if empty(l:persona)
       continue
     endif
-    let l:sources = l:persona.meta.context
-    let l:request = s:request(0, line('.'), line('.'), '', l:sources)
+    let l:own = l:persona.meta.context
+    let l:request = s:request(0, line('.'), line('.'), '', copy(l:own))
     echohl Identifier
-    echo printf('%-16s', '@' . l:name)
+    echo printf('%-16s', '/' . l:name)
     echohl None
-    echon printf('%-28s %-8s %s', join(map(copy(l:sources), '"#" . v:val')),
+    echon printf('%-28s %-8s %s',
+          \ join(map(copy(l:own), '"#" . v:val.name . (empty(v:val.arg) ? "" : ":" . v:val.arg)')),
           \ l:persona.source, fnamemodify(l:persona.file, ':~'))
     let l:missing = s:missing(l:persona, l:request, [])
     if !empty(l:missing)

@@ -1,14 +1,14 @@
 " Personas: markdown files whose body is a template and whose frontmatter
 " names the persona's default context sources and how the agent runs for it
-" (CONTRACT.md). The name is the file name, asked for as @name; `default` is
+" (CONTRACT.md). The name is the file name, asked for as /name; `default` is
 " the persona :Ai asks without one. Found in, later ones win: this plugin's
 " personas/, then every other personas/ on 'runtimepath' (a pack:
 " ~/.vim/personas, or a plugin that ships personas), then the repo's
-" .vim-personas/.
+" .vim-prompts/personas/.
 
 let s:bundled = expand('<sfile>:p:h:h:h') . '/personas'
 " The newest CONTRACT.md version this plugin implements
-let s:contract = 1
+let s:contract = 2
 " name -> {name, file, source}
 let s:personas = {}
 let s:keys = ['contract', 'context', 'agent', 'args', 'consume_comments']
@@ -98,12 +98,15 @@ function! s:read(file) abort
     throw 'needs contract ' . l:meta.contract . ', vim-prompts implements '
           \ . s:contract . ' (update vim-prompts)'
   endif
+  " `name` or `name:arg` -> {name, arg}
   let l:context = get(l:meta, 'context', [])
-  let l:meta.context = type(l:context) == v:t_list ? l:context : [l:context]
-  for l:source in l:meta.context
-    if !prompts#source#exists(l:source)
-      throw 'context: no source ' . string(l:source)
+  let l:meta.context = []
+  for l:item in type(l:context) == v:t_list ? l:context : [l:context]
+    let l:source = prompts#source#parse(l:item)
+    if has_key(l:source, 'error')
+      throw 'context: ' . l:source.error
     endif
+    call add(l:meta.context, l:source)
   endfor
   return {'meta': l:meta, 'template': l:lines[l:end + 1 :]}
 endfunction
@@ -120,12 +123,13 @@ function! s:dirs() abort
   endfor
   let l:tree = FugitiveWorkTree(FugitiveExtractGitDir(getcwd()))
   if !empty(l:tree)
-    call add(l:dirs, ['repo', l:tree . '/.vim-personas'])
+    call add(l:dirs, ['repo', l:tree . '/.vim-prompts/personas'])
   endif
   return l:dirs
 endfunction
 
 function! prompts#persona#load() abort
+  call prompts#source#load()
   let s:personas = {}
   for [l:source, l:dir] in s:dirs()
     for l:file in sort(glob(l:dir . '/*.md', 1, 1))
@@ -167,7 +171,7 @@ endfunction
 function! prompts#persona#get(name) abort
   let l:p = get(s:personas, a:name, {})
   if empty(l:p)
-    call s:error('no persona @' . a:name . ' (:' . prompts#namespace() . 'Personas!)')
+    call s:error('no persona /' . a:name . ' (:' . prompts#namespace() . 'Personas!)')
     return {}
   endif
   try

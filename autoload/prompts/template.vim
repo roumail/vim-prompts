@@ -1,8 +1,9 @@
-" A template is a persona's text with slots: {query}, {selection}, {context}
-" for the context of the request's sources, and {<source>} to place one of
-" them elsewhere. Rendering it for a request gives the prompt. Nothing asked
-" for is dropped: without {query} the query goes last, and without
-" {context} or {selection} those go just before the query.
+" A template is a persona's text with slots: {query}, {selection},
+" {repository} for the repo's .vim-prompts/repository.md, {context} for the
+" context of the request's sources, and {<source>} to place one of them
+" elsewhere. Rendering it for a request gives the prompt. Nothing asked for
+" is dropped: without {query} the query goes last, and without {repository},
+" {context} or {selection} those go just before the query, in that order.
 
 function! prompts#template#render(template, request) abort
   let l:prompt = join(a:template, "\n")
@@ -10,25 +11,29 @@ function! prompts#template#render(template, request) abort
   if stridx(l:prompt, '{query}') < 0
     let l:prompt .= "\n\n{query}"
   endif
-  for l:slot in ['{selection}', '{context}']
+  for l:slot in ['{repository}', '{context}', '{selection}']
     if stridx(l:prompt, l:slot) < 0
       let l:prompt = substitute(l:prompt, '{query}', l:slot . "\n\n{query}", '')
     endif
   endfor
-  " Slots of sources not asked for stay empty; the request's sources go in
-  " their own slot, else in {context}
-  let l:values = {}
+  " The request's sources go in their own slot, else in {context}; slots of
+  " sources not asked for stay empty
+  let l:slots = {}
   let l:context = []
-  for l:name in prompts#source#names()
-    let l:text = index(a:request.sources, l:name) < 0 ? ''
-          \ : prompts#source#context(l:name, a:request)
-    if stridx(l:prompt, '{' . l:name . '}') >= 0
-      let l:values[l:name] = l:text
+  for l:source in a:request.sources
+    let l:text = prompts#source#context(l:source, a:request)
+    if stridx(l:prompt, '{' . l:source.name . '}') >= 0
+      let l:slots[l:source.name] = get(l:slots, l:source.name, []) + [l:text]
     elseif !empty(l:text)
-      call add(l:context, [index(a:request.sources, l:name), l:text])
+      call add(l:context, l:text)
     endif
   endfor
-  let l:values.context = join(map(sort(l:context, {a, b -> a[0] - b[0]}), 'v:val[1]'), "\n\n")
+  let l:values = {}
+  for l:name in prompts#source#names()
+    let l:values[l:name] = join(get(l:slots, l:name, []), "\n\n")
+  endfor
+  let l:values.context = join(l:context, "\n\n")
+  let l:values.repository = a:request.repository
   let l:values.selection = prompts#source#selection(a:request)
   let l:values.query = (l:heading ? "Additional request from the user:\n" : '')
         \ . a:request.query

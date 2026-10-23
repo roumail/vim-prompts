@@ -2,12 +2,13 @@
 " message; the session stays interactive. Installing and configuring the CLI
 " (auth, model) is up to the user; this only checks it is executable.
 
-" name -> {cmd, prompt}: argv is cmd + the persona's args + prompt + [the
-" prompt].
+" name -> {cmd, prompt, dir}: argv is cmd + the persona's args + prompt +
+" [the prompt] + [dir, directory] for each directory outside the repo the
+" agent may read (after the prompt: claude's --add-dir takes several).
 " Extended (or overridden) by g:prompts_agent_table.
 let s:agents = {
-      \ 'claude': {'cmd': ['claude'], 'prompt': []},
-      \ 'copilot': {'cmd': ['copilot'], 'prompt': ['-i']},
+      \ 'claude': {'cmd': ['claude'], 'prompt': [], 'dir': '--add-dir'},
+      \ 'copilot': {'cmd': ['copilot'], 'prompt': ['-i'], 'dir': '--add-dir'},
       \ }
 
 function! s:error(msg) abort
@@ -78,14 +79,19 @@ function! s:prompt_file(prompt) abort
   return l:file
 endfunction
 
-" [agent, argv before the prompt] for the persona, or [] with the error given
-function! prompts#agent#command(meta) abort
+" [agent, argv before the prompt, argv after it] for the persona and the
+" directories, or [] with the error given
+function! prompts#agent#command(meta, dirs) abort
   let l:name = s:pick(a:meta, get(g:, 'prompts_agent', ''))
   if empty(l:name)
     return []
   endif
   let l:agent = s:table()[l:name]
-  return [l:name, l:agent.cmd + s:args(a:meta, l:name) + l:agent.prompt]
+  let l:after = []
+  for l:dir in a:dirs
+    let l:after += empty(get(l:agent, 'dir', '')) ? [] : [l:agent.dir, l:dir]
+  endfor
+  return [l:name, l:agent.cmd + s:args(a:meta, l:name) + l:agent.prompt, l:after]
 endfunction
 
 " Starts the agent with the prompt ('' just opens it) through vim-dispatch's
@@ -93,12 +99,12 @@ endfunction
 " terminal), and :Ai with nothing focuses the bare session already running. The
 " prompt is passed as "$(cat file)", so its length doesn't matter to tmux;
 " past g:prompts_max_arg the agent is told to read the file. 1 when started.
-function! prompts#agent#launch(prompt, meta) abort
-  let l:command = prompts#agent#command(a:meta)
+function! prompts#agent#launch(prompt, meta, dirs) abort
+  let l:command = prompts#agent#command(a:meta, a:dirs)
   if empty(l:command)
     return 0
   endif
-  let [l:name, l:argv] = l:command
+  let [l:name, l:argv, l:after] = l:command
   if empty(a:prompt)
     let l:argv = l:argv[: -1 - len(s:table()[l:name].prompt)]
   endif
@@ -110,6 +116,7 @@ function! prompts#agent#launch(prompt, meta) abort
           \ : ' ' . shellescape('My request and its context are in ' . l:file
           \ . '. Read it first, then follow it.')
   endif
+  let l:cmd .= join([''] + map(l:after, 'shellescape(v:val)'))
   let l:tree = FugitiveWorkTree()
   execute 'Start -wait=error -title=' . l:name
         \ . ' -dir=' . fnameescape(empty(l:tree) ? getcwd() : l:tree) . ' ' . l:cmd

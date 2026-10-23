@@ -1,8 +1,9 @@
 " vim-prompts: ask an AI agent CLI (Claude Code, Copilot CLI) as one of its
-" personas, Copilot Chat style: `:Ai @review #comments why is this here`. The
-" persona's template, rendered with the query and the context asked for
-" (diffs, a :G diff --name-only list, the selection, git-extras review
-" comments), is the agent's first prompt. Commands and <Plug> mappings only;
+" personas, in the CLIs' own grammar: `:Ai /review #comments @notes.md why`.
+" The persona's template, rendered with the query, the context asked for
+" (diffs, a :G diff --name-only list, files, the selection, git-extras review
+" comments) and the repository's .vim-prompts/repository.md, is the agent's
+" first prompt. Commands and <Plug> mappings only;
 " no keys are bound here. Requires tpope/vim-fugitive,
 " tpope/vim-dispatch (the agent runs with :Start) and roumail/git-extras.
 " The agent CLI (install, auth, model) is yours to set up; this only checks
@@ -29,7 +30,8 @@ function! s:init() abort
   endif
 
   let l:ns = prompts#namespace()
-  " [@persona] [#source...] [query]: ask the persona (default: `default`)
+  " [/persona] [#source[:arg]...] [@path...] [query] [-- text]: ask the
+  " persona (default: `default`)
   " with its context and the sources asked for; with nothing, open the agent
   execute 'command! -bang -range -nargs=* -complete=customlist,prompts#complete '
         \ . l:ns . ' call prompts#ask(<bang>0, <range>, <line1>, <line2>, <q-args>)'
@@ -46,7 +48,7 @@ function! s:init() abort
   execute 'nnoremap <Plug>(prompts-draft) :<C-u>' . l:ns . 'Draft<Space>'
   execute 'xnoremap <Plug>(prompts-draft) :' . l:ns . 'Draft<Space>'
 
-  " A repo's .vim-personas/ come and go with the working directory
+  " A repo's .vim-prompts/personas/ come and go with the working directory
   augroup prompts
     autocmd!
     autocmd DirChanged * call prompts#persona#load()

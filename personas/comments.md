@@ -1,6 +1,8 @@
 ---
 context: [comments]
 ---
+{repository}
+
 These are review comments I left while reading code in Vim.
 
 {context}
