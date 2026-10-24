@@ -1,5 +1,5 @@
 ---
-context: [diff_files, diff_pairs]
+context: [changes]
 args: {claude: [--permission-mode, plan]}
 ---
 {repository}

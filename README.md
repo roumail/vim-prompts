@@ -43,11 +43,11 @@ let g:prompts_file_picker = 'fzf_utils#fd#files#pick'
 :'<,'>Ai why is this loop reversed
 ```
 
-**Review a change.** List the changed files with fugitive, then ask:
+**Review a change.** Your branch, committed or not, or only what's staged:
 
 ```vim
-:G diff --cached --name-only
 :Ai /review is the error handling consistent
+:Ai /review #changes:staged
 ```
 
 **Ask about your review comments.** Leave them with `:Comment` (git-extras),

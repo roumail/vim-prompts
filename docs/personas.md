@@ -6,7 +6,7 @@ prompt itself, with slots that vim-prompts fills in.
 
 ```markdown
 ---
-context: [diff_files, diff_pairs]
+context: [changes]
 args: {claude: [--permission-mode, plan]}
 ---
 {repository}
@@ -31,7 +31,7 @@ need `:AiPersonas!`, which also lists where every persona comes from.
 | --- | --- | --- |
 | `/default` | | Your query, the selection, and what you add. Used without a `/persona`. |
 | `/explain` | `#file` | Explains the selection, or the code at your line. Doesn't edit. |
-| `/review` | `#diff_files #diff_pairs` | Reviews the change, and answers your comments if you add `#comments`. Read only (Claude: plan mode). |
+| `/review` | `#changes` | Reviews your branch's changes, and answers your comments if you add `#comments`. Read only (Claude: plan mode). |
 
 ## Where personas go
 

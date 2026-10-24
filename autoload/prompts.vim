@@ -124,8 +124,7 @@ function! s:request(range, line1, line2, query, sources) abort
         \ 'range': a:range, 'line1': a:line1, 'line2': a:line2,
         \ 'selection': [], 'charwise': 0, 'context': {},
         \ 'repository': s:repository(bufnr())}
-  " In a :G diff --name-only buffer the range picks files, not text
-  if !a:range || prompts#source#is_file_list(bufnr())
+  if !a:range
     return l:request
   endif
   let l:mode = visualmode()

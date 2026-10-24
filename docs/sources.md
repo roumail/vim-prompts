@@ -8,8 +8,8 @@ for is sent, whatever else is open.
 | | For |
 | --- | --- |
 | [`#file`](#file) | the file and line you're on |
-| [`#diff_files`](#diff_files) | the files of a change, listed with `:G diff --name-only` |
-| [`#diff_pairs`](#diff_pairs) | the diffs open in Vim |
+| [`#changes`](#changes) | the files your branch changes, committed or not |
+| [`#diff_pairs`](#diff_pairs) | the diffs you have open in Vim |
 | [`#comments`](#comments) | your review comments |
 | [`@path`](#files) | files for the agent to read |
 | [`#repo`](#repo) | a GitHub repository |
@@ -33,35 +33,38 @@ Current file: `src/app.py`, line 42
 In a fugitive buffer (a commit's or the index's version of a file), the agent
 is told the git object to read it with: `` (index version: `git show :0:src/app.py`) ``.
 
-## #diff_files
+## #changes
 
-The files of a change. List them in a tab with fugitive, then ask from that
-tab:
+The files a change touches, worked out from git: nothing to open first.
 
-```vim
-:G diff --cached --name-only        " staged
-:G diff main...HEAD --name-only     " the branch
-:Ai /review
+| | The change |
+| --- | --- |
+| `#changes` | Your branch: everything since it forked from the default branch (`origin/main`, or `main`/`master`), committed or not, and new untracked files. On the default branch itself, what isn't committed. |
+| `#changes:staged` | What you're about to commit: the index against `HEAD`. |
+| `#changes:<branch>` | Another branch's commits since it forked, without checking it out (`#changes:origin/feature`). |
+
+These are the same scopes as git-extras' `:BranchDiff`. The agent gets the
+files with their status, and the `git diff` that shows each, so it reads the
+same change you'd see:
+
+```
+Changes on this branch since it forked from origin/main at e309eb0, committed or not (status, path):
+- M src/app.py
+- A src/retry.py
+- ? notes.txt
+Read each with `git diff e309eb0 -- <path>`; a `?` file is new and untracked, read it as it is.
 ```
 
-The agent gets the list and the `git diff` to read each file with, so it sees
-the same change you do:
-
-```
-Changed files (`git diff --cached --name-only`):
-- src/app.py
-- src/db.py
-Read each with `git diff --cached -- <path>`.
-```
-
-To send fewer files, delete lines from that buffer, or select some and ask
-from there (`:'<,'>Ai /review`). `--name-status` works too. `/review` takes
-it.
+`/review` takes it, so `:Ai /review` reviews your branch, and
+`:Ai /review #changes:staged` what you're about to commit. To review only some
+files, name them instead: `:Ai /review @src/app.py`.
 
 ## #diff_pairs
 
-The diffs open in Vim, in every tab: the two sides of each, left to right.
-Open one with `:Gdiffsplit`, or git-extras' `:DiffThis` or `:BranchDiff`.
+What you're looking at: the diffs open in Vim, in every tab, the two sides of
+each, left to right. Unlike `#changes` it depends on your windows, so use it
+when you've set up the comparison yourself: a branch checked out and
+`:BranchDiff` open, or `:Gdiffsplit` / `:DiffThis` against a commit.
 
 ```
 Diffs open in Vim, one per tab:
@@ -69,8 +72,9 @@ Diffs open in Vim, one per tab:
 Read a side that is not the work tree with `git show <object>`.
 ```
 
-`/review` takes it, so a review covers the files you're looking at side by
-side as well as the listed ones.
+```vim
+:Ai /review #diff_pairs        " review the diffs I have open
+```
 
 ## #comments
 

@@ -1,7 +1,7 @@
 " vim-prompts: ask an AI agent CLI (Claude Code, Copilot CLI) as one of its
 " personas, in the CLIs' own grammar: `:Ai /review #comments @notes.md why`.
 " The persona's template, rendered with the query, the context asked for
-" (diffs, a :G diff --name-only list, files, the selection, git-extras review
+" (the change, the diffs open, files, the selection, git-extras review
 " comments) and the repository's .vim-prompts/repository.md, is the agent's
 " first prompt. Commands and <Plug> mappings only;
 " no keys are bound here. Requires tpope/vim-fugitive,

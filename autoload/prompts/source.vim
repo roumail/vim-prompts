@@ -113,30 +113,6 @@ function! prompts#source#is_file(bufnr) abort
         \ && empty(FugitiveResult(a:bufnr))
 endfunction
 
-" The args of a `:G diff --name-only` (or --name-status) buffer, else []
-function! prompts#source#file_list_args(bufnr) abort
-  let l:args = get(FugitiveResult(a:bufnr), 'args', [])
-  return get(l:args, 0, '') ==# 'diff'
-        \ && (index(l:args, '--name-only') >= 0 || index(l:args, '--name-status') >= 0)
-        \ ? l:args : []
-endfunction
-
-" Whether the buffer is such a file list: there a range picks files, it
-" doesn't select text
-function! prompts#source#is_file_list(bufnr) abort
-  return !empty(prompts#source#file_list_args(a:bufnr))
-endfunction
-
-" A file list in this tab, the current buffer first; 0 if none
-function! prompts#source#file_list() abort
-  for l:nr in [bufnr()] + tabpagebuflist()
-    if prompts#source#is_file_list(l:nr)
-      return l:nr
-    endif
-  endfor
-  return 0
-endfunction
-
 " Lines a to b of a file, from its buffer when loaded (unsaved edits count)
 function! prompts#source#lines(file, a, b) abort
   for l:info in getbufinfo({'bufloaded': 1})
@@ -145,10 +121,6 @@ function! prompts#source#lines(file, a, b) abort
     endif
   endfor
   return filereadable(a:file) ? readfile(a:file, '', a:b)[a:a - 1 :] : []
-endfunction
-
-function! prompts#source#shellarg(arg) abort
-  return a:arg =~# '^[[:alnum:]_./:=@^~-]\+$' ? a:arg : shellescape(a:arg)
 endfunction
 
 " ---------------------------------------------------------------------------

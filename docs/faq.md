@@ -3,7 +3,7 @@
 ## Why was my ask refused?
 
 There was no context to send, and the message says what is missing: for
-example `/review` with no `:G diff --name-only` buffer in the tab, or
+example `/review` on a branch with no changes, or
 `#comments` with no comments. `:Ai!` asks anyway. See
 [when a persona can be asked](personas.md#frontmatter).
 
