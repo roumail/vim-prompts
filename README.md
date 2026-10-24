@@ -42,29 +42,38 @@ Plug 'roumail/vim-prompts'
 
 ## Use
 
-**Explain code.** Select lines, then:
+Each step adds one thing to the one before it; stop at whichever is enough.
+
+**If all you want is to ask about some code,** select it and ask:
 
 ```vim
-:'<,'>Ai /explain
 :'<,'>Ai why is this loop reversed
 ```
 
-**Review a change.** Your branch, committed or not, or only what's staged:
+The agent opens with your question and the lines. Carry on the conversation
+there; `:Ai` alone brings you back to it, and `/exit` or Ctrl-D leaves it.
+Only this first prompt is sent from Vim.
+
+**If you don't want to write a question,** use a persona, a saved prompt
+that asks for you. `/explain` asks what the code does, why it's written that
+way and what's surprising, and sends the whole file around your lines:
+
+```vim
+:'<,'>Ai /explain
+```
+
+Without a selection it explains the code at your cursor. Without a persona
+you get `/default`, which adds nothing to your query.
+
+**If you want it to look at your change,** `/review` brings in your branch,
+committed or not; `#changes:staged` narrows it to what's staged:
 
 ```vim
 :Ai /review is the error handling consistent
 :Ai /review #changes:staged
 ```
 
-**Ask about your review comments.** Leave them with `:Comment` (vim-review),
-then:
-
-```vim
-:Ai #comments I think the second one is wrong
-:Ai /review #comments
-```
-
-**Bring in more.** Files with `@`, other context with `#`
+**If it needs more than that,** add files with `@` and other context with `#`
 ([all of them](docs/sources/)):
 
 ```vim
@@ -72,27 +81,20 @@ then:
 :Ai #repo:tpope/vim-dispatch how does :Start pick a handler
 ```
 
-**Edit the prompt first.** `:AiDraft` opens it in a buffer; `:w` sends it.
-
-`:Ai` alone goes back to the agent. `<Tab>` completes everything. To leave a
-Vim terminal agent, use `/exit` or Ctrl-D.
-
-## How it reads
+Put together, an ask reads:
 
 ```
 :Ai /persona #context @files your question
 ```
 
-Without a persona you get `/default`, which adds nothing to your query. A
-selection, if you made one, always goes. Only this first prompt is sent; the
-rest of the conversation happens in the agent.
+A selection, if you made one, always goes. `:Ai` refuses when there's no
+context to send; `:Ai!` asks anyway. `<Tab>` completes everything.
 
-`:Ai` refuses when there's no context to send; `:Ai!` asks anyway.
+**If you want to edit the prompt before it goes,** `:AiDraft` opens it in a
+buffer; `:w` sends it ([usage](docs/usage.md)).
 
-## Per project
-
-Each repository can brief the agent its own way, from `.vim-prompts/` at its
-root:
+**If you want every ask in a project briefed the same way,** add
+`.vim-prompts/` at the repository root:
 
 - `repository.md`: what the project is, its layout and conventions, how to
   run the tests. It opens every ask made there.
@@ -100,7 +102,8 @@ root:
   a built-in (`personas/review.md` with your team's review checklist).
 
 Commit it to share it, or list `.vim-prompts/` in `.git/info/exclude` to keep
-it to yourself. Personas for every project go in `~/.vim/personas/`.
+it to yourself. Personas for every project go in `~/.vim/personas/`
+([personas](docs/personas.md)).
 
 ## More
 
