@@ -2,14 +2,24 @@
 " message; the session stays interactive. Installing and configuring the CLI
 " (auth, model) is up to the user; this only checks it is executable.
 
-" name -> {cmd, prompt, dir}: argv is cmd + the persona's args + prompt +
-" [the prompt] + [dir, directory] for each directory outside the repo the
-" agent may read (after the prompt: claude's --add-dir takes several).
-" Extended (or overridden) by g:prompts_agent_table.
+" name -> {cmd, prompt, dir, vim_terminal}: argv is cmd + vim_terminal
+" when it runs in a Vim terminal + the persona's args + prompt + [the prompt]
+" + [dir, directory] for each directory outside the repo the agent may read
+" (after the prompt: claude's --add-dir takes several). Claude's fullscreen
+" renderer doesn't start in a Vim terminal (blank window), so there it uses
+" the classic one. Extended (or overridden) by g:prompts_agent_table.
 let s:agents = {
-      \ 'claude': {'cmd': ['claude'], 'prompt': [], 'dir': '--add-dir'},
+      \ 'claude': {'cmd': ['claude'], 'prompt': [], 'dir': '--add-dir',
+      \   'vim_terminal': ['--settings', '{"tui":"default"}']},
       \ 'copilot': {'cmd': ['copilot'], 'prompt': ['-i'], 'dir': '--add-dir'},
       \ }
+
+" Whether :Start runs in a Vim terminal rather than tmux or screen, as
+" vim-dispatch decides
+function! s:vim_terminal() abort
+  return empty($STY) && (get(g:, 'dispatch_no_tmux_start', 0)
+        \ || empty($TMUX) && empty(get(g:, 'tmux_session', '')))
+endfunction
 
 function! s:error(msg) abort
   echohl ErrorMsg
@@ -91,7 +101,8 @@ function! prompts#agent#command(meta, dirs) abort
   for l:dir in a:dirs
     let l:after += empty(get(l:agent, 'dir', '')) ? [] : [l:agent.dir, l:dir]
   endfor
-  return [l:name, l:agent.cmd + s:args(a:meta, l:name) + l:agent.prompt, l:after]
+  let l:before = l:agent.cmd + (s:vim_terminal() ? get(l:agent, 'vim_terminal', []) : [])
+  return [l:name, l:before + s:args(a:meta, l:name) + l:agent.prompt, l:after]
 endfunction
 
 " Starts the agent with the prompt ('' just opens it) through vim-dispatch's
