@@ -133,5 +133,17 @@ function! prompts#agent#launch(prompt, meta, dirs) abort
   " instead): an agent's TUI wants the room of a tab
   execute get(g:, 'prompts_start_mods', 'tab') . ' Start -wait=error -title=' . l:name
         \ . ' -dir=' . fnameescape(empty(l:tree) ? getcwd() : l:tree) . ' ' . l:cmd
+  if &buftype ==# 'terminal'
+    " Started from a callback (a file picker's), the terminal is left in
+    " Terminal-Normal mode, where its window stays blank: once the callback
+    " is done, go to Terminal-Job mode so the agent shows and takes the keys
+    call timer_start(0, function('s:job_mode', [bufnr()]))
+  endif
   return 1
+endfunction
+
+function! s:job_mode(bufnr, timer) abort
+  if bufnr() == a:bufnr && term_getstatus(a:bufnr) =~# '\<normal\>'
+    call feedkeys('i', 'n')
+  endif
 endfunction
