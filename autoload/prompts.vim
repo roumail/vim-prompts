@@ -28,9 +28,9 @@ endfunction
 " ---------------------------------------------------------------------------
 " Grammar: [/persona] [#source[:arg]...] [@path...] [--<mode>-mode] [query]
 " [-- text]. The persona is the first word; #sources, @paths and the mode the
-" agent starts in (ask, plan, agent) may be anywhere before `--`, after which
-" everything is query as typed. An argument or path with spaces
-" is quoted: #stackoverflow:"vim term_start cwd", @"~/My Notes/a.md".
+" agent starts in (ask, plan, agent, auto) may be anywhere before `--`, after
+" which everything is query as typed. An argument or path with spaces is
+" quoted: #stackoverflow:"vim term_start cwd", @"~/My Notes/a.md".
 
 " @path -> {files, pick: dirs to pick in}; {} with the error given
 function! s:files(path) abort
@@ -84,7 +84,7 @@ function! s:parse(args) abort
       endif
       let l:parsed.files += l:found.files
       let l:parsed.pick += l:found.pick
-    elseif l:word =~# '^--\%(ask\|plan\|agent\)-mode$'
+    elseif l:word =~# '^--\%(ask\|plan\|agent\|auto\)-mode$'
       let l:parsed.mode = matchstr(l:word, '\a\+', 2)
     else
       call add(l:parsed.query, l:word)
@@ -233,7 +233,7 @@ endfunction
 " [-- text]. With nothing (or only a mode), opens the agent bare, or
 " focuses the bare session already running.
 function! prompts#ask(bang, range, line1, line2, args) abort
-  if trim(a:args) =~# '^\%(--\%(ask\|plan\|agent\)-mode\)\=$' && !a:range
+  if trim(a:args) =~# '^\%(--\%(ask\|plan\|agent\|auto\)-mode\)\=$' && !a:range
     call prompts#agent#launch('', {'mode': matchstr(trim(a:args), '\a\+', 2)}, [])
     return
   endif
@@ -301,7 +301,7 @@ function! prompts#complete(lead, cmdline, pos) abort
   elseif a:lead =~# '^@'
     return map(getcompletion(a:lead[1:], 'file'), '"@" . v:val')
   elseif a:lead =~# '^-'
-    return filter(['--agent-mode', '--ask-mode', '--plan-mode'], 'stridx(v:val, a:lead) == 0')
+    return filter(['--agent-mode', '--ask-mode', '--auto-mode', '--plan-mode'], 'stridx(v:val, a:lead) == 0')
   elseif a:lead =~# '^/' && a:cmdline[: a:pos - 1] =~# '^\S*\s\+\S*$'
     return filter(map(prompts#persona#names(), '"/" . v:val'),
           \ 'stridx(v:val, a:lead) == 0')

@@ -92,8 +92,8 @@ function! s:read(file) abort
     endif
     let l:meta[l:m[1]] = s:parse_value(substitute(l:m[2], '\s\+#.*$', '', ''))[0]
   endfor
-  if index(['', 'ask', 'plan', 'agent'], get(l:meta, 'mode', '')) < 0
-    throw 'mode: ask, plan or agent'
+  if index(['', 'ask', 'plan', 'agent', 'auto'], get(l:meta, 'mode', '')) < 0
+    throw 'mode: ask, plan, agent or auto'
   endif
   " `name` or `name:arg` -> {name, arg}
   let l:context = get(l:meta, 'context', [])

@@ -4,8 +4,11 @@
 
 " name -> {cmd, prompt, dir, vim_terminal, modes}: argv is cmd + vim_terminal
 " when it runs in a Vim terminal + modes[mode] (ask: it asks before each edit
-" or command, the CLIs' default; plan: it plans and doesn't edit; agent: it
-" edits without asking) + the persona's args + prompt + [the prompt]
+" or command; plan: it plans and doesn't edit; agent: it edits without
+" asking; auto: a model approves what it judges safe and it asks otherwise)
+" + the persona's args + prompt + [the prompt]. Copilot has no flag for
+" manual or assisted approval in a session, so ask and auto start it as its
+" config (defaultPermissionMode) says.
 " + [dir, directory] for each directory outside the repo the agent may read
 " (after the prompt: claude's --add-dir takes several). Claude's fullscreen
 " renderer doesn't start in a Vim terminal (blank window), so there it uses
@@ -13,10 +16,13 @@
 let s:agents = {
       \ 'claude': {'cmd': ['claude'], 'prompt': [], 'dir': '--add-dir',
       \   'vim_terminal': ['--settings', '{"tui":"default"}'],
-      \   'modes': {'ask': [], 'plan': ['--permission-mode', 'plan'],
-      \   'agent': ['--permission-mode', 'acceptEdits']}},
+      \   'modes': {'ask': ['--permission-mode', 'default'],
+      \     'plan': ['--permission-mode', 'plan'],
+      \     'agent': ['--permission-mode', 'acceptEdits'],
+      \     'auto': ['--permission-mode', 'auto']}},
       \ 'copilot': {'cmd': ['copilot'], 'prompt': ['-i'], 'dir': '--add-dir',
-      \   'modes': {'ask': [], 'plan': ['--plan'], 'agent': ['--allow-tool=write']}},
+      \   'modes': {'ask': [], 'plan': ['--plan'], 'agent': ['--allow-tool=write'],
+      \     'auto': []}},
       \ }
 
 " Whether :Start runs in a Vim terminal rather than tmux or screen, as

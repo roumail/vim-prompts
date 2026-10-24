@@ -36,23 +36,24 @@ back to the session it opened.
 
 ## Modes
 
-The agent starts in one of three modes:
+The agent starts in one of four modes:
 
-| Mode | The agent |
-| --- | --- |
-| `ask` | asks you before each edit or command: the CLI's default |
-| `plan` | looks around and plans, but doesn't edit |
-| `agent` | edits without asking (commands still ask) |
+| Mode | The agent | Claude | Copilot |
+| --- | --- | --- | --- |
+| `ask` | asks you before each edit or command | `--permission-mode default` | (its config) |
+| `plan` | looks around and plans, but doesn't edit | `--permission-mode plan` | `--plan` |
+| `agent` | edits without asking (commands still ask) | `--permission-mode acceptEdits` | `--allow-tool=write` |
+| `auto` | runs what a model judges safe, asks otherwise | `--permission-mode auto` | (its config) |
 
 It starts in `ask` unless you say otherwise. The first of these that
 applies:
 
-1. `--ask-mode`, `--plan-mode` or `--agent-mode` in the ask.
+1. `--ask-mode`, `--plan-mode`, `--agent-mode` or `--auto-mode` in the ask.
 2. The persona's `mode:` (`/review` has `mode: ask`).
 3. `g:prompts_mode`.
 
 ```vim
-let g:prompts_mode = 'plan'   " the default is 'ask'
+let g:prompts_mode = 'auto'   " the default is 'ask'
 ```
 
 ```vim
@@ -62,6 +63,16 @@ let g:prompts_mode = 'plan'   " the default is 'ask'
 ```
 
 Switch modes in the session as usual (Shift+Tab in both).
+
+Copilot can't be started in `ask` or `auto` with a flag, so both start it as
+its config says. For `auto`, set that to assisted approval:
+
+```sh
+copilot config defaultPermissionMode assisted
+```
+
+`ask` then starts it that way too; switch with `/permissions` in the
+session.
 
 ## The prompt it gets
 
@@ -82,6 +93,6 @@ let g:prompts_agent_table = {'mycli': {'cmd': ['mycli', '--tui'], 'prompt': ['--
 
 `cmd` starts it, `prompt` goes before the prompt, `dir` before each
 directory it may read outside the repository, and `modes` (optional) maps
-`ask`, `plan` and `agent` to the arguments that start it in that
+`ask`, `plan`, `agent` and `auto` to the arguments that start it in that
 [mode](#modes); a mode it doesn't have starts it as is. Then add `mycli` to
 `g:prompts_agents`.
