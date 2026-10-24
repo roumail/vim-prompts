@@ -84,8 +84,8 @@ Vim terminal agent, use `/exit` or Ctrl-D.
 ```
 
 Without a persona you get `/default`, which adds nothing to your query. A
-selection, if you made one, always goes. Only this first prompt is sent; the rest of the
-conversation happens in the agent.
+selection, if you made one, always goes. Only this first prompt is sent; the
+rest of the conversation happens in the agent.
 
 `:Ai` refuses when there's no context to send; `:Ai!` asks anyway.
 
