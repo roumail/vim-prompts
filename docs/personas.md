@@ -83,7 +83,7 @@ an error, so a typo doesn't pass silently.
 
 | Key | Value | Default |
 | --- | --- | --- |
-| `context` | The [sources](sources.md) the persona always takes, as `name` or `"name:arg"` (`["repo:tpope/vim-dispatch"]`). The user adds more. | `[]` |
+| `context` | The [sources](sources/) the persona always takes, as `name` or `"name:arg"` (`["repo:tpope/vim-dispatch"]`). The user adds more. | `[]` |
 | `agent` | `claude` or `copilot`: the agent to prefer, when installed ([which agent runs](agent.md#which-agent-runs)). | the user's |
 | `args` | Extra CLI arguments: a list, or a map from agent to list (`{claude: [...], copilot: [...]}`); an agent not in the map gets none. | `[]` |
 

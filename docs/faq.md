@@ -15,7 +15,7 @@ Copy it to `~/.vim/personas/` and edit the copy: see
 ## How do I change what a source tells the agent?
 
 Copy it to `~/.vim/autoload/prompts/sources/` and edit the copy: see
-[changing a source](sources.md#changing-a-source).
+[changing a source](sources/writing.md#changing-a-source).
 
 ## Does the agent get my files' contents?
 

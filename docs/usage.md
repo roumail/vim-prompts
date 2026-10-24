@@ -7,7 +7,7 @@
 ```
 
 Asks the [persona](personas.md) (`/default` without one) with its context,
-the [sources and files](sources.md) you add, and a range or visual selection.
+the [sources and files](sources/) you add, and a range or visual selection.
 
 - **No context to send:** refused, saying what is missing. `:Ai!` asks anyway.
 - **Nothing at all** (`:Ai`): opens the agent, or goes back to the session

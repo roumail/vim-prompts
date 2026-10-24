@@ -201,7 +201,7 @@ function! s:prompt(bang, range, line1, line2, args, Then) abort
   if empty(l:parsed.pick)
     call l:Finish([])
   elseif empty(get(g:, 'prompts_file_picker', ''))
-    call s:error('@ without a file needs g:prompts_file_picker (docs/sources.md)')
+    call s:error('@ without a file needs g:prompts_file_picker (docs/sources/files.md)')
   else
     " The picker may call back at once, or later (fzf runs in a terminal)
     call call(g:prompts_file_picker, [l:parsed.pick[0], l:Finish])

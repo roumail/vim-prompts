@@ -59,7 +59,7 @@ then:
 ```
 
 **Bring in more.** Files with `@`, other context with `#`
-([all of them](docs/sources.md)):
+([all of them](docs/sources/)):
 
 ```vim
 :Ai @src/api.py @~/notes/design.md how do these fit together
@@ -90,7 +90,7 @@ Vim terminal agent, use `/exit` or Ctrl-D.
 ## More
 
 - [Usage](docs/usage.md): the commands, drafts, mappings
-- [Sources](docs/sources.md): each `#source` and `@files` in detail, changing
+- [Sources](docs/sources/): each `#source` and `@files` in detail, changing
   one, writing your own
 - [Personas](docs/personas.md): the built-in ones, overriding them, writing
   your own, repository context, skills
