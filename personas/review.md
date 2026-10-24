@@ -1,6 +1,6 @@
 ---
 context: [changes]
-args: {claude: [--permission-mode, plan]}
+mode: ask
 ---
 {repository}
 

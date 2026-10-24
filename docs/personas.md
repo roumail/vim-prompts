@@ -7,7 +7,7 @@ prompt itself, with slots that vim-prompts fills in.
 ```markdown
 ---
 context: [changes]
-args: {claude: [--permission-mode, plan]}
+mode: ask
 ---
 {repository}
 
@@ -31,7 +31,7 @@ need `:AiPersonas!`, which also lists where every persona comes from.
 | --- | --- | --- |
 | `/default` | | Your query, the selection, and what you add. Used without a `/persona`. |
 | `/explain` | `#file` | Explains the selection, or the code at your line. Doesn't edit. |
-| `/review` | `#changes` | Reviews your branch's changes, and answers your comments if you add `#comments`. Read only (Claude: plan mode). |
+| `/review` | `#changes` | Reviews your branch's changes, and answers your comments if you add `#comments`. Ask mode. |
 
 ## Where personas go
 
@@ -85,6 +85,7 @@ an error, so a typo doesn't pass silently.
 | --- | --- | --- |
 | `context` | The [sources](sources/) the persona always takes, as `name` or `"name:arg"` (`["repo:tpope/vim-dispatch"]`). The user adds more. | `[]` |
 | `agent` | `claude` or `copilot`: the agent to prefer, when installed ([which agent runs](agent.md#which-agent-runs)). | the user's |
+| `mode` | `ask`, `plan` or `agent`: the [mode](agent.md#modes) the agent starts in. `--<mode>-mode` in the ask wins. | `g:prompts_mode` |
 | `args` | Extra CLI arguments: a list, or a map from agent to list (`{claude: [...], copilot: [...]}`); an agent not in the map gets none. | `[]` |
 
 A persona with `context` is refused, saying what is missing, when none of its

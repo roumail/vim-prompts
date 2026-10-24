@@ -2,16 +2,21 @@
 " message; the session stays interactive. Installing and configuring the CLI
 " (auth, model) is up to the user; this only checks it is executable.
 
-" name -> {cmd, prompt, dir, vim_terminal}: argv is cmd + vim_terminal
-" when it runs in a Vim terminal + the persona's args + prompt + [the prompt]
+" name -> {cmd, prompt, dir, vim_terminal, modes}: argv is cmd + vim_terminal
+" when it runs in a Vim terminal + modes[mode] (ask: it asks before each edit
+" or command, the CLIs' default; plan: it plans and doesn't edit; agent: it
+" edits without asking) + the persona's args + prompt + [the prompt]
 " + [dir, directory] for each directory outside the repo the agent may read
 " (after the prompt: claude's --add-dir takes several). Claude's fullscreen
 " renderer doesn't start in a Vim terminal (blank window), so there it uses
 " the classic one. Extended (or overridden) by g:prompts_agent_table.
 let s:agents = {
       \ 'claude': {'cmd': ['claude'], 'prompt': [], 'dir': '--add-dir',
-      \   'vim_terminal': ['--settings', '{"tui":"default"}']},
-      \ 'copilot': {'cmd': ['copilot'], 'prompt': ['-i'], 'dir': '--add-dir'},
+      \   'vim_terminal': ['--settings', '{"tui":"default"}'],
+      \   'modes': {'ask': [], 'plan': ['--permission-mode', 'plan'],
+      \   'agent': ['--permission-mode', 'acceptEdits']}},
+      \ 'copilot': {'cmd': ['copilot'], 'prompt': ['-i'], 'dir': '--add-dir',
+      \   'modes': {'ask': [], 'plan': ['--plan'], 'agent': ['--allow-tool=write']}},
       \ }
 
 " Whether :Start runs in a Vim terminal rather than tmux or screen, as
@@ -89,19 +94,33 @@ function! s:prompt_file(prompt) abort
   return l:file
 endfunction
 
+" The mode the agent starts in: the ask's or the persona's (meta.mode), else
+" g:prompts_mode, else ask
+function! s:mode(meta) abort
+  let l:mode = get(a:meta, 'mode', '')
+  return empty(l:mode) ? get(g:, 'prompts_mode', 'ask') : l:mode
+endfunction
+
 " [agent, argv before the prompt, argv after it] for the persona and the
-" directories, or [] with the error given
+" directories, in the mode asked for, or [] with the error given
 function! prompts#agent#command(meta, dirs) abort
   let l:name = s:pick(a:meta, get(g:, 'prompts_agent', ''))
   if empty(l:name)
     return []
   endif
   let l:agent = s:table()[l:name]
+  let l:mode = s:mode(a:meta)
+  let l:modes = get(l:agent, 'modes', {})
+  if !has_key(l:modes, l:mode)
+    echomsg 'vim-prompts: ' . l:name . ' has no ' . l:mode
+          \ . ' mode (g:prompts_agent_table), starting it as is'
+  endif
   let l:after = []
   for l:dir in a:dirs
     let l:after += empty(get(l:agent, 'dir', '')) ? [] : [l:agent.dir, l:dir]
   endfor
   let l:before = l:agent.cmd + (s:vim_terminal() ? get(l:agent, 'vim_terminal', []) : [])
+        \ + get(l:modes, l:mode, [])
   return [l:name, l:before + s:args(a:meta, l:name) + l:agent.prompt, l:after]
 endfunction
 

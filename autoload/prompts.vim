@@ -26,9 +26,10 @@ function! s:error(msg) abort
 endfunction
 
 " ---------------------------------------------------------------------------
-" Grammar: [/persona] [#source[:arg]...] [@path...] [query] [-- text]. The
-" persona is the first word; #sources and @paths may be anywhere before `--`,
-" after which everything is query as typed. An argument or path with spaces
+" Grammar: [/persona] [#source[:arg]...] [@path...] [--<mode>-mode] [query]
+" [-- text]. The persona is the first word; #sources, @paths and the mode the
+" agent starts in (ask, plan, agent) may be anywhere before `--`, after which
+" everything is query as typed. An argument or path with spaces
 " is quoted: #stackoverflow:"vim term_start cwd", @"~/My Notes/a.md".
 
 " @path -> {files, pick: dirs to pick in}; {} with the error given
@@ -50,7 +51,7 @@ function! s:files(path) abort
   return {'files': map(l:files, 'fnamemodify(v:val, ":p")'), 'pick': []}
 endfunction
 
-" {persona, given, files, pick, query}; {} with the error given
+" {persona, given, files, pick, mode, query}; {} with the error given
 function! s:parse(args) abort
   let [l:_, l:start, l:end] = matchstrpos(a:args, '\%(^\|\s\)--\%(\s\|$\)')
   let l:head = l:start < 0 ? a:args : strpart(a:args, 0, l:start)
@@ -63,7 +64,7 @@ function! s:parse(args) abort
     endif
     call add(l:words, l:word)
   endwhile
-  let l:parsed = {'persona': 'default', 'given': [], 'files': [], 'pick': [], 'query': []}
+  let l:parsed = {'persona': 'default', 'given': [], 'files': [], 'pick': [], 'mode': '', 'query': []}
   if get(l:words, 0, '') =~# '^/\a[[:alnum:]_-]*$'
     let l:parsed.persona = remove(l:words, 0)[1:]
   endif
@@ -83,6 +84,8 @@ function! s:parse(args) abort
       endif
       let l:parsed.files += l:found.files
       let l:parsed.pick += l:found.pick
+    elseif l:word =~# '^--\%(ask\|plan\|agent\)-mode$'
+      let l:parsed.mode = matchstr(l:word, '\a\+', 2)
     else
       call add(l:parsed.query, l:word)
     endif
@@ -189,6 +192,9 @@ function! s:prompt(bang, range, line1, line2, args, Then) abort
   if empty(l:persona)
     return
   endif
+  if !empty(l:parsed.mode)
+    let l:persona.meta.mode = l:parsed.mode
+  endif
   let l:sources = copy(l:persona.meta.context)
   for l:source in l:parsed.given
     if index(l:sources, l:source) < 0
@@ -223,11 +229,12 @@ endfunction
 " ---------------------------------------------------------------------------
 " Commands
 
-" :[range]Ai[!] [/persona] [#source...] [@path...] [query] [-- text]. With
-" nothing, opens the agent bare, or focuses the bare session already running.
+" :[range]Ai[!] [/persona] [#source...] [@path...] [--<mode>-mode] [query]
+" [-- text]. With nothing (or only a mode), opens the agent bare, or
+" focuses the bare session already running.
 function! prompts#ask(bang, range, line1, line2, args) abort
-  if empty(trim(a:args)) && !a:range
-    call prompts#agent#launch('', {}, [])
+  if trim(a:args) =~# '^\%(--\%(ask\|plan\|agent\)-mode\)\=$' && !a:range
+    call prompts#agent#launch('', {'mode': matchstr(trim(a:args), '\a\+', 2)}, [])
     return
   endif
   call s:prompt(a:bang, a:range, a:line1, a:line2, a:args, function('s:ask'))
@@ -282,7 +289,7 @@ function! s:send_draft() abort
   call prompts#agent#launch(l:prompt, b:prompts_draft.meta, b:prompts_draft.request.dirs)
 endfunction
 
-" /personas first; #sources and @files anywhere before --
+" /personas first; #sources, @files and the mode anywhere before --
 function! prompts#complete(lead, cmdline, pos) abort
   if a:cmdline[: a:pos - 1] =~# '\s--\s'
     return []
@@ -293,6 +300,8 @@ function! prompts#complete(lead, cmdline, pos) abort
           \ 'stridx(v:val, a:lead) == 0')
   elseif a:lead =~# '^@'
     return map(getcompletion(a:lead[1:], 'file'), '"@" . v:val')
+  elseif a:lead =~# '^-'
+    return filter(['--agent-mode', '--ask-mode', '--plan-mode'], 'stridx(v:val, a:lead) == 0')
   elseif a:lead =~# '^/' && a:cmdline[: a:pos - 1] =~# '^\S*\s\+\S*$'
     return filter(map(prompts#persona#names(), '"/" . v:val'),
           \ 'stridx(v:val, a:lead) == 0')

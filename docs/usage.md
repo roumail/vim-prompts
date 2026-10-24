@@ -3,7 +3,7 @@
 ## :Ai
 
 ```
-:[range]Ai[!] [/persona] [#source...] [@file...] [query] [-- text]
+:[range]Ai[!] [/persona] [#source...] [@file...] [--<mode>-mode] [query] [-- text]
 ```
 
 Asks the [persona](personas.md) (`/default` without one) with its context,
@@ -12,12 +12,16 @@ the [sources and files](sources/) you add, and a range or visual selection.
 - **No context to send:** refused, saying what is missing. `:Ai!` asks anyway.
 - **Nothing at all** (`:Ai`): opens the agent, or goes back to the session
   `:Ai` opened before.
+- **`--ask-mode`, `--plan-mode` or `--agent-mode`** (anywhere before
+  `--`): the [mode](agent.md#modes) the agent starts in, over the persona's
+  and `g:prompts_mode`. `:Ai --plan-mode` alone opens it bare that way.
 - **Context but no query** (`:Ai @`, `:'<,'>Ai #comments`): sends the context
   and the agent waits for your question, which you type in the session.
 
 ## Typing the query
 
-`<Tab>` completes `/personas` (first word), `#sources` and `@files`.
+`<Tab>` completes `/personas` (first word), `#sources`, `@files` and the
+modes.
 
 Before `--`, an unknown `#word` or a missing `@file` is an error, so a typo
 isn't sent as text. After `--`, everything is your query as typed, so

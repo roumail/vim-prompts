@@ -9,7 +9,7 @@
 let s:bundled = expand('<sfile>:p:h:h:h') . '/personas'
 " name -> {name, file, source}
 let s:personas = {}
-let s:keys = ['context', 'agent', 'args']
+let s:keys = ['context', 'agent', 'args', 'mode']
 
 function! s:error(msg) abort
   echohl ErrorMsg
@@ -92,6 +92,9 @@ function! s:read(file) abort
     endif
     let l:meta[l:m[1]] = s:parse_value(substitute(l:m[2], '\s\+#.*$', '', ''))[0]
   endfor
+  if index(['', 'ask', 'plan', 'agent'], get(l:meta, 'mode', '')) < 0
+    throw 'mode: ask, plan or agent'
+  endif
   " `name` or `name:arg` -> {name, arg}
   let l:context = get(l:meta, 'context', [])
   let l:meta.context = []
