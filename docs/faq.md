@@ -1,37 +1,36 @@
 # FAQ
 
-## Where does the agent open?
-
-In the repository root, through vim-dispatch's `:Start`, so wherever your
-`:Start` strategy puts it: a tmux window, or a Vim terminal in a new tab (see
-`g:prompts_start_mods` in [configuration](configuration.md#the-agent)).
-
-## How do I get out of the agent in a Vim terminal?
-
-Your keys go to the agent. Leave it with `/exit` (Claude) or Ctrl-D, which
-closes the tab. Or press `Ctrl-\ Ctrl-n` for normal mode, then `gt` to another
-tab, `:q` to hide it, or `:bwipe!` to end it. `:Ai` alone goes back to it.
-
 ## Why was my ask refused?
 
 There was no context to send, and the message says what is missing: for
 example `/review` with no `:G diff --name-only` buffer in the tab, or
-`#comments` with no comments. `:Ai!` asks anyway.
+`#comments` with no comments. `:Ai!` asks anyway. See
+[when a persona can be asked](personas.md#frontmatter).
+
+## How do I change what `/review` does?
+
+Copy it to `~/.vim/personas/` and edit the copy: see
+[which persona is used](personas.md#which-persona-is-used).
+
+## How do I change what a source tells the agent?
+
+Copy it to `~/.vim/autoload/prompts/sources/` and edit the copy: see
+[changing a source](sources.md#changing-a-source).
+
+## Does the agent get my files' contents?
+
+No: it gets their paths, and the commands to read them (`git diff`,
+`git show`, `gh`), and reads them itself. The prompt is saved in
+`.git/vim-prompts/prompts/`, so you can see exactly what was sent.
+
+## Where does the agent open, and how do I leave it?
+
+In a tmux window, or a Vim terminal tab: see [the agent](agent.md#where-it-opens).
 
 ## Does it work with both Claude Code and Copilot CLI?
 
-Yes. With no `g:prompts_agent`, each machine uses the first CLI in
-`g:prompts_agents` it has, so one vimrc serves a machine with Claude Code and
-one with Copilot CLI. The plugin only starts the CLI: logging in, the model
-and its settings are set up in the CLI itself.
-
-## What exactly is sent?
-
-The persona's template, rendered with your query, its context, what you
-added, and the repository context. Each prompt is written to
-`.git/vim-prompts/prompts/` and passed as `"$(cat <file>)"`. A prompt longer
-than `g:prompts_max_arg` is not passed inline: the agent is told to read the
-file.
+Yes, and one vimrc serves both: see
+[which agent runs](agent.md#which-agent-runs).
 
 ## How do I ask about `#include` or `@decorator`?
 

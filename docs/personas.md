@@ -25,6 +25,14 @@ Start with a short summary, then go file by file.
 A persona file is read again on each ask, so edits apply at once. New files
 need `:AiPersonas!`, which also lists where every persona comes from.
 
+## Built-in personas
+
+| Persona | Context | Does |
+| --- | --- | --- |
+| `/default` | | Your query, the selection, and what you add. Used without a `/persona`. |
+| `/explain` | `#file` | Explains the selection, or the code at your line. Doesn't edit. |
+| `/review` | `#diff_files #diff_pairs` | Reviews the change, and answers your comments if you add `#comments`. Read only (Claude: plan mode). |
+
 ## Where personas go
 
 There are two kinds:
@@ -75,8 +83,8 @@ an error, so a typo doesn't pass silently.
 
 | Key | Value | Default |
 | --- | --- | --- |
-| `context` | The sources the persona always takes, as `name` or `"name:arg"` (`["repo:tpope/vim-dispatch"]`). The user adds more. | `[]` |
-| `agent` | `claude` or `copilot`: the agent to prefer, when installed. | the user's |
+| `context` | The [sources](sources.md) the persona always takes, as `name` or `"name:arg"` (`["repo:tpope/vim-dispatch"]`). The user adds more. | `[]` |
+| `agent` | `claude` or `copilot`: the agent to prefer, when installed ([which agent runs](agent.md#which-agent-runs)). | the user's |
 | `args` | Extra CLI arguments: a list, or a map from agent to list (`{claude: [...], copilot: [...]}`); an agent not in the map gets none. | `[]` |
 
 A persona with `context` is refused, saying what is missing, when none of its
@@ -112,55 +120,3 @@ app, an ETL tool; its layout, conventions, how to run the tests. It goes in
 `{repository}`, under "About this repository", in every ask made there. Commit
 it to share it, or list `.vim-prompts/` in `.git/info/exclude` to keep it to
 yourself.
-
-## Context sources
-
-What each source gives, for choosing a persona's `context`. Paths are relative
-to the repository root, the agent's working directory. A version of a file
-that isn't in the work tree is named by its git object (`git show :0:foo.c`).
-
-| Source | Argument | Has something when | Gives |
-| --- | --- | --- | --- |
-| `file` | none | the buffer is a file or git object | its path and the line |
-| `diff_files` | none | a `:G diff --name-only` or `--name-status` buffer is in the tab | its files (the range's, when asked from it), and the `git diff` to read each |
-| `diff_pairs` | none | a tab has a diff of two or more files or git objects | each diff's sides, left to right |
-| `comments` | none | there are review comments (git-extras `:Comment`) | each comment with `path:line` and the lines quoted |
-| `files` (`@path`) | the files | always | the files for the agent to read |
-| `repo` | required: `owner/name` or its URL | the argument is a repository | the repository, and how to read it with `gh` |
-| `stackoverflow` | optional: search terms | always | a request to search Stack Overflow and link the answers used |
-
-Remote sources fetch nothing: they tell the agent where to look.
-
-## Writing a source
-
-A plugin, or your `~/.vim`, adds `#name` with
-`autoload/prompts/sources/<name>.vim` (letters, digits and `_`), defining two
-functions:
-
-```vim
-" What it needs, said when it has nothing; whether it takes an argument
-function! prompts#sources#jira#info() abort
-  return {'needs': 'a ticket: #jira:KEY-123', 'arg': 'required'}
-endfunction
-
-" Its text, heading included, or '' when it has nothing here
-function! prompts#sources#jira#context(request, arg) abort
-  return 'Jira ticket ' . a:arg . ': read it with `jira issue view ' . a:arg . '`.'
-endfunction
-```
-
-`arg` is `'none'`, `'optional'` or `'required'`; an ask that gives the wrong
-kind is refused before `context()` is called. `context()` is called at most
-once per ask, and must not change anything or wait on the network.
-
-`request` is read only:
-
-| Key | Value |
-| --- | --- |
-| `query` | the query |
-| `bufnr`, `line` | the buffer the ask was made in, and its line |
-| `range`, `line1`, `line2` | `0` without a range; the range's lines |
-| `selection`, `charwise` | the selected lines (or text, when `charwise`) |
-
-Of two sources with the same name, the first on `'runtimepath'` is used. The
-`prompts#source#*` helpers are internal and may change.

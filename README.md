@@ -58,7 +58,8 @@ then:
 :Ai /review #comments
 ```
 
-**Bring in more.** Files with `@`, other context with `#`:
+**Bring in more.** Files with `@`, other context with `#`
+([all of them](docs/sources.md)):
 
 ```vim
 :Ai @src/api.py @~/notes/design.md how do these fit together
@@ -88,9 +89,10 @@ Vim terminal agent, use `/exit` or Ctrl-D.
 
 ## More
 
-- [docs/usage.md](docs/usage.md): every command, context source and persona
-- [docs/configuration.md](docs/configuration.md): mappings, the file picker,
-  which agent runs and where it opens
-- [docs/personas.md](docs/personas.md): writing your own personas, overriding
-  the built-in ones, repository context, new `#sources`
-- [docs/faq.md](docs/faq.md)
+- [Usage](docs/usage.md): the commands, drafts, mappings
+- [Sources](docs/sources.md): each `#source` and `@files` in detail, changing
+  one, writing your own
+- [Personas](docs/personas.md): the built-in ones, overriding them, writing
+  your own, repository context, skills
+- [The agent](docs/agent.md): which CLI runs, where it opens, adding another
+- [FAQ](docs/faq.md)
