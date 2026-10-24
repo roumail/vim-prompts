@@ -118,7 +118,9 @@ function! prompts#agent#launch(prompt, meta, dirs) abort
   endif
   let l:cmd .= join([''] + map(l:after, 'shellescape(v:val)'))
   let l:tree = FugitiveWorkTree()
-  execute 'Start -wait=error -title=' . l:name
+  " Modifiers place a Vim terminal (your :Start strategy may use tmux
+  " instead): an agent's TUI wants the room of a tab
+  execute get(g:, 'prompts_start_mods', 'tab') . ' Start -wait=error -title=' . l:name
         \ . ' -dir=' . fnameescape(empty(l:tree) ? getcwd() : l:tree) . ' ' . l:cmd
   return 1
 endfunction

@@ -240,8 +240,17 @@ function! prompts#ask(bang, range, line1, line2, args) abort
     call prompts#agent#launch('', {}, [])
     return
   endif
-  call s:prompt(a:bang, a:range, a:line1, a:line2, a:args,
-        \ {persona, request, prompt -> s:send(prompt, persona.meta, request)})
+  call s:prompt(a:bang, a:range, a:line1, a:line2, a:args, function('s:ask'))
+endfunction
+
+" Without a query, the default persona sends the context for the agent to
+" take in, and you ask in the session; other personas have their own task
+function! s:ask(persona, request, prompt) abort
+  let l:prompt = a:prompt
+  if a:persona.name ==# 'default' && empty(a:request.query)
+    let l:prompt .= "\n\nRead this, then wait for my question."
+  endif
+  call s:send(l:prompt, a:persona.meta, a:request)
 endfunction
 
 " :[range]AiDraft[!] ...: the same prompt in a buffer to edit; :w sends it

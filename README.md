@@ -29,7 +29,7 @@ The prefix is `g:prompts_namespace`, `Ai` by default.
 | Command | What it does |
 | --- | --- |
 | `:[range]Ai[!] [/persona] [#source...] [@file...] [query] [-- text]` | Ask the persona (`/default` without one) with its context and what you add. A range or visual selection is sent too. Refused, saying what is missing, when there is no context to send; `!` asks anyway. |
-| `:Ai` | With nothing: open the agent, or go back to the session `:Ai` opened before. |
+| `:Ai` | With nothing: open the agent, or go back to the session `:Ai` opened before. With context but no query (`:Ai @`, `:'<,'>Ai #comments`): send the context and have the agent wait for your question, which you then type in the session. |
 | `:[range]AiDraft[!] ...` | The same, but the prompt opens in a buffer to edit first. `:w` sends it and keeps the draft open (edit and `:w` again for another session), `:wq` sends it and closes the draft, `:q!` drops it. |
 | `:AiPersonas[!]` | The personas, their context, where each comes from, and what each needs that isn't here. With `!`, reload the persona and source files first. |
 
@@ -118,13 +118,19 @@ let g:prompts_file_picker = 'fzf_utils#fd#files#pick'
 ## The agent
 
 The agent starts with `:Start`, in the repo root, so it opens where your
-`:Start` strategy puts it (a tmux window, a Vim terminal). Each prompt is
-written to `.git/vim-prompts/prompts/` and passed as `"$(cat <file>)"`.
+`:Start` strategy puts it: a tmux window, or a Vim terminal in a new tab
+(`g:prompts_start_mods`). Each prompt is written to
+`.git/vim-prompts/prompts/` and passed as `"$(cat <file>)"`.
+
+In a Vim terminal your keys go to the agent. Leave it with `/exit` (Claude)
+or Ctrl-D, which closes the tab; or press `Ctrl-\ Ctrl-n` for normal mode,
+then `gt` to another tab, `:q` to hide it, or `:bwipe!` to end it.
 
 ```vim
 let g:prompts_agents = ['claude', 'copilot'] " the first installed one is used
 let g:prompts_agent = ''                     " force one
 let g:prompts_max_arg = 100000               " longer prompts: the agent is told to read the file
+let g:prompts_start_mods = 'tab'             " where a Vim terminal opens: 'tab', 'vertical', '' (a split)
 ```
 
 With no `g:prompts_agent`, each machine uses whichever CLI it has, so one vimrc
