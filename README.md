@@ -1,37 +1,38 @@
 # vim-prompts
 
-An AI agent ([Claude Code](https://claude.com/claude-code) or
-[Copilot CLI](https://github.com/github/copilot-cli)) can't see your editor.
-vim-prompts lets you ask it from Vim and choose exactly what it sees: the
-lines you selected, the change you're reviewing, your review comments, other
-files. Nothing else is sent.
+Use your coding agent ([Claude Code](https://claude.com/claude-code) or
+[Copilot CLI](https://github.com/github/copilot-cli)) from inside Vim.
 
 ```vim
-:'<,'>Ai /explain
+:'<,'>Ai why is this loop reversed
 ```
 
-The agent opens with your question and that context, and you carry on the
-conversation there.
+opens the agent already holding your question and the lines you selected,
+and you carry on the conversation there.
+
+- **The agent runs next to your code.** In a Vim terminal tab, or a tmux
+  window under tmux; `:Ai` alone takes you back to it.
+- **You say what it sees.** A short syntax hands it what Vim knows: a
+  selection, `@files`, the change on your branch (`#changes`), your review
+  comments (`#comments`). Nothing else is sent.
+- **You decide how it's briefed, per project.** A persona (`/review`,
+  `/explain`, or your own) is a saved prompt that frames your question. Each
+  project can describe itself once and bring its own personas.
 
 ## Install
 
 Requires Vim 9.1+, [vim-fugitive](https://github.com/tpope/vim-fugitive),
 [vim-dispatch](https://github.com/tpope/vim-dispatch),
-[git-extras](https://github.com/roumail/git-extras), and the agent CLI,
+[git-extras](https://github.com/roumail/git-extras),
+[vim-review](https://github.com/roumail/vim-review), and the agent CLI,
 installed and logged in.
 
 ```vim
 Plug 'tpope/vim-fugitive'
 Plug 'tpope/vim-dispatch'
 Plug 'roumail/git-extras'
+Plug 'roumail/vim-review'
 Plug 'roumail/vim-prompts'
-```
-
-Optional, to pick files with a bare `@` (here with
-[fzf-utils](https://github.com/roumail/fzf-utils)):
-
-```vim
-let g:prompts_file_picker = 'fzf_utils#fd#files#pick'
 ```
 
 ## Use
@@ -50,7 +51,7 @@ let g:prompts_file_picker = 'fzf_utils#fd#files#pick'
 :Ai /review #changes:staged
 ```
 
-**Ask about your review comments.** Leave them with `:Comment` (git-extras),
+**Ask about your review comments.** Leave them with `:Comment` (vim-review),
 then:
 
 ```vim
@@ -86,6 +87,19 @@ Vim terminal agent, use `/exit` or Ctrl-D.
   Only that is sent; the rest of the conversation happens in the agent.
 
 `:Ai` refuses when there's no context to send; `:Ai!` asks anyway.
+
+## Per project
+
+Each repository can brief the agent its own way, from `.vim-prompts/` at its
+root:
+
+- `repository.md`: what the project is, its layout and conventions, how to
+  run the tests. It opens every ask made there.
+- `personas/<name>.md`: a persona for this project only, or one that replaces
+  a built-in (`personas/review.md` with your team's review checklist).
+
+Commit it to share it, or list `.vim-prompts/` in `.git/info/exclude` to keep
+it to yourself. Personas for every project go in `~/.vim/personas/`.
 
 ## More
 

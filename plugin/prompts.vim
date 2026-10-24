@@ -1,11 +1,12 @@
 " vim-prompts: ask an AI agent CLI (Claude Code, Copilot CLI) as one of its
 " personas, in the CLIs' own grammar: `:Ai /review #comments @notes.md why`.
 " The persona's template, rendered with the query, the context asked for
-" (the change, the diffs open, files, the selection, git-extras review
+" (the change, the diffs open, files, the selection, vim-review review
 " comments) and the repository's .vim-prompts/repository.md, is the agent's
 " first prompt. Commands and <Plug> mappings only;
 " no keys are bound here. Requires tpope/vim-fugitive,
-" tpope/vim-dispatch (the agent runs with :Start) and roumail/git-extras.
+" tpope/vim-dispatch (the agent runs with :Start), roumail/git-extras and
+" roumail/vim-review.
 " The agent CLI (install, auth, model) is yours to set up; this only checks
 " that it is executable.
 if exists('g:loaded_prompts')
@@ -21,6 +22,7 @@ function! s:init() abort
         \ 'tpope/vim-fugitive': 'g:loaded_fugitive',
         \ 'tpope/vim-dispatch': 'g:loaded_dispatch',
         \ 'roumail/git-extras': 'g:loaded_git_extras',
+        \ 'roumail/vim-review': 'g:loaded_review',
         \ }, '!exists(v:val)')
   if !empty(l:missing)
     echohl WarningMsg
