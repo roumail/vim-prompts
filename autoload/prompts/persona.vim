@@ -1,17 +1,15 @@
 " Personas: markdown files whose body is a template and whose frontmatter
 " names the persona's default context sources and how the agent runs for it
-" (CONTRACT.md). The name is the file name, asked for as /name; `default` is
+" (docs/personas.md). The name is the file name, asked for as /name; `default` is
 " the persona :Ai asks without one. Found in, later ones win: this plugin's
 " personas/, then every other personas/ on 'runtimepath' (a pack:
 " ~/.vim/personas, or a plugin that ships personas), then the repo's
 " .vim-prompts/personas/.
 
 let s:bundled = expand('<sfile>:p:h:h:h') . '/personas'
-" The newest CONTRACT.md version this plugin implements
-let s:contract = 2
 " name -> {name, file, source}
 let s:personas = {}
-let s:keys = ['contract', 'context', 'agent', 'args', 'consume_comments']
+let s:keys = ['context', 'agent', 'args', 'consume_comments']
 
 function! s:error(msg) abort
   echohl ErrorMsg
@@ -94,10 +92,6 @@ function! s:read(file) abort
     endif
     let l:meta[l:m[1]] = s:parse_value(substitute(l:m[2], '\s\+#.*$', '', ''))[0]
   endfor
-  if get(l:meta, 'contract', 1) > s:contract
-    throw 'needs contract ' . l:meta.contract . ', vim-prompts implements '
-          \ . s:contract . ' (update vim-prompts)'
-  endif
   " `name` or `name:arg` -> {name, arg}
   let l:context = get(l:meta, 'context', [])
   let l:meta.context = []

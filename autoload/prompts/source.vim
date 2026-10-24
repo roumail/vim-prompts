@@ -1,7 +1,7 @@
 " Context sources: what Vim shows, or where the agent should look, as text
 " for a prompt; asked for as #name or #name:arg, files as @path. Each is a
 " file, autoload/prompts/sources/<name>.vim, found on 'runtimepath', so a
-" pack can add sources (CONTRACT.md):
+" pack can add sources (docs/personas.md):
 "
 "   prompts#sources#<name>#info()  {'needs': what it needs, said when it has
 "                                   nothing; 'arg': 'none', 'optional' or
