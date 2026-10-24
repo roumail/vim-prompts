@@ -21,11 +21,16 @@ and you carry on the conversation there.
 
 ## Install
 
-Requires Vim 9.1+, [vim-fugitive](https://github.com/tpope/vim-fugitive),
-[vim-dispatch](https://github.com/tpope/vim-dispatch),
-[git-extras](https://github.com/roumail/git-extras),
-[vim-review](https://github.com/roumail/vim-review), and the agent CLI,
-installed and logged in.
+Requires Vim 9.1+, the agent CLI (installed and logged in), and:
+
+- [vim-fugitive](https://github.com/tpope/vim-fugitive): finds the
+  repository and runs git.
+- [vim-dispatch](https://github.com/tpope/vim-dispatch): starts the agent
+  (`:Start`), in a Vim terminal or a tmux window.
+- [git-extras](https://github.com/roumail/git-extras): knows your default
+  branch, which `#changes` diffs against.
+- [vim-review](https://github.com/roumail/vim-review): the review comments
+  (`:Comment`) that `#comments` sends.
 
 ```vim
 Plug 'tpope/vim-fugitive'
@@ -78,13 +83,9 @@ Vim terminal agent, use `/exit` or Ctrl-D.
 :Ai /persona #context @files your question
 ```
 
-- Your **query** is what you type.
-- A **persona** (`/explain`, `/review`, ...) is a saved prompt that brings the
-  context it needs. Without one you get `/default`, which adds nothing.
-- **Context** is what you add on top: `#sources` (a diff, your comments, a
-  GitHub repo) and `@files`. A selection always goes too.
-- Together they make one **prompt**, the first message of an agent session.
-  Only that is sent; the rest of the conversation happens in the agent.
+Without a persona you get `/default`, which adds nothing to your query. A
+selection, if you made one, always goes. Only this first prompt is sent; the rest of the
+conversation happens in the agent.
 
 `:Ai` refuses when there's no context to send; `:Ai!` asks anyway.
 
