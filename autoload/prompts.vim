@@ -221,15 +221,6 @@ function! s:finish(bang, persona, request, parsed, files, Then) abort
   call a:Then(a:persona, a:request, prompts#template#render(a:persona.template, a:request))
 endfunction
 
-" Starts the agent; the persona may then clear the comments it was given
-function! s:send(prompt, meta, request) abort
-  if prompts#agent#launch(a:prompt, a:meta, a:request.dirs)
-        \ && get(a:meta, 'consume_comments', 0)
-        \ && index(map(copy(a:request.sources), 'v:val.name'), 'comments') >= 0
-    call git_extras#comments#clear()
-  endif
-endfunction
-
 " ---------------------------------------------------------------------------
 " Commands
 
@@ -250,7 +241,7 @@ function! s:ask(persona, request, prompt) abort
   if a:persona.name ==# 'default' && empty(a:request.query)
     let l:prompt .= "\n\nRead this, then wait for my question."
   endif
-  call s:send(l:prompt, a:persona.meta, a:request)
+  call prompts#agent#launch(l:prompt, a:persona.meta, a:request.dirs)
 endfunction
 
 " :[range]AiDraft[!] ...: the same prompt in a buffer to edit; :w sends it
@@ -289,7 +280,7 @@ function! s:send_draft() abort
   endif
   " Left open: :wq sends and closes, :w sends again after more edits
   setlocal nomodified
-  call s:send(l:prompt, b:prompts_draft.meta, b:prompts_draft.request)
+  call prompts#agent#launch(l:prompt, b:prompts_draft.meta, b:prompts_draft.request.dirs)
 endfunction
 
 " /personas first; #sources and @files anywhere before --

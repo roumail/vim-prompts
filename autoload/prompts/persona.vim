@@ -1,15 +1,15 @@
 " Personas: markdown files whose body is a template and whose frontmatter
 " names the persona's default context sources and how the agent runs for it
 " (docs/personas.md). The name is the file name, asked for as /name; `default` is
-" the persona :Ai asks without one. Found in, later ones win: this plugin's
-" personas/, then every other personas/ on 'runtimepath' (a pack:
-" ~/.vim/personas, or a plugin that ships personas), then the repo's
-" .vim-prompts/personas/.
+" the persona :Ai asks without one. The most specific wins: this plugin's
+" personas/, then every other personas/ on 'runtimepath' (~/.vim/personas, or
+" a plugin that ships personas), then the repo's .vim-prompts/personas/. Two
+" of the same name at one level are an error.
 
 let s:bundled = expand('<sfile>:p:h:h:h') . '/personas'
 " name -> {name, file, source}
 let s:personas = {}
-let s:keys = ['context', 'agent', 'args', 'consume_comments']
+let s:keys = ['context', 'agent', 'args']
 
 function! s:error(msg) abort
   echohl ErrorMsg
@@ -146,8 +146,7 @@ function! s:add(source, file) abort
     return
   endtry
   let l:old = get(s:personas, l:name, {})
-  if !empty(l:old) && !(l:old.source ==# 'bundled' || l:old.source ==# 'pack'
-        \ && a:source ==# 'repo' && get(g:, 'prompts_repo_override', 0))
+  if !empty(l:old) && l:old.source ==# a:source
     call s:error(l:where . ': duplicate of ' . fnamemodify(l:old.file, ':~'))
     return
   endif

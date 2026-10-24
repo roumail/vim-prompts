@@ -62,8 +62,6 @@ The agent fetches remote context itself, so Vim never waits on the network.
 | `/default` | | Your query, the selection, and what you add. |
 | `/review` | `#diff_files #diff_pairs` | Reviews the change; add `#comments` to have it answer yours. Read only (Claude: plan mode). |
 | `/explain` | `#file` | Explains the selection, or the code at your line. |
-| `/comments` | `#comments` | Talks about your comments. |
-| `/fix-comments` | `#comments` | Changes the code to address them, then clears them. |
 
 Every ask in a repository also carries its
 [repository context](personas.md#repository-context), if it has one.

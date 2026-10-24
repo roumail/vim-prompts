@@ -27,38 +27,45 @@ need `:AiPersonas!`, which also lists where every persona comes from.
 
 ## Where personas go
 
-| Where | For |
-| --- | --- |
-| `~/.vim/personas/` | yours, in every repository |
-| `personas/` in a plugin | personas a plugin ships |
-| `.vim-prompts/personas/` in a repository | that repository's; commit them to share |
+There are two kinds:
+
+- **General**, for every project: `~/.vim/personas/<name>.md` (keep it in
+  your dotfiles to have it on every machine), or `personas/` in a plugin.
+- **Project**, for one repository: `.vim-prompts/personas/<name>.md` at its
+  root. Commit it to share it, or list `.vim-prompts/` in
+  `.git/info/exclude` to keep it to yourself.
 
 Names are letters, digits, `-` and `_`, starting with a letter.
 
-## Overriding a persona
+## Which persona is used
 
-To change `/review`, copy it and edit the copy:
+The most specific one: **project** over **general** over **built-in**. A
+general `/review` replaces the built-in one everywhere; a project `/review`
+replaces both in that project. Two of the same name at one level (two general
+`/review`s) are an error, and the first is used. `:AiPersonas` shows where
+each one comes from.
+
+To change the built-in `/review` everywhere, copy it and edit the copy:
 
 ```sh
 mkdir -p ~/.vim/personas
 cp ~/.vim/plugged/vim-prompts/personas/review.md ~/.vim/personas/
 ```
 
-Then `:AiPersonas!`. Yours now replaces the built-in `/review` everywhere.
+then `:AiPersonas!`. For one project, copy it to `.vim-prompts/personas/`
+instead.
 
-Which one wins when two have the same name:
+A project persona can pass the agent arguments (`args:`), so check
+`.vim-prompts/personas/` in a repository you didn't write.
 
-- **Built-in** personas give way to any other.
-- **Yours and plugins'** (both are on `'runtimepath'`) can't share a name:
-  the second is an error, and the first one found is used.
-- **A repository's** replaces a built-in one, but not yours: the same name as
-  yours is an error, and yours is used. A repository persona can pass the
-  agent arguments (`args:`), so a repository you clone can't change what your
-  `/review` does unless you allow it:
+## Skills
 
-  ```vim
-  let g:prompts_repo_override = 1   " a repository's persona may replace yours
-  ```
+A persona says how to ask and with what; a skill says how the agent does
+something (your way of rebasing, say). Skills belong to the agents, not to
+vim-prompts: put one in `~/.claude/skills/<name>/SKILL.md`, which Claude Code
+and Copilot CLI both read, and the agent uses it when a request calls for it.
+A persona that should always use one says so in its text: "Follow the
+`rebase` skill."
 
 ## Frontmatter
 
@@ -71,7 +78,6 @@ an error, so a typo doesn't pass silently.
 | `context` | The sources the persona always takes, as `name` or `"name:arg"` (`["repo:tpope/vim-dispatch"]`). The user adds more. | `[]` |
 | `agent` | `claude` or `copilot`: the agent to prefer, when installed. | the user's |
 | `args` | Extra CLI arguments: a list, or a map from agent to list (`{claude: [...], copilot: [...]}`); an agent not in the map gets none. | `[]` |
-| `consume_comments` | `true`: the user's review comments are cleared once the agent has started with them. | `false` |
 
 A persona with `context` is refused, saying what is missing, when none of its
 sources (its own, those added, the files) has anything and there is no

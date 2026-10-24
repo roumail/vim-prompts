@@ -16,7 +16,7 @@ tab, `:q` to hide it, or `:bwipe!` to end it. `:Ai` alone goes back to it.
 
 There was no context to send, and the message says what is missing: for
 example `/review` with no `:G diff --name-only` buffer in the tab, or
-`/comments` with no comments. `:Ai!` asks anyway.
+`#comments` with no comments. `:Ai!` asks anyway.
 
 ## Does it work with both Claude Code and Copilot CLI?
 

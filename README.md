@@ -50,12 +50,12 @@ let g:prompts_file_picker = 'fzf_utils#fd#files#pick'
 :Ai /review is the error handling consistent
 ```
 
-**Talk about your review comments.** Leave them with `:Comment` (git-extras),
+**Ask about your review comments.** Leave them with `:Comment` (git-extras),
 then:
 
 ```vim
-:Ai /comments I think the second one is wrong
-:Ai /fix-comments
+:Ai #comments I think the second one is wrong
+:Ai /review #comments
 ```
 
 **Bring in more.** Files with `@`, other context with `#`:
