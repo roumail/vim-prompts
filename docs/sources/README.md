@@ -14,6 +14,7 @@ for is sent, whatever else is open.
 | [`@path`](files.md) | files for the agent to read |
 | [`#repo`](repo.md) | a GitHub repository |
 | [`#stackoverflow`](stackoverflow.md) | a Stack Overflow search |
+| [`#url`](url.md) | a link: a GitHub issue or pull request, a Stack Overflow question, docs |
 
 A range or visual selection isn't a source: it always goes too.
 
