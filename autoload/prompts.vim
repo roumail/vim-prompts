@@ -144,11 +144,7 @@ endfunction
 " What is missing for the request, '' when nothing: each #source asked for
 " must have context, and a persona with sources needs context from one of
 " the request's (its own, those added, the files) or a selection
-function! s:missing(persona, request, given, config) abort
-  let l:missing = prompts#config#missing(a:config)
-  if !empty(l:missing)
-    return l:missing
-  endif
+function! s:missing(persona, request, given) abort
   for l:source in a:given
     if empty(prompts#source#context(l:source, a:request))
       return '#' . l:source.name . ' has nothing: needs '
@@ -171,7 +167,7 @@ endfunction
 " Renders the prompt for the command's arguments and passes [persona,
 " request, prompt] to Then, once the files are picked when @ asks for that.
 " Errors are given instead, a config error among them; ! skips the check for
-" context and for the repository's description.
+" context.
 function! s:prompt(bang, range, line1, line2, args, Then) abort
   let l:parsed = s:parse(a:args)
   if empty(l:parsed)
@@ -196,7 +192,7 @@ function! s:prompt(bang, range, line1, line2, args, Then) abort
     endif
   endfor
   let l:request = s:request(a:range, a:line1, a:line2, l:parsed.query, l:sources, l:config)
-  let l:Finish = {files -> s:finish(a:bang, l:config, l:persona, l:request, l:parsed,
+  let l:Finish = {files -> s:finish(a:bang, l:persona, l:request, l:parsed,
         \ l:parsed.files + files, a:Then)}
   if empty(l:parsed.pick)
     call l:Finish([])
@@ -208,10 +204,10 @@ function! s:prompt(bang, range, line1, line2, args, Then) abort
   endif
 endfunction
 
-function! s:finish(bang, config, persona, request, parsed, files, Then) abort
+function! s:finish(bang, persona, request, parsed, files, Then) abort
   call s:add_files(a:request, a:files)
   if !a:bang
-    let l:missing = s:missing(a:persona, a:request, a:parsed.given, a:config)
+    let l:missing = s:missing(a:persona, a:request, a:parsed.given)
     if !empty(l:missing)
       call s:error(l:missing . ' (! asks anyway)')
       return
@@ -333,12 +329,6 @@ function! prompts#list(reload) abort
     echohl None
     echon printf('%-37s %s', prompts#config#show(l:file, l:place), l:origin)
   endfor
-  let l:missing = prompts#config#missing(l:config)
-  if !empty(l:missing)
-    echohl WarningMsg
-    echo l:missing
-    echohl None
-  endif
   for l:name in prompts#persona#names(l:config)
     let l:persona = prompts#persona#get(l:name, l:config)
     if empty(l:persona)
@@ -359,7 +349,7 @@ function! prompts#list(reload) abort
     for l:base in l:persona.bases
       echo repeat(' ', 16) . 'on {base} ' . fnamemodify(l:base, ':~')
     endfor
-    let l:missing = s:missing(l:persona, l:request, [], {'place': l:place, 'required': ''})
+    let l:missing = s:missing(l:persona, l:request, [])
     if !empty(l:missing)
       echo repeat(' ', 16) . l:missing
     endif

@@ -9,12 +9,11 @@
 "   vim-prompts.rules       a file of rules for every ask; every value, in order
 "   vim-prompts.repository  the file that describes this repository; only from
 "                           its own config (local, worktree or -c), never shared
-"   vim-prompts.requireRepository  a repository must name its file to be asked
 "
 " An empty personas or rules value drops those before it. Paths are relative
 " to the work tree's root, outside a repository the working directory.
 
-let s:keys = ['personas', 'rules', 'repository', 'requirerepository']
+let s:keys = ['personas', 'rules', 'repository']
 " The scopes that are one repository's own
 let s:own = ['local', 'worktree', 'command']
 
@@ -48,12 +47,11 @@ function! prompts#config#show(path, place) abort
 endfunction
 
 " What applies to an ask from the buffer: {place, personas: [{dir, origin}],
-" rules: [{file, origin}], repository: {file, origin} or {}, required: the
-" origin of requireRepository or '', errors}
+" rules: [{file, origin}], repository: {file, origin} or {}, errors}
 function! prompts#config#get(bufnr) abort
   let l:place = prompts#config#place(a:bufnr)
   let l:config = {'place': l:place, 'personas': [], 'rules': [],
-        \ 'repository': {}, 'required': '', 'errors': []}
+        \ 'repository': {}, 'errors': []}
   let l:lines = systemlist('git -C ' . shellescape(l:place.dir)
         \ . ' config --show-scope --show-origin --get-regexp ' . shellescape('^vim-prompts\.'))
   " 1: nothing set
@@ -72,13 +70,6 @@ function! prompts#config#get(bufnr) abort
     if index(s:keys, l:key) < 0
       call add(l:config.errors, l:where . ': unknown key'
             \ . (l:key ==# 'dir' ? '; name the directory as vim-prompts.personas and the file as vim-prompts.repository' : ''))
-    elseif l:key ==# 'requirerepository'
-      " `requireRepository` alone is true, as in git
-      let l:on = empty(l:m[4]) || l:value =~? '^\%(true\|yes\|on\|1\)$'
-      if !l:on && l:value !~? '^\%(false\|no\|off\|0\|\)$'
-        call add(l:config.errors, l:where . ': true or false, not ' . l:value)
-      endif
-      let l:config.required = l:on ? l:origin : ''
     elseif l:key ==# 'repository'
       if index(s:own, l:scope) < 0
         call add(l:config.errors, l:where . ': describes one repository, so set it in that'
@@ -105,15 +96,6 @@ function! prompts#config#get(bufnr) abort
     endif
   endfor
   return l:config
-endfunction
-
-" What the repository lacks for an ask, '' when nothing
-function! prompts#config#missing(config) abort
-  if !a:config.place.repo || empty(a:config.required) || !empty(a:config.repository)
-    return ''
-  endif
-  return 'this repository names no file describing it, which ' . a:config.required
-        \ . ' requires: git config vim-prompts.repository <file>'
 endfunction
 
 " The rules and the repository's description, for {repository}: general to
