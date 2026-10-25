@@ -8,7 +8,8 @@ function! prompts#sources#diff_pairs#context(request, arg) abort
   for l:tab in gettabinfo()
     let l:sides = []
     for l:winid in l:tab.windows
-      if getwinvar(l:winid, '&diff') && prompts#source#is_file(winbufnr(l:winid))
+      " Not getwinvar(), which finds only the current tab's windows
+      if gettabwinvar(l:tab.tabnr, l:winid, '&diff') && prompts#source#is_file(winbufnr(l:winid))
         call add(l:sides, prompts#source#side(winbufnr(l:winid)))
       endif
     endfor
