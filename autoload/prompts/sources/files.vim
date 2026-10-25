@@ -1,6 +1,4 @@
-" Files on disk, asked for as @path (the arg is the absolute paths, one per
-" line). Paths in the work tree are relative to it; others stay absolute,
-" and their directories are given to the agent with --add-dir.
+" @path: docs/sources/files.md. The arg is absolute paths, one per line.
 function! prompts#sources#files#info() abort
   return {'needs': 'files: @path', 'arg': 'required'}
 endfunction

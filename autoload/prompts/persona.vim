@@ -1,13 +1,8 @@
-" Personas: markdown files whose body is a template and whose frontmatter
-" names the persona's default context sources and how the agent runs for it
-" (docs/personas.md). The name is the file name, asked for as /name; `default` is
-" the persona :Ai asks without one. They are stacked: this plugin's personas/,
-" then each vim-prompts.personas directory in the order git config gives them
-" (prompts/config.vim), the last of a name winning. One with {base} in its
-" template builds on the one it hides.
+" Personas: docs/personas.md
 
 let s:bundled = expand('<sfile>:p:h:h:h') . '/personas'
 let s:keys = ['context', 'agent', 'args', 'mode']
+let s:name = '^\a[[:alnum:]_-]*$'
 
 function! s:error(msg) abort
   echohl ErrorMsg
@@ -16,10 +11,8 @@ function! s:error(msg) abort
 endfunction
 
 " ---------------------------------------------------------------------------
-" Frontmatter: `key: value` lines between `---` lines. Values are scalars,
-" flow lists [a, b] and flow maps {claude: [a, b]}.
+" Frontmatter
 
-" [value, rest of the text]
 function! s:parse_value(text) abort
   let l:s = trim(a:text, ' ', 1)
   if l:s[0] ==# '['
@@ -67,7 +60,6 @@ function! s:parse_value(text) abort
         \ l:s[len(l:word):]]
 endfunction
 
-" {meta, template}; throws on bad frontmatter
 function! s:read(file) abort
   let l:lines = readfile(a:file)
   let l:meta = {}
@@ -93,7 +85,6 @@ function! s:read(file) abort
   if index(['', 'ask', 'plan', 'agent', 'auto'], get(l:meta, 'mode', '')) < 0
     throw 'mode: ask, plan, agent or auto'
   endif
-  " `name` or `name:arg` -> {name, arg}
   let l:context = get(l:meta, 'context', [])
   let l:meta.context = []
   for l:item in type(l:context) == v:t_list ? l:context : [l:context]
@@ -109,15 +100,13 @@ endfunction
 " ---------------------------------------------------------------------------
 " The stack
 
-" name -> [{name, file, source}], the bottom first, for the config; the files
-" with bad names are skipped
 function! s:stacks(config) abort
   let l:stacks = {}
   for [l:source, l:dir] in [['bundled', s:bundled]]
         \ + map(copy(a:config.personas), '[v:val.origin, v:val.dir]')
     for l:file in sort(glob(l:dir . '/*.md', 1, 1))
       let l:name = fnamemodify(l:file, ':t:r')
-      if l:name =~# '^\a[[:alnum:]_-]*$'
+      if l:name =~# s:name
         let l:stacks[l:name] = get(l:stacks, l:name, [])
               \ + [{'name': l:name, 'file': l:file, 'source': l:source}]
       endif
@@ -126,12 +115,11 @@ function! s:stacks(config) abort
   return l:stacks
 endfunction
 
-" The files skipped for their names, as errors
 function! prompts#persona#errors(config) abort
   let l:errors = []
   for l:dir in map(copy(a:config.personas), 'v:val.dir')
     for l:file in glob(l:dir . '/*.md', 1, 1)
-      if fnamemodify(l:file, ':t:r') !~# '^\a[[:alnum:]_-]*$'
+      if fnamemodify(l:file, ':t:r') !~# s:name
         call add(l:errors, fnamemodify(l:file, ':~') . ': name must be letters, digits, - and _')
       endif
     endfor
@@ -143,9 +131,6 @@ function! prompts#persona#names(config) abort
   return sort(keys(s:stacks(a:config)))
 endfunction
 
-" The stack's persona at i, read, with {base} replaced by the one below it:
-" its template without {query} (the persona on top places that), its
-" frontmatter under this one's, its context before this one's
 function! s:resolve(stack, i) abort
   let l:p = extend(copy(a:stack[a:i]), s:read(a:stack[a:i].file))
   let l:p.bases = []
@@ -156,6 +141,7 @@ function! s:resolve(stack, i) abort
     throw '{base}, but no /' . l:p.name . ' below it'
   endif
   let l:base = s:resolve(a:stack, a:i - 1)
+  " The persona on top places {query}
   let l:below = join(map(copy(l:base.template), {_, l -> substitute(l, '{query}', '', 'g')}), "\n")
   let l:p.template = split(substitute(l:text, '{base}', {-> l:below}, 'g'), "\n", 1)
   let l:context = copy(l:base.meta.context)
@@ -169,9 +155,7 @@ function! s:resolve(stack, i) abort
   return l:p
 endfunction
 
-" The persona {name, file, source, bases, meta, template} for the config, read
-" again on each ask so edits apply at once; {} with the error given when there
-" is none
+" Read again on each ask, so edits apply at once
 function! prompts#persona#get(name, config) abort
   let l:stack = get(s:stacks(a:config), a:name, [])
   if empty(l:stack)

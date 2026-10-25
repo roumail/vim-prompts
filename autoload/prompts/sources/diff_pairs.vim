@@ -1,26 +1,19 @@
-" #diff_pairs[:name]: the diffs open in Vim, one per tab, their sides left to
-" right. With a name, one comparison from git-extras' :Compares (what
-" :BranchDiff opened): those of its tabs still open, or all of it when none
-" are. Without, the current tab's comparison, or when it is in none every
-" diff open, by comparison.
+" #diff_pairs[:name]: docs/sources/diff_pairs.md
 function! prompts#sources#diff_pairs#info() abort
   return {'needs': 'a diff (:DiffThis, :BranchDiff), or a comparison listed in :Compares',
         \ 'arg': 'optional'}
 endfunction
 
-" The repo's git dir, from the buffer or else the working directory
 function! s:dir(bufnr) abort
   let l:dir = FugitiveGitDir(a:bufnr)
   return empty(l:dir) ? FugitiveExtractGitDir(getcwd()) : l:dir
 endfunction
 
-" The comparison names, for #diff_pairs:<Tab>
 function! prompts#sources#diff_pairs#complete(lead) abort
   return filter(map(git_extras#compares#list(s:dir(bufnr())), 'v:val.name'),
         \ 'stridx(v:val, a:lead) == 0')
 endfunction
 
-" `a` vs `b` for a tab's diff, '' when it has none
 function! s:pair(tabnr) abort
   let l:sides = []
   for l:winid in gettabinfo(a:tabnr)[0].windows
@@ -32,7 +25,7 @@ function! s:pair(tabnr) abort
   return len(l:sides) > 1 ? join(l:sides, ' vs ') : ''
 endfunction
 
-" The list without repeats (a comparison opened twice), in order
+" A comparison opened twice repeats its pairs
 function! s:unique(list) abort
   let l:unique = []
   for l:item in a:list
@@ -43,12 +36,10 @@ function! s:unique(list) abort
   return l:unique
 endfunction
 
-" The git diff that shows a comparison
 function! s:diff(compare) abort
   return '`git diff ' . a:compare.base[:6] . (empty(a:compare.head) ? '' : ' ' . a:compare.head) . '`'
 endfunction
 
-" One comparison: its tabs' diffs, or all of it when none are open
 function! s:compare(compare) abort
   let l:pairs = s:unique(map(copy(a:compare.tabs), 's:pair(v:val)'))
   let l:what = 'the comparison ' . a:compare.name . ' (' . s:diff(a:compare) . ', '

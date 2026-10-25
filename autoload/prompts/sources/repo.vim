@@ -1,4 +1,4 @@
-" #repo:owner/name: a GitHub repository for the agent to read with gh
+" #repo:owner/name: docs/sources/repo.md
 function! prompts#sources#repo#info() abort
   return {'needs': 'a GitHub repository: #repo:owner/name', 'arg': 'required'}
 endfunction

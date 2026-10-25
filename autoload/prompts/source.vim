@@ -1,23 +1,8 @@
-" Context sources: what Vim shows, or where the agent should look, as text
-" for a prompt; asked for as #name or #name:arg, files as @path. Each is a
-" file, autoload/prompts/sources/<name>.vim, found on 'runtimepath', so a
-" plugin or ~/.vim can add or replace sources (docs/sources/writing.md):
-"
-"   prompts#sources#<name>#info()  {'needs': what it needs, said when it has
-"                                   nothing; 'arg': 'none', 'optional' or
-"                                   'required'}
-"   prompts#sources#<name>#context(request, arg)  its block, heading
-"                                   included, or '' when it has nothing here
-"
-" The helpers below are for sources. Paths are relative to the work tree,
-" where the agent runs; a fugitive:// buffer becomes its path plus the git
-" object to read it with (`git show :0:foo.c`), since no agent can open those
-" names.
+" Context sources and the helpers they use: docs/sources/writing.md
 
 " ---------------------------------------------------------------------------
 " Registry
 
-" name -> info, for the sources on 'runtimepath'
 let s:sources = {}
 
 function! prompts#source#load() abort
@@ -44,13 +29,10 @@ function! prompts#source#exists(name) abort
   return type(a:name) == v:t_string && has_key(s:sources, a:name)
 endfunction
 
-" {needs, arg}
 function! prompts#source#info(name) abort
   return s:sources[a:name]
 endfunction
 
-" {name, arg} from `name` or `name:arg`; {'error': ...} when there is no such
-" source, or the argument doesn't fit it
 function! prompts#source#parse(text) abort
   let l:m = matchlist(a:text, '^\(\h\w*\)\%(:\(.*\)\)\=$')
   if empty(l:m) || !prompts#source#exists(l:m[1])
@@ -68,7 +50,6 @@ function! prompts#source#parse(text) abort
   return {'name': l:m[1], 'arg': l:arg}
 endfunction
 
-" The source's context for the request, gathered once per request
 function! prompts#source#context(source, request) abort
   let l:key = a:source.name . ':' . a:source.arg
   if !has_key(a:request.context, l:key)
@@ -81,9 +62,9 @@ endfunction
 " ---------------------------------------------------------------------------
 " Buffers
 
-" {path, object, side}: object is '' for a file in the work tree
 function! prompts#source#describe(bufnr) abort
   let l:name = bufname(a:bufnr)
+  " No agent can open a fugitive:// name: its path, and the object to read
   if l:name =~# '^fugitive://'
     let l:object = substitute(FugitiveParse(l:name)[0], '^\(\x\{7}\)\x*:', '\1:', '')
     let l:side = l:object =~# '^:0:' ? 'index'
@@ -98,14 +79,12 @@ function! prompts#source#describe(bufnr) abort
   return {'path': l:path, 'object': '', 'side': 'work tree'}
 endfunction
 
-" `foo.c` (work tree) or `:0:foo.c` (index)
 function! prompts#source#side(bufnr) abort
   let l:d = prompts#source#describe(a:bufnr)
   return empty(l:d.object) ? '`' . l:d.path . '` (work tree)'
         \ : '`' . l:d.object . '` (' . l:d.side . ')'
 endfunction
 
-" A file or a fugitive object; not a terminal, quickfix or :Git output
 function! prompts#source#is_file(bufnr) abort
   let l:name = bufname(a:bufnr)
   return l:name =~# '^fugitive://'
@@ -124,8 +103,7 @@ function! prompts#source#lines(file, a, b) abort
 endfunction
 
 " ---------------------------------------------------------------------------
-" The request's range or visual selection, fenced, with path and lines. Not a
-" source: a range is always sent.
+" Not a source: a range is always sent
 function! prompts#source#selection(request) abort
   if empty(a:request.selection)
     return ''

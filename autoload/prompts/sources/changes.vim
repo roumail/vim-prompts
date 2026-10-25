@@ -1,20 +1,13 @@
-" #changes[:scope]: the files a change touches, from git, and the git diff to
-" read each with. The scopes are git-extras' :BranchDiff's: without one, the
-" branch's changes, committed or not (the merge-base with the default branch
-" against the work tree, plus untracked files), which on the default branch
-" is what isn't committed; `staged`, the index against HEAD; a branch name,
-" that branch's commits, without checking it out.
+" #changes[:scope]: docs/sources/changes.md
 function! prompts#sources#changes#info() abort
   return {'needs': 'changes (on this branch; #changes:staged; #changes:<branch>)', 'arg': 'optional'}
 endfunction
 
-" stdout lines, or v:null when git fails
 function! s:git(bufnr, args) abort
   let l:result = FugitiveExecute(a:args, a:bufnr)
   return l:result.exit_status ? v:null : filter(copy(l:result.stdout), '!empty(v:val)')
 endfunction
 
-" [diff args, what they are], or [] when the scope isn't one
 function! s:scope(bufnr, scope) abort
   if a:scope ==# 'staged'
     return [['--cached'], 'Staged changes']

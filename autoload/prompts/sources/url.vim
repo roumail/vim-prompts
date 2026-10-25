@@ -1,12 +1,9 @@
-" #url:<link>: a page for the agent to read, the way that suits the site: a
-" GitHub issue or pull request with gh, a Stack Exchange question or answer
-" with its API, anything else fetched
+" #url:<link>: docs/sources/url.md
 function! prompts#sources#url#info() abort
   return {'needs': 'a link: #url:https://...', 'arg': 'required'}
 endfunction
 
-" The Stack Exchange API's site for a host: stackoverflow.com -> stackoverflow,
-" vi.stackexchange.com -> vi; '' for other hosts
+" The Stack Exchange API's site parameter: https://api.stackexchange.com/docs/sites
 function! s:site(host) abort
   let l:host = substitute(a:host, '^www\.', '', '')
   if l:host =~# '^\%(stackoverflow\|superuser\|serverfault\|askubuntu\)\.com$'
@@ -51,7 +48,6 @@ function! prompts#sources#url#context(request, arg) abort
   return 'Read ' . l:url . ', and the pages it links to only as far as my request needs.'
 endfunction
 
-" The links in the registers, for #url:<Tab> after copying one
 function! prompts#sources#url#complete(lead) abort
   let l:urls = []
   for l:reg in ['"', '+', '*']

@@ -1,4 +1,4 @@
-" #comments: vim-review's review comments, each with the lines it is on
+" #comments: docs/sources/comments.md
 function! prompts#sources#comments#info() abort
   return {'needs': 'review comments (:Comment)', 'arg': 'none'}
 endfunction

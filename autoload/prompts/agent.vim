@@ -1,18 +1,9 @@
-" Starting the agent CLI with vim-dispatch's :Start, the prompt as its first
-" message; the session stays interactive. Installing and configuring the CLI
-" (auth, model) is up to the user; this only checks it is executable.
-
-" name -> {cmd, prompt, dir, vim_terminal, modes}: argv is cmd + vim_terminal
-" when it runs in a Vim terminal + modes[mode] (ask: it asks before each edit
-" or command; plan: it plans and doesn't edit; agent: it edits without
-" asking; auto: a model approves what it judges safe and it asks otherwise)
-" + the persona's args + prompt + [the prompt]. Copilot has no flag for
+" The agents and their modes: docs/agent.md
+"
+" Claude's fullscreen renderer doesn't start in a Vim terminal (blank
+" window), so vim_terminal picks the classic one. Copilot has no flag for
 " manual or assisted approval in a session, so ask and auto start it as its
 " config (defaultPermissionMode) says.
-" + [dir, directory] for each directory outside the repo the agent may read
-" (after the prompt: claude's --add-dir takes several). Claude's fullscreen
-" renderer doesn't start in a Vim terminal (blank window), so there it uses
-" the classic one. Extended (or overridden) by g:prompts_agent_table.
 let s:agents = {
       \ 'claude': {'cmd': ['claude'], 'prompt': [], 'dir': '--add-dir',
       \   'vim_terminal': ['--settings', '{"tui":"default"}'],
@@ -47,9 +38,6 @@ function! s:installed(name) abort
   return !empty(l:agent) && executable(l:agent.cmd[0])
 endfunction
 
-" The agent to run: g:prompts_agent, else the persona's `agent:` when
-" installed, else the first installed of g:prompts_agents. '' if none, with
-" the error given.
 function! s:pick(meta, forced) abort
   if !empty(a:forced)
     if !has_key(s:table(), a:forced)
@@ -79,15 +67,13 @@ function! s:pick(meta, forced) abort
   return ''
 endfunction
 
-" The persona's `args:` for this agent: a list, or a map of agent -> list
 function! s:args(meta, name) abort
   let l:args = get(a:meta, 'args', [])
   let l:args = type(l:args) == v:t_dict ? get(l:args, a:name, []) : l:args
   return type(l:args) == v:t_list ? copy(l:args) : [l:args]
 endfunction
 
-" The prompt in a new file in the git dir (never committed), one per ask so
-" no two :Start commands are the same; a temp file outside a repo
+" Counts asks so no two :Start commands are the same
 let s:asked = 0
 function! s:prompt_file(prompt) abort
   let s:asked += 1
@@ -100,15 +86,11 @@ function! s:prompt_file(prompt) abort
   return l:file
 endfunction
 
-" The mode the agent starts in: the ask's or the persona's (meta.mode), else
-" g:prompts_mode, else ask
 function! s:mode(meta) abort
   let l:mode = get(a:meta, 'mode', '')
   return empty(l:mode) ? get(g:, 'prompts_mode', 'ask') : l:mode
 endfunction
 
-" [agent, argv before the prompt, argv after it] for the persona and the
-" directories, in the mode asked for, or [] with the error given
 function! prompts#agent#command(meta, dirs) abort
   let l:name = s:pick(a:meta, get(g:, 'prompts_agent', ''))
   if empty(l:name)
@@ -121,6 +103,7 @@ function! prompts#agent#command(meta, dirs) abort
     echomsg 'vim-prompts: ' . l:name . ' has no ' . l:mode
           \ . ' mode (g:prompts_agent_table), starting it as is'
   endif
+  " After the prompt: claude's --add-dir takes several
   let l:after = []
   for l:dir in a:dirs
     let l:after += empty(get(l:agent, 'dir', '')) ? [] : [l:agent.dir, l:dir]
@@ -130,11 +113,6 @@ function! prompts#agent#command(meta, dirs) abort
   return [l:name, l:before + s:args(a:meta, l:name) + l:agent.prompt, l:after]
 endfunction
 
-" Starts the agent with the prompt ('' just opens it) through vim-dispatch's
-" :Start, so it opens where your :Start strategy puts it (a tmux window, a
-" terminal), and :Ai with nothing focuses the bare session already running. The
-" prompt is passed as "$(cat file)", so its length doesn't matter to tmux;
-" past g:prompts_max_arg the agent is told to read the file. 1 when started.
 function! prompts#agent#launch(prompt, meta, dirs) abort
   let l:command = prompts#agent#command(a:meta, a:dirs)
   if empty(l:command)
@@ -147,6 +125,7 @@ function! prompts#agent#launch(prompt, meta, dirs) abort
   let l:cmd = join(map(l:argv, 'shellescape(v:val)'))
   if !empty(a:prompt)
     let l:file = s:prompt_file(a:prompt)
+    " From a file, so its length doesn't matter to tmux
     let l:cmd .= strlen(a:prompt) <= get(g:, 'prompts_max_arg', 100000)
           \ ? ' "$(cat ' . shellescape(l:file) . ')"'
           \ : ' ' . shellescape('My request and its context are in ' . l:file

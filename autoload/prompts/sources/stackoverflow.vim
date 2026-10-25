@@ -1,5 +1,4 @@
-" #stackoverflow[:terms]: have the agent search Stack Overflow, for the terms
-" or for the query; terms that are only [tags] search for the query in them
+" #stackoverflow[:terms]: docs/sources/stackoverflow.md
 function! prompts#sources#stackoverflow#info() abort
   return {'needs': 'search terms: #stackoverflow:"terms"', 'arg': 'optional'}
 endfunction

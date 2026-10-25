@@ -1,4 +1,4 @@
-" #file: the file the request was made in, and its line
+" #file: docs/sources/file.md
 function! prompts#sources#file#info() abort
   return {'needs': 'a file', 'arg': 'none'}
 endfunction

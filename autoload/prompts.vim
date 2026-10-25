@@ -1,19 +1,3 @@
-" vim-prompts: ask an agent CLI as one of its personas, in the CLIs' own
-" grammar: `:Ai /review #comments @notes.md why is this here`.
-"
-" - query: what the user types, around the /persona, #sources and @files
-" - request: the query plus where it was asked: buffer, line, range or
-"   selection (taken before any window opens), the rules and repository
-"   description that apply there (prompts/config.vim), and the context sources
-" - context source: what Vim shows, or where the agent should look, as text
-"   (prompts/source.vim); #name[:arg] asks for one on top of the persona's,
-"   @path for files
-" - persona: a template plus its default sources and how the agent runs for
-"   it (prompts/persona.vim); /name picks one, else `default`
-" - prompt: the persona's template rendered with the request and its context
-"   (prompts/template.vim). It starts the agent (prompts/agent.vim), or opens
-"   as a draft to edit first.
-
 function! prompts#namespace() abort
   let l:ns = get(g:, 'prompts_namespace', 'Ai')
   return toupper(l:ns[0]) . l:ns[1:]
@@ -26,13 +10,8 @@ function! s:error(msg) abort
 endfunction
 
 " ---------------------------------------------------------------------------
-" Grammar: [/persona] [#source[:arg]...] [@path...] [--<mode>-mode] [query]
-" [-- text]. The persona is the first word; #sources, @paths and the mode the
-" agent starts in (ask, plan, agent, auto) may be anywhere before `--`, after
-" which everything is query as typed. An argument or path with spaces is
-" quoted: #stackoverflow:"vim term_start cwd", @"~/My Notes/a.md".
+" Grammar (docs/usage.md)
 
-" @path -> {files, pick: dirs to pick in}; {} with the error given
 function! s:files(path) abort
   if empty(a:path)
     let l:tree = FugitiveWorkTree()
@@ -51,7 +30,6 @@ function! s:files(path) abort
   return {'files': map(l:files, 'fnamemodify(v:val, ":p")'), 'pick': []}
 endfunction
 
-" {persona, given, files, pick, mode, query}; {} with the error given
 function! s:parse(args) abort
   let [l:_, l:start, l:end] = matchstrpos(a:args, '\%(^\|\s\)--\%(\s\|$\)')
   let l:head = l:start < 0 ? a:args : strpart(a:args, 0, l:start)
@@ -104,7 +82,6 @@ endfunction
 " ---------------------------------------------------------------------------
 " The request
 
-" Context is filled in by the sources as they are asked for
 function! s:request(range, line1, line2, query, sources, config) abort
   let l:request = {'query': a:query, 'sources': a:sources, 'dirs': [],
         \ 'bufnr': bufnr(), 'line': a:range ? a:line1 : line('.'),
@@ -125,8 +102,6 @@ function! s:request(range, line1, line2, query, sources, config) abort
   return l:request
 endfunction
 
-" Adds the @files: one `files` source, and the directories outside the work
-" tree for the agent to be allowed in
 function! s:add_files(request, files) abort
   if empty(a:files)
     return
@@ -141,9 +116,6 @@ function! s:add_files(request, files) abort
   call uniq(sort(a:request.dirs))
 endfunction
 
-" What is missing for the request, '' when nothing: each #source asked for
-" must have context, and a persona with sources needs context from one of
-" the request's (its own, those added, the files) or a selection
 function! s:missing(persona, request, given) abort
   for l:source in a:given
     if empty(prompts#source#context(l:source, a:request))
@@ -164,10 +136,6 @@ function! s:missing(persona, request, given) abort
         \ . join(map(copy(l:own), 'prompts#source#info(v:val.name).needs'), ', or ')
 endfunction
 
-" Renders the prompt for the command's arguments and passes [persona,
-" request, prompt] to Then, once the files are picked when @ asks for that.
-" Errors are given instead, a config error among them; ! skips the check for
-" context.
 function! s:prompt(bang, range, line1, line2, args, Then) abort
   let l:parsed = s:parse(a:args)
   if empty(l:parsed)
@@ -284,7 +252,6 @@ function! prompts#complete(lead, cmdline, pos) abort
   if a:cmdline[: a:pos - 1] =~# '\s--\s'
     return []
   elseif a:lead =~# '^#\h\w*:'
-    " A source's argument, from its complete() when it has one
     let [l:name, l:arg] = matchlist(a:lead, '^#\(\h\w*\):\(.*\)')[1:2]
     return prompts#source#exists(l:name) && exists('*prompts#sources#' . l:name . '#complete')
           \ ? map(call('prompts#sources#' . l:name . '#complete', [l:arg]),
@@ -306,10 +273,8 @@ function! prompts#complete(lead, cmdline, pos) abort
   return []
 endfunction
 
-" :AiPersonas[!]: what applies here and where git config sets each part:
-" the rules, the repository's description, then each persona, its context,
-" its file and those it builds on, and what it needs that isn't here.
-" With !, reload the source files first.
+" :AiPersonas[!]: what applies here and where git config sets it. With !,
+" reload the source files first.
 function! prompts#list(reload) abort
   if a:reload
     call prompts#source#load()

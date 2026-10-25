@@ -1,24 +1,8 @@
-" Where the personas, the rules and the repository's description come from:
-" git config, read the way git reads it (system, global and the files it
-" includes, then the repository's own), so what applies to an ask is what
-" `git config --show-origin --get-regexp vim-prompts` lists where it is made.
-" No file is read for being in some place; every one is named (docs/config.md).
-"
-"   vim-prompts.personas    a directory of personas; every value, a later one
-"                           winning on a name
-"   vim-prompts.rules       a file of rules for every ask; every value, in order
-"   vim-prompts.repository  the file that describes this repository; only from
-"                           its own config (local, worktree or -c), never shared
-"
-" An empty personas or rules value drops those before it. Paths are relative
-" to the work tree's root, outside a repository the working directory.
+" The settings: docs/config.md
 
 let s:keys = ['personas', 'rules', 'repository']
-" The scopes that are one repository's own
-let s:own = ['local', 'worktree', 'command']
+let s:own_scopes = ['local', 'worktree', 'command']
 
-" Where an ask from the buffer is made: its repository's work tree, else the
-" working directory's, else the working directory. {dir, repo}
 function! prompts#config#place(bufnr) abort
   for l:gitdir in [FugitiveGitDir(a:bufnr), FugitiveExtractGitDir(getcwd())]
     let l:tree = empty(l:gitdir) ? '' : FugitiveWorkTree(l:gitdir)
@@ -29,7 +13,6 @@ function! prompts#config#place(bufnr) abort
   return {'dir': getcwd(), 'repo': 0}
 endfunction
 
-" The file a setting came from, for messages: `global ~/.gitconfig`
 function! s:origin(scope, origin) abort
   let l:file = substitute(a:origin, '^file:', '', '')
   return a:scope . (l:file ==# a:origin ? '' : ' ' . fnamemodify(l:file, ':~'))
@@ -40,14 +23,11 @@ function! s:path(value, place) abort
   return l:path =~# '^/' ? l:path : a:place.dir . '/' . l:path
 endfunction
 
-" A path as the prompt shows it: from the work tree's root inside it
 function! prompts#config#show(path, place) abort
   return a:place.repo && stridx(a:path, a:place.dir . '/') == 0
         \ ? strpart(a:path, len(a:place.dir) + 1) : fnamemodify(a:path, ':~')
 endfunction
 
-" What applies to an ask from the buffer: {place, personas: [{dir, origin}],
-" rules: [{file, origin}], repository: {file, origin} or {}, errors}
 function! prompts#config#get(bufnr) abort
   let l:place = prompts#config#place(a:bufnr)
   let l:config = {'place': l:place, 'personas': [], 'rules': [],
@@ -71,7 +51,7 @@ function! prompts#config#get(bufnr) abort
       call add(l:config.errors, l:where . ': unknown key'
             \ . (l:key ==# 'dir' ? '; name the directory as vim-prompts.personas and the file as vim-prompts.repository' : ''))
     elseif l:key ==# 'repository'
-      if index(s:own, l:scope) < 0
+      if index(s:own_scopes, l:scope) < 0
         call add(l:config.errors, l:where . ': describes one repository, so set it in that'
               \ . ' repository: git config vim-prompts.repository <file>')
       elseif empty(l:value)
@@ -98,8 +78,6 @@ function! prompts#config#get(bufnr) abort
   return l:config
 endfunction
 
-" The rules and the repository's description, for {repository}: general to
-" specific, the later winning where they differ
 function! prompts#config#text(config) abort
   let l:blocks = []
   for [l:heading, l:file] in map(copy(a:config.rules), '["Rules", v:val.file]')

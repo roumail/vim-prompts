@@ -1,9 +1,4 @@
-" A template is a persona's text with slots: {query}, {selection},
-" {repository} for the rules and repository description git config names
-" (prompts/config.vim), {context} for the context of the request's sources,
-" and {<source>} to place one of them elsewhere. Rendering it for a request gives the prompt. Nothing asked for
-" is dropped: without {query} the query goes last, and without {repository},
-" {context} or {selection} those go just before the query, in that order.
+" Slots: docs/personas.md#template
 
 function! prompts#template#render(template, request) abort
   let l:prompt = join(a:template, "\n")
@@ -16,8 +11,6 @@ function! prompts#template#render(template, request) abort
       let l:prompt = substitute(l:prompt, '{query}', l:slot . "\n\n{query}", '')
     endif
   endfor
-  " The request's sources go in their own slot, else in {context}; slots of
-  " sources not asked for stay empty
   let l:slots = {}
   let l:context = []
   for l:source in a:request.sources
@@ -28,6 +21,7 @@ function! prompts#template#render(template, request) abort
       call add(l:context, l:text)
     endif
   endfor
+  " Slots of sources not asked for stay empty
   let l:values = {}
   for l:name in prompts#source#names()
     let l:values[l:name] = join(get(l:slots, l:name, []), "\n\n")
