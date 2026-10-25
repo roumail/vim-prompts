@@ -46,7 +46,7 @@ answers from Vim's help and the Vim tags:
 context: ["stackoverflow:[vim] [vimscript]"]
 mode: ask
 ---
-{repository}
+{rules}
 
 Answer from Vim's own help first (`:help`), then from Stack Overflow.
 

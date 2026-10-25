@@ -9,7 +9,7 @@ prompt itself, with slots that vim-prompts fills in.
 context: [changes]
 mode: ask
 ---
-{repository}
+{rules}
 
 I am reviewing a change in Vim. Don't edit any files.
 
@@ -119,22 +119,26 @@ stays as written.
 | --- | --- |
 | `{query}` | What the user typed. |
 | `{selection}` | The range or visual selection, fenced, with path and lines. |
-| `{repository}` | The [repository context](#repository-context): the rules and the repository's description; empty without them. |
+| `{rules}` | The [rules](#rules), the repository's description last; empty without them, or with `--bare`. |
 | `{base}` | The persona this one hides ([building on it](#building-on-another-persona)). |
 | `{context}` | Every source's text, in order: the persona's, those added, then the files. |
 | `{<source>}` | One source's text here instead of in `{context}` (`{comments}`, `{files}` for the `@` files). |
 
 Nothing is dropped. Without `{query}` the query goes last, after "Additional
-request from the user:"; without `{repository}`, `{context}` or `{selection}`,
+request from the user:"; without `{rules}`, `{context}` or `{selection}`,
 those go just before the query. So write the situation first and the query
 last.
 
 A slot with nothing becomes empty, and the blank lines left behind collapse.
 Give each slot its own paragraph and no heading: every source brings its own.
 
-## Repository context
+## Rules
 
-`{repository}` is what git config says about where you ask: each
+`{rules}` is what git config says about where you ask: each
 `vim-prompts.rules` file, then the repository's own description,
-`vim-prompts.repository`, last, with the agent told the later wins where they
-differ. See [configuration](config.md).
+`vim-prompts.repository`, last, as the most specific rule, with the agent
+told the later wins where they differ. See [configuration](config.md).
+`--bare` leaves them out of one ask.
+
+A persona written for `{repository}`, the slot's old name, is refused, saying
+so.

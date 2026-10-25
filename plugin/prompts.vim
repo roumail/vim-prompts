@@ -32,8 +32,8 @@ function! s:init() abort
   endif
 
   let l:ns = prompts#namespace()
-  " [/persona] [#source[:arg]...] [@path...] [--<mode>-mode] [query]
-  " [-- text]: ask the persona (default: `default`) with its context
+  " [/persona] [#source[:arg]...] [@path...] [--<mode>-mode] [--bare]
+  " [query] [-- text]: ask the persona (default: `default`) with its context
   " and the sources asked for; with nothing, open the agent
   execute 'command! -bang -range -nargs=* -complete=customlist,prompts#complete '
         \ . l:ns . ' call prompts#ask(<bang>0, <range>, <line1>, <line2>, <q-args>)'

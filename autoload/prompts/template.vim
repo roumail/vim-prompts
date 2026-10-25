@@ -6,7 +6,7 @@ function! prompts#template#render(template, request) abort
   if stridx(l:prompt, '{query}') < 0
     let l:prompt .= "\n\n{query}"
   endif
-  for l:slot in ['{repository}', '{context}', '{selection}']
+  for l:slot in ['{rules}', '{context}', '{selection}']
     if stridx(l:prompt, l:slot) < 0
       let l:prompt = substitute(l:prompt, '{query}', l:slot . "\n\n{query}", '')
     endif
@@ -27,7 +27,7 @@ function! prompts#template#render(template, request) abort
     let l:values[l:name] = join(get(l:slots, l:name, []), "\n\n")
   endfor
   let l:values.context = join(l:context, "\n\n")
-  let l:values.repository = a:request.repository
+  let l:values.rules = a:request.rules
   let l:values.selection = prompts#source#selection(a:request)
   let l:values.query = (l:heading ? "Additional request from the user:\n" : '')
         \ . a:request.query

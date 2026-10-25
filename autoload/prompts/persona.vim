@@ -135,6 +135,9 @@ function! s:resolve(stack, i) abort
   let l:p = extend(copy(a:stack[a:i]), s:read(a:stack[a:i].file))
   let l:p.bases = []
   let l:text = join(l:p.template, "\n")
+  if stridx(l:text, '{repository}') >= 0
+    throw '{repository} is {rules} now'
+  endif
   if stridx(l:text, '{base}') < 0
     return l:p
   elseif a:i == 0

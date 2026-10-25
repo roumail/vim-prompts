@@ -42,7 +42,8 @@ function! s:parse(args) abort
     endif
     call add(l:words, l:word)
   endwhile
-  let l:parsed = {'persona': 'default', 'given': [], 'files': [], 'pick': [], 'mode': '', 'query': []}
+  let l:parsed = {'persona': 'default', 'given': [], 'files': [], 'pick': [], 'mode': '',
+        \ 'bare': 0, 'query': []}
   if get(l:words, 0, '') =~# '^/\a[[:alnum:]_-]*$'
     let l:parsed.persona = remove(l:words, 0)[1:]
   endif
@@ -64,6 +65,8 @@ function! s:parse(args) abort
       let l:parsed.pick += l:found.pick
     elseif l:word =~# '^--\%(ask\|plan\|agent\|auto\)-mode$'
       let l:parsed.mode = matchstr(l:word, '\a\+', 2)
+    elseif l:word ==# '--bare'
+      let l:parsed.bare = 1
     else
       call add(l:parsed.query, l:word)
     endif
@@ -87,7 +90,7 @@ function! s:request(range, line1, line2, query, sources, config) abort
         \ 'bufnr': bufnr(), 'line': a:range ? a:line1 : line('.'),
         \ 'range': a:range, 'line1': a:line1, 'line2': a:line2,
         \ 'selection': [], 'charwise': 0, 'context': {},
-        \ 'repository': prompts#config#text(a:config)}
+        \ 'rules': prompts#config#text(a:config)}
   if !a:range
     return l:request
   endif
@@ -160,6 +163,9 @@ function! s:prompt(bang, range, line1, line2, args, Then) abort
     endif
   endfor
   let l:request = s:request(a:range, a:line1, a:line2, l:parsed.query, l:sources, l:config)
+  if l:parsed.bare
+    let l:request.rules = ''
+  endif
   let l:Finish = {files -> s:finish(a:bang, l:persona, l:request, l:parsed,
         \ l:parsed.files + files, a:Then)}
   if empty(l:parsed.pick)
@@ -187,12 +193,12 @@ endfunction
 " ---------------------------------------------------------------------------
 " Commands
 
-" :[range]Ai[!] [/persona] [#source...] [@path...] [--<mode>-mode] [query]
-" [-- text]. With nothing (or only a mode), opens the agent bare, or
-" focuses the bare session already running.
+" :[range]Ai[!] [/persona] [#source...] [@path...] [--<mode>-mode] [--bare]
+" [query] [-- text]. With nothing (or only a mode, or --bare), opens the
+" agent bare, or focuses the bare session already running.
 function! prompts#ask(bang, range, line1, line2, args) abort
-  if trim(a:args) =~# '^\%(--\%(ask\|plan\|agent\|auto\)-mode\)\=$' && !a:range
-    call prompts#agent#launch('', {'mode': matchstr(trim(a:args), '\a\+', 2)}, [])
+  if a:args =~# '^\%(\s*--\%(\%(ask\|plan\|agent\|auto\)-mode\|bare\)\)*\s*$' && !a:range
+    call prompts#agent#launch('', {'mode': matchstr(a:args, '--\zs\a\+\ze-mode')}, [])
     return
   endif
   call s:prompt(a:bang, a:range, a:line1, a:line2, a:args, function('s:ask'))
@@ -265,7 +271,7 @@ function! prompts#complete(lead, cmdline, pos) abort
   elseif a:lead =~# '^@'
     return map(getcompletion(a:lead[1:], 'file'), '"@" . v:val')
   elseif a:lead =~# '^-'
-    return filter(['--agent-mode', '--ask-mode', '--auto-mode', '--plan-mode'], 'stridx(v:val, a:lead) == 0')
+    return filter(['--agent-mode', '--ask-mode', '--auto-mode', '--bare', '--plan-mode'], 'stridx(v:val, a:lead) == 0')
   elseif a:lead =~# '^/' && a:cmdline[: a:pos - 1] =~# '^\S*\s\+\S*$'
     return filter(map(prompts#persona#names(prompts#config#get(bufnr())), '"/" . v:val'),
           \ 'stridx(v:val, a:lead) == 0')

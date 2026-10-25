@@ -14,10 +14,11 @@ and you carry on the conversation there.
   window under tmux; `:Ai` alone takes you back to it.
 - **You say what it sees.** A short syntax hands it what Vim knows: a
   selection, `@files`, the change on your branch (`#changes`), your review
-  comments (`#comments`). Nothing else is sent.
+  comments (`#comments`). Nothing else is sent, but the rules you set.
 - **You decide how it's briefed, per project.** A persona (`/review`,
-  `/explain`, or your own) is a saved prompt that frames your question. Each
-  project can describe itself once and bring its own personas.
+  `/explain`, or your own) is a saved prompt that frames your question;
+  rules apply to every ask. Each project can describe itself once and bring
+  its own personas and rules.
 
 ## Install
 
@@ -64,7 +65,7 @@ way and what's surprising, and sends the whole file around your lines:
 ```
 
 Without a selection it explains the code at your cursor. Without a persona
-you get `/default`, which adds nothing to your query.
+you get `/default`, which adds nothing to your query but your rules.
 
 **If you want it to look at your change,** `/review` brings in your branch,
 committed or not; `#changes:staged` narrows it to what's staged:
@@ -111,6 +112,8 @@ git config vim-prompts.repository .vim-prompts/repository.md
 
 Nothing is picked up for being in some directory, and `:AiPersonas` shows
 what applies and where each part is set ([configuration](docs/config.md)).
+`--bare` leaves the rules and the description out of one ask:
+`:Ai --bare is this idiomatic` sends just the question.
 A persona of a repository can build on its group's with `{base}`
 ([personas](docs/personas.md)).
 

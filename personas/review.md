@@ -2,7 +2,7 @@
 context: [changes]
 mode: ask
 ---
-{repository}
+{rules}
 
 I am reviewing a change in Vim. This is a review: don't edit any files.
 
