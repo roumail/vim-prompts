@@ -3,8 +3,8 @@
 " (docs/personas.md). The name is the file name, asked for as /name; `default` is
 " the persona :Ai asks without one. The most specific wins: this plugin's
 " personas/, then every other personas/ on 'runtimepath' (~/.vim/personas, or
-" a plugin that ships personas), then the repo's .vim-prompts/personas/. Two
-" of the same name at one level are an error.
+" a plugin that ships personas), then the repo's .vim-prompts/personas/
+" (prompts#dir()). Two of the same name at one level are an error.
 
 let s:bundled = expand('<sfile>:p:h:h:h') . '/personas'
 " name -> {name, file, source}
@@ -118,9 +118,9 @@ function! s:dirs() abort
       call add(l:dirs, ['pack', l:dir])
     endif
   endfor
-  let l:tree = FugitiveWorkTree(FugitiveExtractGitDir(getcwd()))
-  if !empty(l:tree)
-    call add(l:dirs, ['repo', l:tree . '/.vim-prompts/personas'])
+  let l:dir = prompts#dir(FugitiveExtractGitDir(getcwd()))
+  if !empty(l:dir)
+    call add(l:dirs, ['repo', l:dir . '/personas'])
   endif
   return l:dirs
 endfunction

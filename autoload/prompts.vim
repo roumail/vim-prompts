@@ -104,15 +104,27 @@ endfunction
 " ---------------------------------------------------------------------------
 " The request
 
+" The repo's .vim-prompts/: git config vim-prompts.dir when set, which every
+" worktree of the repo shares, else .vim-prompts/ at the work tree's root; ''
+" outside a repo
+function! prompts#dir(gitdir) abort
+  let l:tree = FugitiveWorkTree(a:gitdir)
+  if empty(l:tree)
+    return ''
+  endif
+  let l:dir = FugitiveConfigGet('vim-prompts.dir', a:gitdir)
+  return empty(l:dir) ? l:tree . '/.vim-prompts' : expand(l:dir)
+endfunction
+
 " The repo's .vim-prompts/repository.md: what the repository is, for every
 " ask in it
 function! s:repository(bufnr) abort
-  let l:tree = FugitiveWorkTree(a:bufnr)
-  if empty(l:tree)
-    let l:tree = FugitiveWorkTree(FugitiveExtractGitDir(getcwd()))
+  let l:dir = prompts#dir(FugitiveGitDir(a:bufnr))
+  if empty(l:dir)
+    let l:dir = prompts#dir(FugitiveExtractGitDir(getcwd()))
   endif
-  let l:file = l:tree . '/.vim-prompts/repository.md'
-  if empty(l:tree) || !filereadable(l:file)
+  let l:file = l:dir . '/repository.md'
+  if empty(l:dir) || !filereadable(l:file)
     return ''
   endif
   let l:text = trim(join(readfile(l:file), "\n"))

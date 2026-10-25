@@ -43,6 +43,18 @@ There are two kinds:
   root. Commit it to share it, or list `.vim-prompts/` in
   `.git/info/exclude` to keep it to yourself.
 
+A `.vim-prompts/` you keep to yourself is in one work tree only, so a
+`git worktree add` doesn't have it. To use one for every worktree of a
+repository, keep it outside them and name it in the repository's git config,
+which its worktrees share:
+
+```sh
+git config vim-prompts.dir ~/notes/my-repo-prompts   # personas/, repository.md
+```
+
+The `.vim-prompts/` at the root is then not read. Set it with `includeIf` in
+`~/.gitconfig` to cover every repository under a directory.
+
 Names are letters, digits, `-` and `_`, starting with a letter.
 
 ## Which persona is used

@@ -103,8 +103,9 @@ buffer; `:w` sends it ([usage](docs/usage.md)).
   a built-in (`personas/review.md` with your team's review checklist).
 
 Commit it to share it, or list `.vim-prompts/` in `.git/info/exclude` to keep
-it to yourself. Personas for every project go in `~/.vim/personas/`
-([personas](docs/personas.md)).
+it to yourself; `git config vim-prompts.dir <dir>` keeps it outside the
+repository, for all its worktrees. Personas for every project go in
+`~/.vim/personas/` ([personas](docs/personas.md)).
 
 ## More
 
