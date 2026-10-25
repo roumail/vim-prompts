@@ -1,23 +1,103 @@
-" #diff_pairs: every tab's diff, its sides left to right
+" #diff_pairs[:name]: the diffs open in Vim, one per tab, their sides left to
+" right. With a name, one comparison from git-extras' :Compares (what
+" :BranchDiff opened): those of its tabs still open, or all of it when none
+" are. Without, the current tab's comparison, or when it is in none every
+" diff open, by comparison.
 function! prompts#sources#diff_pairs#info() abort
-  return {'needs': 'a diff (:DiffThis, :BranchDiff)', 'arg': 'none'}
+  return {'needs': 'a diff (:DiffThis, :BranchDiff), or a comparison listed in :Compares',
+        \ 'arg': 'optional'}
+endfunction
+
+" The repo's git dir, from the buffer or else the working directory
+function! s:dir(bufnr) abort
+  let l:dir = FugitiveGitDir(a:bufnr)
+  return empty(l:dir) ? FugitiveExtractGitDir(getcwd()) : l:dir
+endfunction
+
+" The comparison names, for #diff_pairs:<Tab>
+function! prompts#sources#diff_pairs#complete(lead) abort
+  return filter(map(git_extras#compares#list(s:dir(bufnr())), 'v:val.name'),
+        \ 'stridx(v:val, a:lead) == 0')
+endfunction
+
+" `a` vs `b` for a tab's diff, '' when it has none
+function! s:pair(tabnr) abort
+  let l:sides = []
+  for l:winid in gettabinfo(a:tabnr)[0].windows
+    " Not getwinvar(), which finds only the current tab's windows
+    if gettabwinvar(a:tabnr, l:winid, '&diff') && prompts#source#is_file(winbufnr(l:winid))
+      call add(l:sides, prompts#source#side(winbufnr(l:winid)))
+    endif
+  endfor
+  return len(l:sides) > 1 ? join(l:sides, ' vs ') : ''
+endfunction
+
+" The list without repeats (a comparison opened twice), in order
+function! s:unique(list) abort
+  let l:unique = []
+  for l:item in a:list
+    if !empty(l:item) && index(l:unique, l:item) < 0
+      call add(l:unique, l:item)
+    endif
+  endfor
+  return l:unique
+endfunction
+
+" The git diff that shows a comparison
+function! s:diff(compare) abort
+  return '`git diff ' . a:compare.base[:6] . (empty(a:compare.head) ? '' : ' ' . a:compare.head) . '`'
+endfunction
+
+" One comparison: its tabs' diffs, or all of it when none are open
+function! s:compare(compare) abort
+  let l:pairs = s:unique(map(copy(a:compare.tabs), 's:pair(v:val)'))
+  let l:what = 'the comparison ' . a:compare.name . ' (' . s:diff(a:compare) . ', '
+        \ . a:compare.files . ' files)'
+  if empty(l:pairs)
+    return 'All of ' . l:what . '; none of its diffs are open in Vim. List its files with '
+          \ . substitute(s:diff(a:compare), 'diff', 'diff --name-status', '') . '.'
+  endif
+  return 'Diffs open in Vim from ' . l:what . ', one per tab:' . "\n- " . join(l:pairs, "\n- ")
+        \ . "\nRead a side that is not the work tree with `git show <object>`."
 endfunction
 
 function! prompts#sources#diff_pairs#context(request, arg) abort
-  let l:diffs = []
+  let l:compares = git_extras#compares#list(s:dir(a:request.bufnr))
+  let l:named = empty(a:arg)
+        \ ? filter(copy(l:compares), 'index(v:val.tabs, tabpagenr()) >= 0')
+        \ : filter(copy(l:compares), 'v:val.name ==# a:arg')
+  if !empty(l:named)
+    return s:compare(l:named[0])
+  elseif !empty(a:arg)
+    return ''
+  endif
+  " Every diff open, under the comparison its tab is in
+  let l:groups = {}
+  let l:order = []
   for l:tab in gettabinfo()
-    let l:sides = []
-    for l:winid in l:tab.windows
-      " Not getwinvar(), which finds only the current tab's windows
-      if gettabwinvar(l:tab.tabnr, l:winid, '&diff') && prompts#source#is_file(winbufnr(l:winid))
-        call add(l:sides, prompts#source#side(winbufnr(l:winid)))
-      endif
-    endfor
-    if len(l:sides) > 1
-      call add(l:diffs, '- ' . join(l:sides, ' vs '))
+    let l:pair = s:pair(l:tab.tabnr)
+    if empty(l:pair)
+      continue
     endif
+    let l:in = filter(copy(l:compares), 'index(v:val.tabs, l:tab.tabnr) >= 0')
+    let l:group = empty(l:in) ? '' : 'From the comparison ' . l:in[0].name
+          \ . ' (' . s:diff(l:in[0]) . '):'
+    if !has_key(l:groups, l:group)
+      let l:groups[l:group] = []
+      call add(l:order, l:group)
+    endif
+    call add(l:groups[l:group], '- ' . l:pair)
   endfor
-  return empty(l:diffs) ? ''
-        \ : "Diffs open in Vim, one per tab:\n" . join(l:diffs, "\n")
+  if empty(l:order)
+    return ''
+  endif
+  let l:lines = []
+  for l:group in l:order
+    if len(l:order) > 1 || !empty(l:group)
+      call add(l:lines, empty(l:group) ? 'Not in a comparison:' : l:group)
+    endif
+    call extend(l:lines, s:unique(l:groups[l:group]))
+  endfor
+  return "Diffs open in Vim, one per tab:\n" . join(l:lines, "\n")
         \ . "\nRead a side that is not the work tree with `git show <object>`."
 endfunction

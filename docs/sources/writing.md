@@ -38,6 +38,15 @@ once per ask, and must not change anything or wait on the network: tell the
 agent where to look instead. Returning `''` means it has nothing, and an ask
 that needs it is refused with `needs`.
 
+A third function, optional, completes the argument after `#name:<Tab>`:
+
+```vim
+" The arguments that start with lead
+function! prompts#sources#jira#complete(lead) abort
+  return filter(['KEY-1', 'KEY-2'], 'stridx(v:val, a:lead) == 0')
+endfunction
+```
+
 `request` is read only:
 
 | Key | Value |

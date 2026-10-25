@@ -9,7 +9,7 @@ for is sent, whatever else is open.
 | --- | --- |
 | [`#file`](file.md) | the file and line you're on |
 | [`#changes`](changes.md) | the files your branch changes, committed or not |
-| [`#diff_pairs`](diff_pairs.md) | the diffs you have open in Vim |
+| [`#diff_pairs`](diff_pairs.md) | the diffs you have open in Vim, or one `:BranchDiff`'s |
 | [`#comments`](comments.md) | your review comments |
 | [`@path`](files.md) | files for the agent to read |
 | [`#repo`](repo.md) | a GitHub repository |

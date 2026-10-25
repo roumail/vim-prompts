@@ -293,6 +293,13 @@ endfunction
 function! prompts#complete(lead, cmdline, pos) abort
   if a:cmdline[: a:pos - 1] =~# '\s--\s'
     return []
+  elseif a:lead =~# '^#\h\w*:'
+    " A source's argument, from its complete() when it has one
+    let [l:name, l:arg] = matchlist(a:lead, '^#\(\h\w*\):\(.*\)')[1:2]
+    return prompts#source#exists(l:name) && exists('*prompts#sources#' . l:name . '#complete')
+          \ ? map(call('prompts#sources#' . l:name . '#complete', [l:arg]),
+          \   {_, a -> '#' . l:name . ':' . a})
+          \ : []
   elseif a:lead =~# '^#'
     let l:names = filter(prompts#source#names(), 'v:val !=# "files"')
     return filter(map(l:names, {_, n -> '#' . n
