@@ -1,7 +1,7 @@
 " A template is a persona's text with slots: {query}, {selection},
-" {repository} for the repo's .vim-prompts/repository.md, {context} for the
-" context of the request's sources, and {<source>} to place one of them
-" elsewhere. Rendering it for a request gives the prompt. Nothing asked for
+" {repository} for the rules and repository description git config names
+" (prompts/config.vim), {context} for the context of the request's sources,
+" and {<source>} to place one of them elsewhere. Rendering it for a request gives the prompt. Nothing asked for
 " is dropped: without {query} the query goes last, and without {repository},
 " {context} or {selection} those go just before the query, in that order.
 

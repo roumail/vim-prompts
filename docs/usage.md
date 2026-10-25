@@ -44,8 +44,11 @@ buffer to edit first:
 
 ## :AiPersonas
 
-`:AiPersonas[!]` lists the personas, their context, where each comes from and
-what each needs that isn't there. `!` reloads persona and source files first.
+`:AiPersonas[!]` shows what applies where you are, and where git config sets
+each part ([configuration](config.md)): the rules, the repository's
+description, then the personas, their context, where each comes from, those
+it builds on, and what each needs that isn't there. `!` reloads the source
+files first.
 
 ## Mappings
 

@@ -3,8 +3,8 @@
 "
 " - query: what the user types, around the /persona, #sources and @files
 " - request: the query plus where it was asked: buffer, line, range or
-"   selection (taken before any window opens), the repository context, and
-"   the context sources
+"   selection (taken before any window opens), the rules and repository
+"   description that apply there (prompts/config.vim), and the context sources
 " - context source: what Vim shows, or where the agent should look, as text
 "   (prompts/source.vim); #name[:arg] asks for one on top of the persona's,
 "   @path for files
@@ -104,41 +104,13 @@ endfunction
 " ---------------------------------------------------------------------------
 " The request
 
-" The repo's .vim-prompts/: git config vim-prompts.dir when set, which every
-" worktree of the repo shares, else .vim-prompts/ at the work tree's root; ''
-" outside a repo
-function! prompts#dir(gitdir) abort
-  let l:tree = FugitiveWorkTree(a:gitdir)
-  if empty(l:tree)
-    return ''
-  endif
-  let l:dir = FugitiveConfigGet('vim-prompts.dir', a:gitdir)
-  return empty(l:dir) ? l:tree . '/.vim-prompts' : expand(l:dir)
-endfunction
-
-" The repo's .vim-prompts/repository.md: what the repository is, for every
-" ask in it
-function! s:repository(bufnr) abort
-  let l:dir = prompts#dir(FugitiveGitDir(a:bufnr))
-  if empty(l:dir)
-    let l:dir = prompts#dir(FugitiveExtractGitDir(getcwd()))
-  endif
-  let l:file = l:dir . '/repository.md'
-  if empty(l:dir) || !filereadable(l:file)
-    return ''
-  endif
-  let l:text = trim(join(readfile(l:file), "\n"))
-  return empty(l:text) ? ''
-        \ : "About this repository (.vim-prompts/repository.md):\n\n" . l:text
-endfunction
-
 " Context is filled in by the sources as they are asked for
-function! s:request(range, line1, line2, query, sources) abort
+function! s:request(range, line1, line2, query, sources, config) abort
   let l:request = {'query': a:query, 'sources': a:sources, 'dirs': [],
         \ 'bufnr': bufnr(), 'line': a:range ? a:line1 : line('.'),
         \ 'range': a:range, 'line1': a:line1, 'line2': a:line2,
         \ 'selection': [], 'charwise': 0, 'context': {},
-        \ 'repository': s:repository(bufnr())}
+        \ 'repository': prompts#config#text(a:config)}
   if !a:range
     return l:request
   endif
@@ -172,7 +144,11 @@ endfunction
 " What is missing for the request, '' when nothing: each #source asked for
 " must have context, and a persona with sources needs context from one of
 " the request's (its own, those added, the files) or a selection
-function! s:missing(persona, request, given) abort
+function! s:missing(persona, request, given, config) abort
+  let l:missing = prompts#config#missing(a:config)
+  if !empty(l:missing)
+    return l:missing
+  endif
   for l:source in a:given
     if empty(prompts#source#context(l:source, a:request))
       return '#' . l:source.name . ' has nothing: needs '
@@ -194,13 +170,19 @@ endfunction
 
 " Renders the prompt for the command's arguments and passes [persona,
 " request, prompt] to Then, once the files are picked when @ asks for that.
-" Errors are given instead; ! skips the check for context.
+" Errors are given instead, a config error among them; ! skips the check for
+" context and for the repository's description.
 function! s:prompt(bang, range, line1, line2, args, Then) abort
   let l:parsed = s:parse(a:args)
   if empty(l:parsed)
     return
   endif
-  let l:persona = prompts#persona#get(l:parsed.persona)
+  let l:config = prompts#config#get(bufnr())
+  if !empty(l:config.errors)
+    call map(l:config.errors, 's:error(v:val)')
+    return
+  endif
+  let l:persona = prompts#persona#get(l:parsed.persona, l:config)
   if empty(l:persona)
     return
   endif
@@ -213,8 +195,8 @@ function! s:prompt(bang, range, line1, line2, args, Then) abort
       call add(l:sources, l:source)
     endif
   endfor
-  let l:request = s:request(a:range, a:line1, a:line2, l:parsed.query, l:sources)
-  let l:Finish = {files -> s:finish(a:bang, l:persona, l:request, l:parsed,
+  let l:request = s:request(a:range, a:line1, a:line2, l:parsed.query, l:sources, l:config)
+  let l:Finish = {files -> s:finish(a:bang, l:config, l:persona, l:request, l:parsed,
         \ l:parsed.files + files, a:Then)}
   if empty(l:parsed.pick)
     call l:Finish([])
@@ -226,10 +208,10 @@ function! s:prompt(bang, range, line1, line2, args, Then) abort
   endif
 endfunction
 
-function! s:finish(bang, persona, request, parsed, files, Then) abort
+function! s:finish(bang, config, persona, request, parsed, files, Then) abort
   call s:add_files(a:request, a:files)
   if !a:bang
-    let l:missing = s:missing(a:persona, a:request, a:parsed.given)
+    let l:missing = s:missing(a:persona, a:request, a:parsed.given, a:config)
     if !empty(l:missing)
       call s:error(l:missing . ' (! asks anyway)')
       return
@@ -322,36 +304,65 @@ function! prompts#complete(lead, cmdline, pos) abort
   elseif a:lead =~# '^-'
     return filter(['--agent-mode', '--ask-mode', '--auto-mode', '--plan-mode'], 'stridx(v:val, a:lead) == 0')
   elseif a:lead =~# '^/' && a:cmdline[: a:pos - 1] =~# '^\S*\s\+\S*$'
-    return filter(map(prompts#persona#names(), '"/" . v:val'),
+    return filter(map(prompts#persona#names(prompts#config#get(bufnr())), '"/" . v:val'),
           \ 'stridx(v:val, a:lead) == 0')
   endif
   return []
 endfunction
 
-" :AiPersonas[!]: each persona, its context, where it comes from, and what it
-" needs that isn't here. With !, reload the persona and source files first.
+" :AiPersonas[!]: what applies here and where git config sets each part:
+" the rules, the repository's description, then each persona, its context,
+" its file and those it builds on, and what it needs that isn't here.
+" With !, reload the source files first.
 function! prompts#list(reload) abort
   if a:reload
-    call prompts#persona#load()
+    call prompts#source#load()
   endif
-  for l:name in prompts#persona#names()
-    let l:persona = prompts#persona#get(l:name)
+  let l:config = prompts#config#get(bufnr())
+  let l:place = l:config.place
+  echohl ErrorMsg
+  for l:error in l:config.errors + prompts#persona#errors(l:config)
+    echo l:error
+  endfor
+  echohl None
+  for [l:label, l:file, l:origin] in map(copy(l:config.rules), '["rules", v:val.file, v:val.origin]')
+        \ + (empty(l:config.repository) ? []
+        \   : [['repository', l:config.repository.file, l:config.repository.origin]])
+    echohl Identifier
+    echo printf('%-16s', l:label)
+    echohl None
+    echon printf('%-37s %s', prompts#config#show(l:file, l:place), l:origin)
+  endfor
+  let l:missing = prompts#config#missing(l:config)
+  if !empty(l:missing)
+    echohl WarningMsg
+    echo l:missing
+    echohl None
+  endif
+  for l:name in prompts#persona#names(l:config)
+    let l:persona = prompts#persona#get(l:name, l:config)
     if empty(l:persona)
       continue
     endif
     let l:own = l:persona.meta.context
-    let l:request = s:request(0, line('.'), line('.'), '', copy(l:own))
+    let l:request = s:request(0, line('.'), line('.'), '', copy(l:own), l:config)
     echohl Identifier
     echo printf('%-16s', '/' . l:name)
     echohl None
     echon printf('%-28s %-8s %s',
           \ join(map(copy(l:own), '"#" . v:val.name . (empty(v:val.arg) ? "" : ":" . v:val.arg)')),
-          \ l:persona.source, fnamemodify(l:persona.file, ':~'))
-    let l:missing = s:missing(l:persona, l:request, [])
-    if !empty(l:missing)
-      echohl Comment
-      echo repeat(' ', 16) . l:missing
-      echohl None
+          \ l:persona.source ==# 'bundled' ? 'bundled' : '', fnamemodify(l:persona.file, ':~'))
+    echohl Comment
+    if l:persona.source !=# 'bundled'
+      echo repeat(' ', 16) . 'from vim-prompts.personas, ' . l:persona.source
     endif
+    for l:base in l:persona.bases
+      echo repeat(' ', 16) . 'on {base} ' . fnamemodify(l:base, ':~')
+    endfor
+    let l:missing = s:missing(l:persona, l:request, [], {'place': l:place, 'required': ''})
+    if !empty(l:missing)
+      echo repeat(' ', 16) . l:missing
+    endif
+    echohl None
   endfor
 endfunction

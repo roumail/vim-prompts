@@ -9,8 +9,14 @@ example `/review` on a branch with no changes, or
 
 ## How do I change what `/review` does?
 
-Copy it to `~/.vim/personas/` and edit the copy: see
+Copy it to one of your `vim-prompts.personas` directories and edit the copy,
+or build on it with `{base}`: see
 [which persona is used](personas.md#which-persona-is-used).
+
+## How do I share rules between repositories but let one differ?
+
+The shared ones in a group's git config, the repository's in its own, which
+wins: see [configuration](config.md#a-group-of-repositories).
 
 ## How do I change what a source tells the agent?
 

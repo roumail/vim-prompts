@@ -2,8 +2,8 @@
 " personas, in the CLIs' own grammar: `:Ai /review #comments @notes.md why`.
 " The persona's template, rendered with the query, the context asked for
 " (the change, the diffs open, files, the selection, vim-review review
-" comments) and the repository's .vim-prompts/repository.md, is the agent's
-" first prompt. Commands and <Plug> mappings only;
+" comments) and the rules and repository description git config names
+" (vim-prompts.rules, vim-prompts.repository), is the agent's first prompt. Commands and <Plug> mappings only;
 " no keys are bound here. Requires tpope/vim-fugitive,
 " tpope/vim-dispatch (the agent runs with :Start), roumail/git-extras and
 " roumail/vim-review.
@@ -40,21 +40,15 @@ function! s:init() abort
   " The same, as a draft to edit; :w sends it
   execute 'command! -bang -range -nargs=* -complete=customlist,prompts#complete '
         \ . l:ns . 'Draft call prompts#draft(<bang>0, <range>, <line1>, <line2>, <q-args>)'
-  " The personas and what they need that isn't here; ! reloads them
+  " What applies here: rules, repository, personas; ! reloads the sources
   execute 'command! -bang ' . l:ns . 'Personas call prompts#list(<bang>0)'
-  call prompts#persona#load()
+  call prompts#source#load()
 
   " The visual ones leave :'<,'>Ai on the command line to finish
   execute 'nnoremap <Plug>(prompts-ask) :<C-u>' . l:ns . '<Space>'
   execute 'xnoremap <Plug>(prompts-ask) :' . l:ns . '<Space>'
   execute 'nnoremap <Plug>(prompts-draft) :<C-u>' . l:ns . 'Draft<Space>'
   execute 'xnoremap <Plug>(prompts-draft) :' . l:ns . 'Draft<Space>'
-
-  " A repo's .vim-prompts/personas/ come and go with the working directory
-  augroup prompts
-    autocmd!
-    autocmd DirChanged * call prompts#persona#load()
-  augroup END
 endfunction
 
 if v:vim_did_enter

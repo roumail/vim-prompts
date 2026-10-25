@@ -94,25 +94,34 @@ context to send; `:Ai!` asks anyway. `<Tab>` completes everything.
 **If you want to edit the prompt before it goes,** `:AiDraft` opens it in a
 buffer; `:w` sends it ([usage](docs/usage.md)).
 
-**If you want every ask in a project briefed the same way,** add
-`.vim-prompts/` at the repository root:
+**If you want every ask briefed the same way,** name the files that brief it
+in git config, so they layer the way git config does: yours, a group of
+repositories' (with `includeIf`), then one repository's, which wins:
 
-- `repository.md`: what the project is, its layout and conventions, how to
-  run the tests. It opens every ask made there.
-- `personas/<name>.md`: a persona for this project only, or one that replaces
-  a built-in (`personas/review.md` with your team's review checklist).
+```ini
+[vim-prompts]
+	rules = ~/work/handbook/testing.md         # every ask follows these
+	personas = ~/work/handbook/personas        # /tests, your team's /review
+```
 
-Commit it to share it, or list `.vim-prompts/` in `.git/info/exclude` to keep
-it to yourself; `git config vim-prompts.dir <dir>` keeps it outside the
-repository, for all its worktrees. Personas for every project go in
-`~/.vim/personas/` ([personas](docs/personas.md)).
+```sh
+# in one repository: what it is, how its tests differ
+git config vim-prompts.repository .vim-prompts/repository.md
+```
+
+Nothing is picked up for being in some directory, and `:AiPersonas` shows
+what applies and where each part is set ([configuration](docs/config.md)).
+A persona of a repository can build on its group's with `{base}`
+([personas](docs/personas.md)).
 
 ## More
 
 - [Usage](docs/usage.md): the commands, drafts, mappings
 - [Sources](docs/sources/): each `#source` and `@files` in detail, changing
   one, writing your own
-- [Personas](docs/personas.md): the built-in ones, overriding them, writing
-  your own, repository context, skills
+- [Configuration](docs/config.md): rules, personas and the repository's
+  description, for you, a group of repositories and one repository
+- [Personas](docs/personas.md): the built-in ones, overriding them, building
+  on them, writing your own, skills
 - [The agent](docs/agent.md): which CLI runs, where it opens, adding another
 - [FAQ](docs/faq.md)

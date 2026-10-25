@@ -22,8 +22,8 @@ Start with a short summary, then go file by file.
 {query}
 ```
 
-A persona file is read again on each ask, so edits apply at once. New files
-need `:AiPersonas!`, which also lists where every persona comes from.
+A persona file is read again on each ask, so edits and new files apply at
+once. `:AiPersonas` lists where every persona comes from.
 
 ## Built-in personas
 
@@ -35,48 +35,53 @@ need `:AiPersonas!`, which also lists where every persona comes from.
 
 ## Where personas go
 
-There are two kinds:
-
-- **General**, for every project: `~/.vim/personas/<name>.md` (keep it in
-  your dotfiles to have it on every machine), or `personas/` in a plugin.
-- **Project**, for one repository: `.vim-prompts/personas/<name>.md` at its
-  root. Commit it to share it, or list `.vim-prompts/` in
-  `.git/info/exclude` to keep it to yourself.
-
-A `.vim-prompts/` you keep to yourself is in one work tree only, so a
-`git worktree add` doesn't have it. To use one for every worktree of a
-repository, keep it outside them and name it in the repository's git config,
-which its worktrees share:
+In directories that git config names, `vim-prompts.personas`, at whatever
+level they apply: yours in `~/.gitconfig`, a group's in a file it includes,
+one repository's in its own config ([configuration](config.md)):
 
 ```sh
-git config vim-prompts.dir ~/notes/my-repo-prompts   # personas/, repository.md
+git config --global --add vim-prompts.personas ~/dotfiles/prompts/personas
+git config --add vim-prompts.personas .vim-prompts/personas   # this repository's
 ```
-
-The `.vim-prompts/` at the root is then not read. Set it with `includeIf` in
-`~/.gitconfig` to cover every repository under a directory.
 
 Names are letters, digits, `-` and `_`, starting with a letter.
 
 ## Which persona is used
 
-The most specific one: **project** over **general** over **built-in**. A
-general `/review` replaces the built-in one everywhere; a project `/review`
-replaces both in that project. Two of the same name at one level (two general
-`/review`s) are an error, and the first is used. `:AiPersonas` shows where
-each one comes from.
+The last of its name: the built-in ones first, then each directory in the
+order git config lists them, so a repository's beats its group's, and a
+group's beats yours. `:AiPersonas` shows where each one comes from.
 
-To change the built-in `/review` everywhere, copy it and edit the copy:
+To change the built-in `/review`, copy it into one of your directories and
+edit the copy:
 
 ```sh
-mkdir -p ~/.vim/personas
-cp ~/.vim/plugged/vim-prompts/personas/review.md ~/.vim/personas/
+cp ~/.vim/plugged/vim-prompts/personas/review.md ~/dotfiles/prompts/personas/
 ```
 
-then `:AiPersonas!`. For one project, copy it to `.vim-prompts/personas/`
-instead.
+## Building on another persona
 
-A project persona can pass the agent arguments (`args:`), so check
-`.vim-prompts/personas/` in a repository you didn't write.
+A persona that hides one of its name replaces it, unless its template has
+`{base}`: then the one below goes there, so a repository adds to its group's
+`/tests` instead of copying it:
+
+```markdown
+---
+context: [file]
+---
+{base}
+
+In this repository, tests go only through the Flask test client.
+```
+
+- **The template below** goes where `{base}` is, without its `{query}`: the
+  query goes where this one puts it, or last.
+- **Its frontmatter** applies under this one's: a key this one sets wins,
+  and `context` is both, the one below's first.
+- **The one below** may have its own `{base}`, down to the built-in one.
+  `{base}` with nothing below is an error.
+
+`:AiPersonas` lists the files each persona builds on.
 
 ## Skills
 
@@ -114,7 +119,8 @@ stays as written.
 | --- | --- |
 | `{query}` | What the user typed. |
 | `{selection}` | The range or visual selection, fenced, with path and lines. |
-| `{repository}` | The [repository context](#repository-context); empty without one. |
+| `{repository}` | The [repository context](#repository-context): the rules and the repository's description; empty without them. |
+| `{base}` | The persona this one hides ([building on it](#building-on-another-persona)). |
 | `{context}` | Every source's text, in order: the persona's, those added, then the files. |
 | `{<source>}` | One source's text here instead of in `{context}` (`{comments}`, `{files}` for the `@` files). |
 
@@ -128,8 +134,7 @@ Give each slot its own paragraph and no heading: every source brings its own.
 
 ## Repository context
 
-`.vim-prompts/repository.md` at a repository's root says what it is: a Flask
-app, an ETL tool; its layout, conventions, how to run the tests. It goes in
-`{repository}`, under "About this repository", in every ask made there. Commit
-it to share it, or list `.vim-prompts/` in `.git/info/exclude` to keep it to
-yourself.
+`{repository}` is what git config says about where you ask: each
+`vim-prompts.rules` file, then the repository's own description,
+`vim-prompts.repository`, last, with the agent told the later wins where they
+differ. See [configuration](config.md).

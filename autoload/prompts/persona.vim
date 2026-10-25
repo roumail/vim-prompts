@@ -1,14 +1,12 @@
 " Personas: markdown files whose body is a template and whose frontmatter
 " names the persona's default context sources and how the agent runs for it
 " (docs/personas.md). The name is the file name, asked for as /name; `default` is
-" the persona :Ai asks without one. The most specific wins: this plugin's
-" personas/, then every other personas/ on 'runtimepath' (~/.vim/personas, or
-" a plugin that ships personas), then the repo's .vim-prompts/personas/
-" (prompts#dir()). Two of the same name at one level are an error.
+" the persona :Ai asks without one. They are stacked: this plugin's personas/,
+" then each vim-prompts.personas directory in the order git config gives them
+" (prompts/config.vim), the last of a name winning. One with {base} in its
+" template builds on the one it hides.
 
 let s:bundled = expand('<sfile>:p:h:h:h') . '/personas'
-" name -> {name, file, source}
-let s:personas = {}
 let s:keys = ['context', 'agent', 'args', 'mode']
 
 function! s:error(msg) abort
@@ -109,71 +107,81 @@ function! s:read(file) abort
 endfunction
 
 " ---------------------------------------------------------------------------
-" Loading
+" The stack
 
-function! s:dirs() abort
-  let l:dirs = [['bundled', s:bundled]]
-  for l:dir in globpath(&runtimepath, 'personas', 1, 1)
-    if resolve(l:dir) !=# resolve(s:bundled)
-      call add(l:dirs, ['pack', l:dir])
-    endif
-  endfor
-  let l:dir = prompts#dir(FugitiveExtractGitDir(getcwd()))
-  if !empty(l:dir)
-    call add(l:dirs, ['repo', l:dir . '/personas'])
-  endif
-  return l:dirs
-endfunction
-
-function! prompts#persona#load() abort
-  call prompts#source#load()
-  let s:personas = {}
-  for [l:source, l:dir] in s:dirs()
+" name -> [{name, file, source}], the bottom first, for the config; the files
+" with bad names are skipped
+function! s:stacks(config) abort
+  let l:stacks = {}
+  for [l:source, l:dir] in [['bundled', s:bundled]]
+        \ + map(copy(a:config.personas), '[v:val.origin, v:val.dir]')
     for l:file in sort(glob(l:dir . '/*.md', 1, 1))
-      call s:add(l:source, l:file)
+      let l:name = fnamemodify(l:file, ':t:r')
+      if l:name =~# '^\a[[:alnum:]_-]*$'
+        let l:stacks[l:name] = get(l:stacks, l:name, [])
+              \ + [{'name': l:name, 'file': l:file, 'source': l:source}]
+      endif
     endfor
   endfor
+  return l:stacks
 endfunction
 
-function! s:add(source, file) abort
-  let l:name = fnamemodify(a:file, ':t:r')
-  let l:where = fnamemodify(a:file, ':~')
-  if l:name !~# '^\a[[:alnum:]_-]*$'
-    call s:error(l:where . ': name must be letters, digits, - and _')
-    return
+" The files skipped for their names, as errors
+function! prompts#persona#errors(config) abort
+  let l:errors = []
+  for l:dir in map(copy(a:config.personas), 'v:val.dir')
+    for l:file in glob(l:dir . '/*.md', 1, 1)
+      if fnamemodify(l:file, ':t:r') !~# '^\a[[:alnum:]_-]*$'
+        call add(l:errors, fnamemodify(l:file, ':~') . ': name must be letters, digits, - and _')
+      endif
+    endfor
+  endfor
+  return l:errors
+endfunction
+
+function! prompts#persona#names(config) abort
+  return sort(keys(s:stacks(a:config)))
+endfunction
+
+" The stack's persona at i, read, with {base} replaced by the one below it:
+" its template without {query} (the persona on top places that), its
+" frontmatter under this one's, its context before this one's
+function! s:resolve(stack, i) abort
+  let l:p = extend(copy(a:stack[a:i]), s:read(a:stack[a:i].file))
+  let l:p.bases = []
+  let l:text = join(l:p.template, "\n")
+  if stridx(l:text, '{base}') < 0
+    return l:p
+  elseif a:i == 0
+    throw '{base}, but no /' . l:p.name . ' below it'
   endif
-  try
-    call s:read(a:file)
-  catch
-    call s:error(l:where . ': ' . v:exception)
-    return
-  endtry
-  let l:old = get(s:personas, l:name, {})
-  if !empty(l:old) && l:old.source ==# a:source
-    call s:error(l:where . ': duplicate of ' . fnamemodify(l:old.file, ':~'))
-    return
-  endif
-  let s:personas[l:name] = {'name': l:name, 'file': a:file, 'source': a:source}
+  let l:base = s:resolve(a:stack, a:i - 1)
+  let l:below = join(map(copy(l:base.template), {_, l -> substitute(l, '{query}', '', 'g')}), "\n")
+  let l:p.template = split(substitute(l:text, '{base}', {-> l:below}, 'g'), "\n", 1)
+  let l:context = copy(l:base.meta.context)
+  for l:source in l:p.meta.context
+    if index(l:context, l:source) < 0
+      call add(l:context, l:source)
+    endif
+  endfor
+  let l:p.meta = extend(extend(copy(l:base.meta), l:p.meta), {'context': l:context})
+  let l:p.bases = [l:base.file] + l:base.bases
+  return l:p
 endfunction
 
-" ---------------------------------------------------------------------------
-
-function! prompts#persona#names() abort
-  return sort(keys(s:personas))
-endfunction
-
-" The persona {name, file, source, meta, template}, read again so edits apply
-" without reloading; {} with the error given when there is none
-function! prompts#persona#get(name) abort
-  let l:p = get(s:personas, a:name, {})
-  if empty(l:p)
-    call s:error('no persona /' . a:name . ' (:' . prompts#namespace() . 'Personas!)')
+" The persona {name, file, source, bases, meta, template} for the config, read
+" again on each ask so edits apply at once; {} with the error given when there
+" is none
+function! prompts#persona#get(name, config) abort
+  let l:stack = get(s:stacks(a:config), a:name, [])
+  if empty(l:stack)
+    call s:error('no persona /' . a:name . ' (:' . prompts#namespace() . 'Personas)')
     return {}
   endif
   try
-    return extend(copy(l:p), s:read(l:p.file))
+    return s:resolve(l:stack, len(l:stack) - 1)
   catch
-    call s:error(fnamemodify(l:p.file, ':~') . ': ' . v:exception)
+    call s:error(fnamemodify(l:stack[-1].file, ':~') . ': ' . v:exception)
     return {}
   endtry
 endfunction
