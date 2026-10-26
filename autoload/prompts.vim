@@ -224,6 +224,7 @@ function! s:open_draft(persona, request, prompt) abort
   setlocal buftype=acwrite bufhidden=wipe noswapfile filetype=markdown
   execute 'silent file' fnameescape('ai-draft://' . a:persona.name . '/' . bufnr())
   call setline(1, split(a:prompt, "\n", 1))
+  call s:fold_rules(a:prompt, a:request.rules)
   if empty(a:request.query)
     " Room for the query, last
     call append('$', ['', ''])
@@ -238,6 +239,21 @@ function! s:open_draft(persona, request, prompt) abort
     autocmd! * <buffer>
     autocmd BufWriteCmd <buffer> call s:send_draft()
   augroup END
+endfunction
+
+" The rules, the same in every draft, folded so the query stands out; they
+" are sent all the same
+function! s:fold_rules(prompt, rules) abort
+  " As prompts#template#render() leaves them: no runs of blank lines
+  let l:rules = trim(substitute(a:rules, '\n\s*\n\%(\s*\n\)\+', "\n\n", 'g'))
+  let l:start = empty(l:rules) ? -1 : stridx(a:prompt, l:rules)
+  if l:start < 0
+    return
+  endif
+  let l:first = count(strpart(a:prompt, 0, l:start), "\n") + 1
+  setlocal foldmethod=manual foldenable foldminlines=0
+  let &l:foldtext = '"+-- " . (v:foldend - v:foldstart + 1) . " lines of rules, sent with the draft (zo shows them) "'
+  execute l:first . ',' . (l:first + count(l:rules, "\n")) . 'fold'
 endfunction
 
 function! s:send_draft() abort

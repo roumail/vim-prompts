@@ -45,6 +45,9 @@ buffer to edit first:
 | `:wq` | Send it and close the draft. |
 | `:q!` | Drop it. |
 
+The [rules](config.md) are folded: they are the same in every draft, and are
+sent all the same. `zo` shows them.
+
 ## :AiPersonas
 
 `:AiPersonas[!]` shows what applies where you are, and where git config sets
