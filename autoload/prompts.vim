@@ -161,9 +161,8 @@ function! s:prompt(bang, range, line1, line2, args, Then) abort
     endif
   endfor
   let l:request = s:request(a:range, a:line1, a:line2, l:parsed.query, l:sources, l:config)
-  " The rules for the task join the rules, last, the most specific of them,
-  " so the persona's instructions and the query still come after them;
-  " unless the persona places them itself, with {rule}
+  " #rule's text goes last in {rules}, so the persona and the query still
+  " come after it; a persona with {rule} places it itself
   if stridx(join(l:persona.template, "\n"), '{rule}') < 0
     let l:names = map(filter(copy(l:sources), 'v:val.name ==# "rule"'), 'v:val.arg')
     let l:request.rules = prompts#config#text(l:config, l:names, l:parsed.bare)
