@@ -151,6 +151,62 @@ A group's rules say what is common and point at what is longer: "Follow the
 Testing and Factories sections of ~/work/handbook/CONTRIBUTING.md." The agent
 reads it there.
 
+### One machine's groups, with shared dotfiles
+
+When `~/.gitconfig` is in your dotfiles, shared by every machine, a group
+that only exists on one machine (the work repositories on the work laptop)
+goes in a file of that machine's own, which `~/.gitconfig` includes last:
+
+```ini
+# ~/.gitconfig, in the dotfiles: yours, everywhere
+[vim-prompts]
+	rules = ~/dotfiles/prompts/git.md
+
+# Last, so this machine's settings win
+[include]
+	path = ~/.gitconfig.local
+```
+
+```ini
+# ~/.gitconfig.local, on the work laptop only, never committed
+[includeIf "gitdir:~/projects/work/"]
+	path = ~/projects/work/prompts/work.gitconfig
+```
+
+```ini
+# ~/projects/work/prompts/work.gitconfig, in the group's prompts repository
+[vim-prompts]
+	rules = ~/projects/work/prompts/rules/general.md
+	library = ~/projects/work/prompts/library
+	personas = ~/projects/work/prompts/personas
+```
+
+So in a repository under `~/projects/work/`, git reads `~/.gitconfig`
+(yours), then `~/.gitconfig.local`, then `work.gitconfig` (the group's), then
+the repository's own config: the order of the [layers](#order), most
+specific last. Elsewhere on that laptop, and on every other machine, only
+yours applies.
+
+- **Set it up** on a new machine with one command, which creates
+  `~/.gitconfig.local` if needed:
+
+  ```sh
+  git config -f ~/.gitconfig.local 'includeIf.gitdir:~/projects/work/.path' ~/projects/work/prompts/work.gitconfig
+  ```
+
+- **`gitdir:` is the git directory**, not the checkout: `.git`, or `.bare`
+  and `.bare/worktrees/<name>` in a bare repository with worktrees. A
+  trailing `/` matches everything under the folder, so every worktree of
+  every repository there.
+- **All of it is `global`**, each value with the file it comes from
+  (`global ~/projects/work/prompts/work.gitconfig`). `:AiRule --global`
+  opens yours in `~/.gitconfig`, never these; `:AiUnset` removes a value
+  from whichever file sets it.
+- **Per repository** there is still its own config: its
+  `vim-prompts.repository`, and a library or rules of its own. Those are in
+  its `.git/config` (`.bare/config`), not in any of the files above, so a new
+  machine sets them once per repository ([one repository](#one-repository)).
+
 ### One repository
 
 Its description, committed with it and named in its config:
