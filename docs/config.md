@@ -58,10 +58,9 @@ and `git config` take:
 - **A group is `global` too.** A file included with `includeIf` is read as
   part of `~/.gitconfig`, so git calls its values `global`; the file after
   the scope tells them apart (`global ~/.gitconfig` is yours,
-  `global ~/work/.gitconfig` the group's). Inside the group, `:AiRule
-  --global` opens the last `global` rules file, which is the group's: open
-  yours by its name instead (`:AiRule git.md`). A new file it names goes in
-  `~/.gitconfig`, which is yours.
+  `global ~/work/.gitconfig` the group's). `:AiRule --global` only looks
+  in `~/.gitconfig`, where `git config --global` writes, so inside a group
+  it still opens yours; the group's you open by name (`:AiRule git.md`).
 - **`local` is not committed.** `.git/config` belongs to your clone, not to
   the repository, so what you set there is yours alone. A file it names can
   be committed (a relative path, read from the checkout) or kept outside

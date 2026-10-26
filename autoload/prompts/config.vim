@@ -18,6 +18,15 @@ function! s:origin(scope, origin) abort
   return a:scope . (l:file ==# a:origin ? '' : ' ' . fnamemodify(l:file, ':~'))
 endfunction
 
+" `git config --global` writes to ~/.gitconfig, not to a file it includes:
+" an included value is the include's, for :AiRule --global to pass over
+function! s:scope(scope, origin) abort
+  let l:file = fnamemodify(substitute(a:origin, '^file:', '', ''), ':p')
+  let l:own = [expand('~/.gitconfig'),
+        \ (empty($XDG_CONFIG_HOME) ? expand('~/.config') : $XDG_CONFIG_HOME) . '/git/config']
+  return a:scope ==# 'global' && index(l:own, l:file) < 0 ? 'include' : a:scope
+endfunction
+
 function! s:path(value, place) abort
   let l:path = expand(a:value)
   return l:path =~# '^/' ? l:path : a:place.dir . '/' . l:path
@@ -81,7 +90,8 @@ function! prompts#config#get(bufnr) abort
         let l:config.hidden += filter(copy(l:config.rules), {_, v -> fnamemodify(v.file, ':t') ==# l:name})
         call filter(l:config.rules, {_, v -> fnamemodify(v.file, ':t') !=# l:name})
       endif
-      call add(l:config[l:key], {l:field : l:path, 'origin': l:origin, 'scope': l:scope})
+      call add(l:config[l:key], {l:field : l:path, 'origin': l:origin,
+            \ 'scope': s:scope(l:scope, l:m[2])})
     endif
   endfor
   return l:config

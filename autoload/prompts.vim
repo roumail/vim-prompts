@@ -379,7 +379,8 @@ function! prompts#rule(range, line1, line2, args) abort
   let l:names = prompts#config#rule_names(l:config)
   if l:target =~# '^--\%(global\|local\|worktree\)$'
     let l:scope = l:target[2:]
-    let l:file = get(filter(copy(l:config.rules), 'v:val.scope ==# l:scope'), -1, {'file': ''}).file
+    let l:file = get(filter(copy(l:config.hidden) + copy(l:config.rules), 'v:val.scope ==# l:scope'),
+          \ -1, {'file': ''}).file
     if empty(l:file)
       let l:file = s:new_rules(l:config, l:scope)
     endif

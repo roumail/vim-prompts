@@ -85,11 +85,12 @@ and the next ask reads it.
 [scope](config.md#scopes): yours everywhere, this repository, or this
 worktree's branch. It opens the last rules file that scope names, or, with
 none, asks for a new one and names it there (`git config --<scope> --add
-vim-prompts.rules <file>`):
+vim-prompts.rules <file>`). A file that a later one hides still counts, so
+`--global` opens yours even where the group's `git.md` replaces it:
 
 | Flag | Opens | A new one, by default |
 | --- | --- | --- |
-| `--global` | the last rules file in `~/.gitconfig` or a file it includes (inside a group, the group's) | `~/.config/vim-prompts/rules.md`, named in `~/.gitconfig` |
+| `--global` | the last rules file in `~/.gitconfig` (not a file it includes, so never a group's) | `~/.config/vim-prompts/rules.md`, named in `~/.gitconfig` |
 | `--local` | the last one in this repository's `.git/config` | `~/.config/vim-prompts/repos/<repository>.md` |
 | `--worktree` | the last one in this worktree's config | `~/.config/vim-prompts/repos/<repository>-<worktree>.md` |
 
