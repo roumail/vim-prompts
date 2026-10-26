@@ -51,16 +51,33 @@ sent all the same. `zo` shows them.
 ## :AiPersonas
 
 `:AiPersonas[!]` shows what applies where you are, and where git config sets
-each part ([configuration](config.md)): the rules, the repository's
+each part ([configuration](config.md)): the rules (as `:AiRules`), the repository's
 description, then the personas, their context, where each comes from, those
 it builds on, and what each needs that isn't there. `!` reloads the source
 files first.
 
+## :AiRules
+
+`:AiRules` shows the rules files that apply where you are, in the order
+they are sent, and where each is set ([configuration](config.md)): yours,
+a group's (with the file that includes it), the repository's. A rules file
+hides an earlier one of its file name, so a group's `git.md` replaces yours;
+the hidden ones are listed last, with what hides them.
+
+```
+comments.md     ~/dotfiles/prompts/comments.md        global ~/.gitconfig
+git.md          ~/work/handbook/git.md                global ~/work/.gitconfig
+repository      .vim-prompts/repository.md            local ~/work/app/.git/config
+git.md          ~/dotfiles/prompts/git.md             global ~/.gitconfig
+                hidden by ~/work/handbook/git.md
+```
+
+`:AiPersonas` starts with the same list.
+
 ## :AiRule
 
 `:[range]AiRule {file} [text]` opens a rules file that applies here (the ones
-`:AiPersonas` lists, by file name, or by path where two share one; `<Tab>`
-completes them) in a split, with the text and the selected lines appended
+`:AiRules` lists, by file name; `<Tab>` completes them) in a split, with the text and the selected lines appended
 for you to finish; `:w` saves it, and the next ask reads it.
 
 `--global`, `--local` or `--worktree` in place of the file opens the last
@@ -94,5 +111,5 @@ xmap <leader>ar <Plug>(prompts-rule)
 ## Command prefix
 
 ```vim
-let g:prompts_namespace = 'Ai'      " :Ai, :AiDraft, :AiPersonas, :AiRule
+let g:prompts_namespace = 'Ai'      " :Ai, :AiDraft, :AiPersonas, :AiRules, :AiRule
 ```

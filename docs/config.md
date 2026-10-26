@@ -19,8 +19,8 @@ brief your agent, and what applies is always what git config lists:
 git config --show-origin --get-regexp '^vim-prompts\.'
 ```
 
-`:AiPersonas` shows the same, from inside Vim: the rules, the repository's
-file, each persona and where each is set.
+`:AiRules` shows the rules files from inside Vim, where each is set, and
+those hidden; `:AiPersonas` adds the repository's file and each persona.
 
 `:AiRule` opens one of the rules files from inside Vim, or creates one for
 a scope and names it there ([usage](usage.md#airule)).
@@ -50,8 +50,10 @@ with each file it includes where the include is), the repository's
 - **Personas** stack: this plugin's, then each directory in order. A persona
   hides the one of its name below it, or builds on it with `{base}`
   ([templates](personas.md#building-on-another-persona)).
-- **Rules** all go in the prompt, the repository's file last, under
-  "where two parts differ, follow the later one".
+- **Rules** stack: a rules file hides an earlier one of its file name (a
+  group's `git.md` replaces yours), and the rest all go in the prompt, the
+  repository's file last, under "where two parts differ, follow the later
+  one". `:AiRules` lists both.
 
 Put an `includeIf` after your own `[vim-prompts]` section, so the group's
 values come after yours.
@@ -126,6 +128,8 @@ Its own config comes last, so it overrides the group:
 
 - **A persona** of the same name in its own directory replaces the group's,
   or builds on it with `{base}`.
+- **One of the group's rules files**, replaced by one of the same file
+  name.
 - **The group's rules**, dropped: `git config --add vim-prompts.rules ""`,
   then add its own.
 

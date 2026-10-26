@@ -16,7 +16,9 @@ or build on it with `{base}`: see
 ## How do I share rules between repositories but let one differ?
 
 The shared ones in a group's git config, the repository's in its own, which
-wins: see [configuration](config.md#a-group-of-repositories).
+wins: see [configuration](config.md#a-group-of-repositories). To replace one
+of the shared files rather than add to it, give yours the same file name;
+`:AiRules` shows which applies.
 
 ## How do I change what a source tells the agent?
 

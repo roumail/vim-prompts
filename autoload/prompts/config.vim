@@ -30,7 +30,7 @@ endfunction
 
 function! prompts#config#get(bufnr) abort
   let l:place = prompts#config#place(a:bufnr)
-  let l:config = {'place': l:place, 'personas': [], 'rules': [],
+  let l:config = {'place': l:place, 'personas': [], 'rules': [], 'hidden': [],
         \ 'repository': {}, 'errors': []}
   let l:lines = systemlist('git -C ' . shellescape(l:place.dir)
         \ . ' config --show-scope --show-origin --get-regexp ' . shellescape('^vim-prompts\.'))
@@ -63,6 +63,9 @@ function! prompts#config#get(bufnr) abort
       endif
     elseif empty(l:value)
       let l:config[l:key] = []
+      if l:key ==# 'rules'
+        let l:config.hidden = []
+      endif
     else
       let l:path = s:path(l:value, l:place)
       let l:field = l:key ==# 'personas' ? 'dir' : 'file'
@@ -72,20 +75,23 @@ function! prompts#config#get(bufnr) abort
       endif
       " Named again, it moves to where it is named last
       call filter(l:config[l:key], {_, v -> v[l:field] !=# l:path})
+      if l:key ==# 'rules'
+        let l:name = fnamemodify(l:path, ':t')
+        call filter(l:config.hidden, {_, v -> v.file !=# l:path})
+        let l:config.hidden += filter(copy(l:config.rules), {_, v -> fnamemodify(v.file, ':t') ==# l:name})
+        call filter(l:config.rules, {_, v -> fnamemodify(v.file, ':t') !=# l:name})
+      endif
       call add(l:config[l:key], {l:field : l:path, 'origin': l:origin, 'scope': l:scope})
     endif
   endfor
   return l:config
 endfunction
 
-" A rules file is named by its file name, or its path where two share one
+" A rules file is named by its file name, which hides an earlier one's
 function! prompts#config#rule_names(config) abort
-  let l:tails = map(copy(a:config.rules), 'fnamemodify(v:val.file, ":t")')
   let l:names = {}
-  for l:i in range(len(l:tails))
-    let l:name = count(l:tails, l:tails[l:i]) > 1
-          \ ? prompts#config#show(a:config.rules[l:i].file, a:config.place) : l:tails[l:i]
-    let l:names[l:name] = a:config.rules[l:i].file
+  for l:rule in a:config.rules
+    let l:names[fnamemodify(l:rule.file, ':t')] = l:rule.file
   endfor
   return l:names
 endfunction

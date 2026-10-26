@@ -42,6 +42,8 @@ function! s:init() abort
         \ . l:ns . 'Draft call prompts#draft(<bang>0, <range>, <line1>, <line2>, <q-args>)'
   " What applies here: rules, repository, personas; ! reloads the sources
   execute 'command! -bang ' . l:ns . 'Personas call prompts#list(<bang>0)'
+  " The rules files that apply here, where each is set, and those hidden
+  execute 'command! ' . l:ns . 'Rules call prompts#rules()'
   " Open a rules file that applies here, or a new one for a scope
   execute 'command! -range -nargs=* -complete=customlist,prompts#rule_complete '
         \ . l:ns . 'Rule call prompts#rule(<range>, <line1>, <line2>, <q-args>)'

@@ -110,8 +110,10 @@ repositories' (with `includeIf`), then one repository's, which wins:
 git config vim-prompts.repository .vim-prompts/repository.md
 ```
 
-Nothing is picked up for being in some directory, and `:AiPersonas` shows
-what applies and where each part is set ([configuration](docs/config.md)).
+Nothing is picked up for being in some directory, and `:AiRules` shows
+which rules apply and where each is set ([configuration](docs/config.md)). A
+rules file hides an earlier one of its file name, so a group's `git.md`
+replaces yours.
 `:AiRule git.md <text>` adds to a rules file, and `:AiRule --local` starts
 one for this repository, kept outside it ([usage](docs/usage.md#airule)).
 `--bare` leaves the rules and the description out of one ask:

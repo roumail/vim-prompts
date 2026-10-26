@@ -300,20 +300,8 @@ function! prompts#list(reload) abort
     call prompts#source#load()
   endif
   let l:config = prompts#config#get(bufnr())
-  let l:place = l:config.place
-  echohl ErrorMsg
-  for l:error in l:config.errors + prompts#persona#errors(l:config)
-    echo l:error
-  endfor
-  echohl None
-  for [l:label, l:file, l:origin] in map(copy(l:config.rules), '["rules", v:val.file, v:val.origin]')
-        \ + (empty(l:config.repository) ? []
-        \   : [['repository', l:config.repository.file, l:config.repository.origin]])
-    echohl Identifier
-    echo printf('%-16s', l:label)
-    echohl None
-    echon printf('%-37s %s', prompts#config#show(l:file, l:place), l:origin)
-  endfor
+  call s:list_errors(l:config.errors + prompts#persona#errors(l:config))
+  call s:list_rules(l:config)
   for l:name in prompts#persona#names(l:config)
     let l:persona = prompts#persona#get(l:name, l:config)
     if empty(l:persona)
@@ -340,6 +328,42 @@ function! prompts#list(reload) abort
     endif
     echohl None
   endfor
+endfunction
+
+" :AiRules: the rules files that apply here, in the order they are sent, and
+" those a later one of their name hides
+function! prompts#rules() abort
+  let l:config = prompts#config#get(bufnr())
+  call s:list_errors(l:config.errors)
+  call s:list_rules(l:config)
+endfunction
+
+function! s:list_errors(errors) abort
+  echohl ErrorMsg
+  for l:error in a:errors
+    echo l:error
+  endfor
+  echohl None
+endfunction
+
+function! s:list_rules(config) abort
+  let l:place = a:config.place
+  for [l:label, l:file, l:origin] in map(copy(a:config.rules), '[fnamemodify(v:val.file, ":t"), v:val.file, v:val.origin]')
+        \ + (empty(a:config.repository) ? []
+        \   : [['repository', a:config.repository.file, a:config.repository.origin]])
+    echohl Identifier
+    echo printf('%-16s', l:label)
+    echohl None
+    echon printf('%-37s %s', prompts#config#show(l:file, l:place), l:origin)
+  endfor
+  let l:names = prompts#config#rule_names(a:config)
+  echohl Comment
+  for l:rule in a:config.hidden
+    let l:name = fnamemodify(l:rule.file, ':t')
+    echo printf('%-16s%-37s %s', l:name, prompts#config#show(l:rule.file, l:place), l:rule.origin)
+    echo repeat(' ', 16) . 'hidden by ' . prompts#config#show(l:names[l:name], l:place)
+  endfor
+  echohl None
 endfunction
 
 " :[range]AiRule {file|--global|--local|--worktree} [text]: open a rules file

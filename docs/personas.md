@@ -135,7 +135,8 @@ Give each slot its own paragraph and no heading: every source brings its own.
 ## Rules
 
 `{rules}` is what git config says about where you ask: each
-`vim-prompts.rules` file, then the repository's own description,
+`vim-prompts.rules` file (a later one hiding an earlier one of its file
+name), then the repository's own description,
 `vim-prompts.repository`, last, as the most specific rule, with the agent
 told the later wins where they differ. See [configuration](config.md).
 `--bare` leaves them out of one ask.
