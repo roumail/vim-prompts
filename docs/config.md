@@ -41,11 +41,60 @@ a scope and names it there ([usage](usage.md#airule)).
   outside the repository's own config** refuses every ask, saying which
   setting and which file: what you name must be there.
 
+## Scopes
+
+Each value lives in one of git's config scopes, and the scope says where
+it applies. These are the names `:AiRules` and `:AiPersonas` show in their
+last column, next to the file that sets the value, and the flags `:AiRule`
+and `git config` take:
+
+| Scope | File | Applies to | Layer |
+| --- | --- | --- | --- |
+| `system` | git's own, e.g. `/etc/gitconfig` | every user of the machine | rarely used |
+| `global` | `~/.gitconfig`, and every file it includes | everything you work on | yours, and a group's |
+| `local` | the repository's `.git/config` | one repository, in all its worktrees | one repository |
+| `worktree` | `.git/worktrees/<name>/config.worktree` | one worktree | one branch |
+
+- **A group is `global` too.** A file included with `includeIf` is read as
+  part of `~/.gitconfig`, so git calls its values `global`; the file after
+  the scope tells them apart (`global ~/.gitconfig` is yours,
+  `global ~/work/.gitconfig` the group's). Inside the group, `:AiRule
+  --global` opens the last `global` rules file, which is the group's: open
+  yours by its name instead (`:AiRule git.md`). A new file it names goes in
+  `~/.gitconfig`, which is yours.
+- **`local` is not committed.** `.git/config` belongs to your clone, not to
+  the repository, so what you set there is yours alone. A file it names can
+  be committed (a relative path, read from the checkout) or kept outside
+  the repository (an absolute one).
+- **`worktree` is one checkout.** A worktree is another checkout of the
+  same repository, on its own branch (`git worktree add ../app-feature
+  feature`); the first checkout is one too. Its scope needs turning on once
+  per repository:
+
+  ```sh
+  git config extensions.worktreeConfig true
+  ```
+
+  Without it, git writes a `--worktree` value to the repository's
+  `.git/config`, as `--local` does, and refuses once there is more than one
+  worktree.
+
+By hand, the scope is the flag:
+
+```sh
+git config --global --add vim-prompts.rules ~/dotfiles/prompts/git.md
+git config --local --add vim-prompts.rules ~/.config/vim-prompts/repos/app.md
+git config --worktree --add vim-prompts.rules ~/.config/vim-prompts/repos/app-feature.md
+```
+
+`:AiRule --global`, `--local` and `--worktree` do the same from Vim
+([usage](usage.md#airule)).
+
 ## Order
 
-Values come in the order git reads them: system, global (`~/.gitconfig`,
-with each file it includes where the include is), the repository's
-`.git/config`, then its worktree's. Later is more specific, and wins:
+Values come in the order git reads the [scopes](#scopes): `system`,
+`global` (with each included file where the include is), `local`, then
+`worktree`. Later is more specific, and wins:
 
 - **Personas** stack: this plugin's, then each directory in order. A persona
   hides the one of its name below it, or builds on it with `{base}`
@@ -135,9 +184,15 @@ Its own config comes last, so it overrides the group:
 
 ### One branch
 
-With `extensions.worktreeConfig`, `git config --worktree ...` does the same
-for one worktree only, on top of the repository's: an experiment branch with
-a persona or rules of its own.
+A worktree's own config comes after the repository's, so an experiment
+branch can have a persona or rules of its own. Turn the scope on once
+([scopes](#scopes)), then, in that worktree:
+
+```sh
+git config --worktree --add vim-prompts.rules ~/.config/vim-prompts/repos/app-experiment.md
+```
+
+or `:AiRule --worktree`.
 
 ## A repository you didn't write
 

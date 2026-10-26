@@ -59,10 +59,10 @@ files first.
 ## :AiRules
 
 `:AiRules` shows the rules files that apply where you are, in the order
-they are sent, and where each is set ([configuration](config.md)): yours,
-a group's (with the file that includes it), the repository's. A rules file
-hides an earlier one of its file name, so a group's `git.md` replaces yours;
-the hidden ones are listed last, with what hides them.
+they are sent, and where each is set: the [scope](config.md#scopes) and
+the file that names it. A rules file hides an earlier one of its file name,
+so a group's `git.md` replaces yours; the hidden ones are listed last, with
+what hides them.
 
 ```
 comments.md     ~/dotfiles/prompts/comments.md        global ~/.gitconfig
@@ -77,17 +77,26 @@ git.md          ~/dotfiles/prompts/git.md             global ~/.gitconfig
 ## :AiRule
 
 `:[range]AiRule {file} [text]` opens a rules file that applies here (the ones
-`:AiRules` lists, by file name; `<Tab>` completes them) in a split, with the text and the selected lines appended
-for you to finish; `:w` saves it, and the next ask reads it.
+`:AiRules` lists, by file name; `<Tab>` completes them) in a split, with
+the text and the selected lines appended for you to finish; `:w` saves it,
+and the next ask reads it.
 
-`--global`, `--local` or `--worktree` in place of the file opens the last
-rules file that git config scope names, or, with none, asks for a new one
-and names it there (`git config --<scope> --add vim-prompts.rules <file>`).
-A new one goes outside the repository by default, in
-`~/.config/vim-prompts/` (`rules.md`, or `repos/<repository>.md`), so a
-shared repository never sees it; the path is yours to change before it is
-created. `--worktree` needs `extensions.worktreeConfig`, as `git config
---worktree` does.
+`--global`, `--local` or `--worktree` in place of the file picks a
+[scope](config.md#scopes): yours everywhere, this repository, or this
+worktree's branch. It opens the last rules file that scope names, or, with
+none, asks for a new one and names it there (`git config --<scope> --add
+vim-prompts.rules <file>`):
+
+| Flag | Opens | A new one, by default |
+| --- | --- | --- |
+| `--global` | the last rules file in `~/.gitconfig` or a file it includes (inside a group, the group's) | `~/.config/vim-prompts/rules.md`, named in `~/.gitconfig` |
+| `--local` | the last one in this repository's `.git/config` | `~/.config/vim-prompts/repos/<repository>.md` |
+| `--worktree` | the last one in this worktree's config | `~/.config/vim-prompts/repos/<repository>-<worktree>.md` |
+
+A new one goes outside the repository, so a shared repository never sees
+it; the path is yours to change before it is created. `--worktree` needs
+`extensions.worktreeConfig` turned on in the repository
+([scopes](config.md#scopes)).
 
 ```vim
 :AiRule git.md never rebase a pushed branch
