@@ -22,6 +22,9 @@ git config --show-origin --get-regexp '^vim-prompts\.'
 `:AiPersonas` shows the same, from inside Vim: the rules, the repository's
 file, each persona and where each is set.
 
+`:AiRule` opens one of the rules files from inside Vim, or creates one for
+a scope and names it there ([usage](usage.md#airule)).
+
 ## Settings
 
 | Key | Value | Where |

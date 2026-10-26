@@ -53,6 +53,27 @@ description, then the personas, their context, where each comes from, those
 it builds on, and what each needs that isn't there. `!` reloads the source
 files first.
 
+## :AiRule
+
+`:[range]AiRule {file} [text]` opens a rules file that applies here (the ones
+`:AiPersonas` lists, by file name, or by path where two share one; `<Tab>`
+completes them) in a split, with the text and the selected lines appended
+for you to finish; `:w` saves it, and the next ask reads it.
+
+`--global`, `--local` or `--worktree` in place of the file opens the last
+rules file that git config scope names, or, with none, asks for a new one
+and names it there (`git config --<scope> --add vim-prompts.rules <file>`).
+A new one goes outside the repository by default, in
+`~/.config/vim-prompts/` (`rules.md`, or `repos/<repository>.md`), so a
+shared repository never sees it; the path is yours to change before it is
+created. `--worktree` needs `extensions.worktreeConfig`, as `git config
+--worktree` does.
+
+```vim
+:AiRule git.md never rebase a pushed branch
+:'<,'>AiRule --local
+```
+
 ## Mappings
 
 No keys are bound. The `<Plug>` mappings type the command for you to finish
@@ -63,10 +84,12 @@ nmap <leader>aa <Plug>(prompts-ask)
 xmap <leader>aa <Plug>(prompts-ask)
 nmap <leader>ad <Plug>(prompts-draft)
 xmap <leader>ad <Plug>(prompts-draft)
+nmap <leader>ar <Plug>(prompts-rule)
+xmap <leader>ar <Plug>(prompts-rule)
 ```
 
 ## Command prefix
 
 ```vim
-let g:prompts_namespace = 'Ai'     " :Ai, :AiDraft, :AiPersonas
+let g:prompts_namespace = 'Ai'      " :Ai, :AiDraft, :AiPersonas, :AiRule
 ```

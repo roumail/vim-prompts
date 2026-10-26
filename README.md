@@ -112,6 +112,8 @@ git config vim-prompts.repository .vim-prompts/repository.md
 
 Nothing is picked up for being in some directory, and `:AiPersonas` shows
 what applies and where each part is set ([configuration](docs/config.md)).
+`:AiRule git.md <text>` adds to a rules file, and `:AiRule --local` starts
+one for this repository, kept outside it ([usage](docs/usage.md#airule)).
 `--bare` leaves the rules and the description out of one ask:
 `:Ai --bare is this idiomatic` sends just the question.
 A persona of a repository can build on its group's with `{base}`

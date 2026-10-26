@@ -42,6 +42,9 @@ function! s:init() abort
         \ . l:ns . 'Draft call prompts#draft(<bang>0, <range>, <line1>, <line2>, <q-args>)'
   " What applies here: rules, repository, personas; ! reloads the sources
   execute 'command! -bang ' . l:ns . 'Personas call prompts#list(<bang>0)'
+  " Open a rules file that applies here, or a new one for a scope
+  execute 'command! -range -nargs=* -complete=customlist,prompts#rule_complete '
+        \ . l:ns . 'Rule call prompts#rule(<range>, <line1>, <line2>, <q-args>)'
   call prompts#source#load()
 
   " The visual ones leave :'<,'>Ai on the command line to finish
@@ -49,6 +52,8 @@ function! s:init() abort
   execute 'xnoremap <Plug>(prompts-ask) :' . l:ns . '<Space>'
   execute 'nnoremap <Plug>(prompts-draft) :<C-u>' . l:ns . 'Draft<Space>'
   execute 'xnoremap <Plug>(prompts-draft) :' . l:ns . 'Draft<Space>'
+  execute 'nnoremap <Plug>(prompts-rule) :<C-u>' . l:ns . 'Rule<Space>'
+  execute 'xnoremap <Plug>(prompts-rule) :' . l:ns . 'Rule<Space>'
 endfunction
 
 if v:vim_did_enter

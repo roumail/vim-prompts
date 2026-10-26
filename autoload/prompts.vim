@@ -91,18 +91,16 @@ function! s:request(range, line1, line2, query, sources, config) abort
         \ 'range': a:range, 'line1': a:line1, 'line2': a:line2,
         \ 'selection': [], 'charwise': 0, 'context': {},
         \ 'rules': prompts#config#text(a:config)}
-  if !a:range
-    return l:request
-  endif
+  return a:range ? extend(l:request, s:selection(a:line1, a:line2)) : l:request
+endfunction
+
+function! s:selection(line1, line2) abort
   let l:mode = visualmode()
   if l:mode !=# 'V' && !empty(l:mode)
         \ && a:line1 == line("'<") && a:line2 == line("'>")
-    let l:request.selection = getregion(getpos("'<"), getpos("'>"), {'type': l:mode})
-    let l:request.charwise = 1
-  else
-    let l:request.selection = getline(a:line1, a:line2)
+    return {'selection': getregion(getpos("'<"), getpos("'>"), {'type': l:mode}), 'charwise': 1}
   endif
-  return l:request
+  return {'selection': getline(a:line1, a:line2), 'charwise': 0}
 endfunction
 
 function! s:add_files(request, files) abort
@@ -326,4 +324,81 @@ function! prompts#list(reload) abort
     endif
     echohl None
   endfor
+endfunction
+
+" :[range]AiRule {file|--global|--local|--worktree} [text]: open a rules file
+" that applies here, the text and the selection appended. A scope with none
+" gets a new one, named in its git config.
+function! prompts#rule(range, line1, line2, args) abort
+  let [l:target, l:text] = matchlist(a:args, '^\s*\(\S*\)\s*\(.\{-}\)\s*$')[1:2]
+  let l:config = prompts#config#get(bufnr())
+  if !empty(l:config.errors)
+    call map(l:config.errors, 's:error(v:val)')
+    return
+  endif
+  let l:names = prompts#config#rule_names(l:config)
+  if l:target =~# '^--\%(global\|local\|worktree\)$'
+    let l:scope = l:target[2:]
+    let l:file = get(filter(copy(l:config.rules), 'v:val.scope ==# l:scope'), -1, {'file': ''}).file
+    if empty(l:file)
+      let l:file = s:new_rules(l:config, l:scope)
+    endif
+  elseif has_key(l:names, l:target)
+    let l:file = l:names[l:target]
+  else
+    call s:error((empty(l:target) ? '' : l:target . ': not a rules file here; ')
+          \ . 'name one (<Tab>), or --global, --local or --worktree')
+    return
+  endif
+  if empty(l:file)
+    return
+  endif
+  let l:lines = (empty(l:text) ? [] : [l:text])
+        \ + (a:range ? s:selection(a:line1, a:line2).selection : [])
+  let l:win = bufwinid(l:file)
+  if l:win > 0
+    call win_gotoid(l:win)
+  else
+    execute 'botright vsplit' fnameescape(l:file)
+  endif
+  if !empty(l:lines)
+    if line('$') == 1 && empty(getline(1))
+      call setline(1, l:lines)
+    else
+      call append('$', l:lines)
+    endif
+  endif
+  normal! G
+endfunction
+
+function! s:new_rules(config, scope) abort
+  if a:scope !=# 'global' && !a:config.place.repo
+    call s:error('--' . a:scope . ': not in a repository')
+    return ''
+  endif
+  let l:file = input('New ' . a:scope . ' rules file: ',
+        \ fnamemodify(prompts#config#new_rules(a:config, a:scope), ':~'), 'file')
+  redraw
+  if empty(trim(l:file))
+    return ''
+  endif
+  let l:file = fnamemodify(expand(trim(l:file)), ':p')
+  let l:error = prompts#config#add_rules(a:config, a:scope, l:file)
+  if !empty(l:error)
+    call s:error('git config --' . a:scope . ': ' . l:error)
+    return ''
+  endif
+  echomsg 'vim-prompts: vim-prompts.rules ' . fnamemodify(l:file, ':~') . ' (' . a:scope . ')'
+  return l:file
+endfunction
+
+" The rules files that apply here, and the scopes
+function! prompts#rule_complete(lead, cmdline, pos) abort
+  if a:cmdline[: a:pos - 1] !~# '^\S*\s\+\S*$'
+    return []
+  endif
+  let l:config = prompts#config#get(bufnr())
+  return filter(sort(keys(prompts#config#rule_names(l:config)))
+        \ + ['--global'] + (l:config.place.repo ? ['--local', '--worktree'] : []),
+        \ 'stridx(v:val, a:lead) == 0')
 endfunction

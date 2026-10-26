@@ -72,10 +72,47 @@ function! prompts#config#get(bufnr) abort
       endif
       " Named again, it moves to where it is named last
       call filter(l:config[l:key], {_, v -> v[l:field] !=# l:path})
-      call add(l:config[l:key], {l:field : l:path, 'origin': l:origin})
+      call add(l:config[l:key], {l:field : l:path, 'origin': l:origin, 'scope': l:scope})
     endif
   endfor
   return l:config
+endfunction
+
+" A rules file is named by its file name, or its path where two share one
+function! prompts#config#rule_names(config) abort
+  let l:tails = map(copy(a:config.rules), 'fnamemodify(v:val.file, ":t")')
+  let l:names = {}
+  for l:i in range(len(l:tails))
+    let l:name = count(l:tails, l:tails[l:i]) > 1
+          \ ? prompts#config#show(a:config.rules[l:i].file, a:config.place) : l:tails[l:i]
+    let l:names[l:name] = a:config.rules[l:i].file
+  endfor
+  return l:names
+endfunction
+
+" Where a new rules file for a scope goes: outside any repository, so a
+" shared one never sees it
+function! prompts#config#new_rules(config, scope) abort
+  let l:dir = (empty($XDG_CONFIG_HOME) ? expand('~/.config') : $XDG_CONFIG_HOME) . '/vim-prompts'
+  if a:scope ==# 'global'
+    return l:dir . '/rules.md'
+  endif
+  " repo/.git, repo/.bare, repo.git
+  let l:common = FugitiveCommonDir(FugitiveExtractGitDir(a:config.place.dir))
+  let l:repo = l:common =~# '/\.[^/]\+$' ? fnamemodify(l:common, ':h:t')
+        \ : fnamemodify(l:common, ':t:s?\.git$??')
+  return l:dir . '/repos/' . l:repo
+        \ . (a:scope ==# 'worktree' ? '-' . fnamemodify(a:config.place.dir, ':t') : '') . '.md'
+endfunction
+
+function! prompts#config#add_rules(config, scope, file) abort
+  if !filereadable(a:file)
+    call mkdir(fnamemodify(a:file, ':h'), 'p')
+    call writefile([], a:file)
+  endif
+  let l:out = system('git -C ' . shellescape(a:config.place.dir) . ' config --' . a:scope
+        \ . ' --add vim-prompts.rules ' . shellescape(fnamemodify(a:file, ':~')))
+  return v:shell_error ? trim(l:out) : ''
 endfunction
 
 function! prompts#config#text(config) abort
