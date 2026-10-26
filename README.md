@@ -115,7 +115,12 @@ which rules apply and where each is set ([configuration](docs/config.md)). A
 rules file hides an earlier one of its file name, so a group's `git.md`
 replaces yours.
 `:AiRule git.md <text>` adds to a rules file, and `:AiRule --local` starts
-one for this repository, kept outside it ([usage](docs/usage.md#airule)).
+one for this repository, kept outside it ([usage](docs/usage.md#airule));
+`:AiUnset` removes a setting.
+Rules for one kind of task go in a `vim-prompts.library` directory and are
+sent when asked for, `:Ai #rule:testing ...` (`<Tab>` lists them), a
+repository's `testing.md` replacing the group's
+([rules for a task](docs/config.md#rules-for-a-task)).
 `--bare` leaves the rules and the description out of one ask:
 `:Ai --bare is this idiomatic` sends just the question.
 A persona of a repository can build on its group's with `{base}`

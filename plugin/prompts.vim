@@ -3,7 +3,8 @@
 " The persona's template, rendered with the query, the context asked for
 " (the change, the diffs open, files, the selection, vim-review review
 " comments) and the rules and repository description git config names
-" (vim-prompts.rules, vim-prompts.repository), is the agent's first prompt. Commands and <Plug> mappings only;
+" (vim-prompts.rules, vim-prompts.repository; vim-prompts.library for
+" #rule:<name>), is the agent's first prompt. Commands and <Plug> mappings only;
 " no keys are bound here. Requires tpope/vim-fugitive,
 " tpope/vim-dispatch (the agent runs with :Start), roumail/git-extras and
 " roumail/vim-review.
@@ -42,11 +43,15 @@ function! s:init() abort
         \ . l:ns . 'Draft call prompts#draft(<bang>0, <range>, <line1>, <line2>, <q-args>)'
   " What applies here: rules, repository, personas; ! reloads the sources
   execute 'command! -bang ' . l:ns . 'Personas call prompts#list(<bang>0)'
-  " The rules files that apply here, where each is set, and those hidden
+  " The rules files that apply here, where each is set, those hidden, and
+  " those to ask for with #rule
   execute 'command! ' . l:ns . 'Rules call prompts#rules()'
   " Open a rules file that applies here, or a new one for a scope
   execute 'command! -range -nargs=* -complete=customlist,prompts#rule_complete '
         \ . l:ns . 'Rule call prompts#rule(<range>, <line1>, <line2>, <q-args>)'
+  " Remove a value from the file that sets it
+  execute 'command! -nargs=+ -complete=customlist,prompts#unset_complete '
+        \ . l:ns . 'Unset call prompts#unset(<q-args>)'
   call prompts#source#load()
 
   " The visual ones leave :'<,'>Ai on the command line to finish

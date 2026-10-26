@@ -141,5 +141,10 @@ name), then the repository's own description,
 told the later wins where they differ. See [configuration](config.md).
 `--bare` leaves them out of one ask.
 
+Rules for one kind of task come from a library, by name, as a source:
+`context: [file, "rule:testing"]` in the persona, or `#rule:testing` in the
+ask ([rules for a task](config.md#rules-for-a-task)). They go in
+`{context}`, or where `{rule}` is.
+
 A persona written for `{repository}`, the slot's old name, is refused, saying
 so.

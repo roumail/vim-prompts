@@ -20,6 +20,16 @@ wins: see [configuration](config.md#a-group-of-repositories). To replace one
 of the shared files rather than add to it, give yours the same file name;
 `:AiRules` shows which applies.
 
+## How do I send rules only for some asks?
+
+Put them in a library and ask for them by name, `#rule:testing`, or have
+the persona for the task take them: see
+[rules for a task](config.md#rules-for-a-task).
+
+## How do I remove something I set?
+
+`:AiUnset`, with `<Tab>`: see [removing a setting](config.md#removing-a-setting).
+
 ## How do I change what a source tells the agent?
 
 Copy it to `~/.vim/autoload/prompts/sources/` and edit the copy: see

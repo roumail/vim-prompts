@@ -330,8 +330,8 @@ function! prompts#list(reload) abort
   endfor
 endfunction
 
-" :AiRules: the rules files that apply here, in the order they are sent, and
-" those a later one of their name hides
+" :AiRules: the rules files that apply here, in the order they are sent,
+" those a later one of their name hides, and those #rule asks for
 function! prompts#rules() abort
   let l:config = prompts#config#get(bufnr())
   call s:list_errors(l:config.errors)
@@ -364,6 +364,20 @@ function! s:list_rules(config) abort
     echo repeat(' ', 16) . 'hidden by ' . prompts#config#show(l:names[l:name], l:place)
   endfor
   echohl None
+  " Sent only when asked for
+  let l:library = prompts#config#library(a:config)
+  for l:name in sort(keys(l:library))
+    let l:rule = l:library[l:name]
+    echohl Identifier
+    echo printf('%-15s ', '#rule:' . l:name)
+    echohl None
+    echon printf('%-37s %s', prompts#config#show(l:rule.file, l:place), l:rule.origin)
+    echohl Comment
+    for l:file in l:rule.hides
+      echo repeat(' ', 16) . 'hides ' . prompts#config#show(l:file, l:place)
+    endfor
+    echohl None
+  endfor
 endfunction
 
 " :[range]AiRule {file|--global|--local|--worktree} [text]: open a rules file
@@ -442,4 +456,59 @@ function! prompts#rule_complete(lead, cmdline, pos) abort
   return filter(sort(keys(prompts#config#rule_names(l:config)))
         \ + ['--global'] + (l:config.place.repo ? ['--local', '--worktree'] : []),
         \ 'stridx(v:val, a:lead) == 0')
+endfunction
+
+" :AiUnset {key} [value]: remove a value from the file that sets it. Without
+" a value, the key's only one; of several the same, the last, which applies.
+" "" is the empty value.
+function! prompts#unset(args) abort
+  let [l:key, l:value] = matchlist(a:args, '^\s*\(\S*\)\s*\(.\{-}\)\s*$')[1:2]
+  let l:config = prompts#config#get(bufnr())
+  let l:entries = filter(copy(l:config.entries), 'v:val.key ==# l:key')
+  if empty(l:entries)
+    call s:error('vim-prompts.' . l:key . ' is not set here')
+    return
+  endif
+  if empty(l:value)
+    if len(uniq(sort(map(copy(l:entries), 'v:val.value')))) > 1
+      call s:error('vim-prompts.' . l:key . ' has several values: name one (<Tab>)')
+      return
+    endif
+  else
+    let l:value = l:value ==# '""' ? '' : l:value
+    let l:path = s:value_path(l:value, l:config)
+    " A rules file also by its file name, as :AiRules shows it
+    call filter(l:entries, {_, e -> e.value ==# l:value
+          \ || !empty(l:path) && s:value_path(e.value, l:config) ==# l:path
+          \ || l:key ==# 'rules' && l:value !~# '/' && fnamemodify(e.value, ':t') ==# l:value})
+    if empty(l:entries)
+      call s:error('vim-prompts.' . l:key . ' ' . l:value . ': not set here')
+      return
+    endif
+  endif
+  let l:entry = l:entries[-1]
+  let l:error = prompts#config#unset(l:entry)
+  if !empty(l:error)
+    call s:error('vim-prompts.' . l:key . ' (' . l:entry.origin . '): ' . l:error)
+    return
+  endif
+  echomsg 'vim-prompts: unset vim-prompts.' . l:key . ' '
+        \ . (empty(l:entry.value) ? '""' : l:entry.value) . ' (' . l:entry.origin . ')'
+endfunction
+
+" A value as the path it names, so ~/x and /home/me/x are the same
+function! s:value_path(value, config) abort
+  return empty(a:value) ? '' : fnamemodify(prompts#config#path(a:value, a:config.place), ':p')
+endfunction
+
+" The keys set here, then their values as set
+function! prompts#unset_complete(lead, cmdline, pos) abort
+  let l:before = a:cmdline[: a:pos - 1]
+  let l:entries = prompts#config#get(bufnr()).entries
+  if l:before =~# '^\S*\s\+\S*$'
+    return filter(uniq(sort(map(l:entries, 'v:val.key'))), 'stridx(v:val, a:lead) == 0')
+  endif
+  let l:key = matchstr(l:before, '^\S*\s\+\zs\S\+')
+  return filter(uniq(sort(map(filter(l:entries, 'v:val.key ==# l:key'),
+        \ 'empty(v:val.value) ? ''""'' : v:val.value'))), 'stridx(v:val, a:lead) == 0')
 endfunction

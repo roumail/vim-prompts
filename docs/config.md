@@ -23,14 +23,16 @@ git config --show-origin --get-regexp '^vim-prompts\.'
 those hidden; `:AiPersonas` adds the repository's file and each persona.
 
 `:AiRule` opens one of the rules files from inside Vim, or creates one for
-a scope and names it there ([usage](usage.md#airule)).
+a scope and names it there ([usage](usage.md#airule)); `:AiUnset` removes a
+value from the file that sets it ([removing a setting](#removing-a-setting)).
 
 ## Settings
 
 | Key | Value | Where |
 | --- | --- | --- |
 | `vim-prompts.personas` | A directory of [personas](personas.md). Every value counts; for two of a name, the later wins. | anywhere |
-| `vim-prompts.rules` | A file of rules for every ask: how you push, how tests are written. Every value counts, in order. | anywhere |
+| `vim-prompts.rules` | A file of rules for every ask: how you push, what never to do. Every value counts, in order. | anywhere |
+| `vim-prompts.library` | A directory of rules files sent only when asked for by name, `#rule:<name>` for `<name>.md`: how tests are written, how migrations are. For two of a name, the later wins. | anywhere |
 | `vim-prompts.repository` | The file that describes this repository: what it is, its layout, its conventions, how to run its tests. | the repository's own config only |
 
 - **Paths** are relative to the work tree's root (outside a repository, to
@@ -102,6 +104,10 @@ Values come in the order git reads the [scopes](#scopes): `system`,
   group's `git.md` replaces yours), and the rest all go in the prompt, the
   repository's file last, under "where two parts differ, follow the later
   one". `:AiRules` lists both.
+- **Libraries** stack like personas: `#rule:testing` is the last
+  `testing.md` of any of them, so a repository's own `testing.md` replaces
+  the group's in that repository only. `:AiRules` lists each name and what
+  it hides.
 
 Put an `includeIf` after your own `[vim-prompts]` section, so the group's
 values come after yours.
@@ -192,6 +198,69 @@ git config --worktree --add vim-prompts.rules ~/.config/vim-prompts/repos/app-ex
 ```
 
 or `:AiRule --worktree`.
+
+## Rules for a task
+
+`vim-prompts.rules` goes with every ask, `/review` and `/explain` included.
+Rules that only matter for one kind of task (writing tests, writing a
+migration) go in a library instead, a directory of rules files named in
+git config, and are sent when an ask names them:
+
+```ini
+# ~/work/.gitconfig, the group's
+[vim-prompts]
+	rules = ~/work/prompts/rules/general.md     # every ask
+	library = ~/work/prompts/library            # testing.md, migrations.md
+```
+
+```vim
+:Ai #rule:testing add a test for the empty case
+:Ai #rule:<Tab>
+```
+
+`<Tab>` lists the names that apply where you are, so the same name works in
+every repository: give one its own version by naming a library of its own,
+with a file of the same name, in its config:
+
+```sh
+git config --add vim-prompts.library ~/work/prompts/library-gecowt   # its testing.md
+```
+
+A persona for the task takes the rule itself, so it is never forgotten:
+
+```markdown
+---
+context: [file, "rule:testing"]
+---
+```
+
+A persona's rule that isn't found anywhere is left out; one you ask for with
+`#rule:` that isn't found refuses the ask.
+
+## Removing a setting
+
+`:AiUnset {key} [value]` removes a value from the file that sets it: yours,
+a group's included file, the repository's or the worktree's. `<Tab>`
+completes the keys set here, then their values as git stores them.
+
+```vim
+:AiUnset dir                         " a key no longer read
+:AiUnset rules testing.md            " a rules file, by its file name
+:AiUnset rules ""                    " the empty value
+:AiUnset library ~/work/prompts/library
+```
+
+Without a value it removes the key's only one. A value set in several
+files is removed from the last, the one that applies; run it again for the
+next.
+
+By hand, `git config --unset` matches the value as written, `~` and all,
+fails when a key has several values, and only reaches the file you name:
+
+```sh
+git config --show-origin --get-regexp '^vim-prompts\.'     # the file, and the value as written
+git config -f <file> --fixed-value --unset-all vim-prompts.rules '~/work/prompts/rules/testing.md'
+```
 
 ## A repository you didn't write
 

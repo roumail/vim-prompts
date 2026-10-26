@@ -61,8 +61,9 @@ files first.
 `:AiRules` shows the rules files that apply where you are, in the order
 they are sent, and where each is set: the [scope](config.md#scopes) and
 the file that names it. A rules file hides an earlier one of its file name,
-so a group's `git.md` replaces yours; the hidden ones are listed last, with
-what hides them.
+so a group's `git.md` replaces yours; the hidden ones are listed after them,
+with what hides them. Last come the rules you ask for by name, `#rule:<name>`
+([rules for a task](config.md#rules-for-a-task)), and what each hides.
 
 ```
 comments.md     ~/dotfiles/prompts/comments.md        global ~/.gitconfig
@@ -70,6 +71,8 @@ git.md          ~/work/handbook/git.md                global ~/work/.gitconfig
 repository      .vim-prompts/repository.md            local ~/work/app/.git/config
 git.md          ~/dotfiles/prompts/git.md             global ~/.gitconfig
                 hidden by ~/work/handbook/git.md
+#rule:testing   .vim-prompts/library/testing.md       local ~/work/app/.git/config
+                hides ~/work/handbook/library/testing.md
 ```
 
 `:AiPersonas` starts with the same list.
@@ -104,6 +107,20 @@ it; the path is yours to change before it is created. `--worktree` needs
 :'<,'>AiRule --local
 ```
 
+## :AiUnset
+
+`:AiUnset {key} [value]` removes a value from the git config file that sets
+it, wherever that is: `~/.gitconfig`, a file it includes, the repository's
+or the worktree's. `<Tab>` completes the keys set here, then their values;
+a rules file can be named by its file name, and `""` is the empty value.
+Without a value it removes the key's only one; of a value set in several
+files, the last ([removing a setting](config.md#removing-a-setting)).
+
+```vim
+:AiUnset dir
+:AiUnset rules testing.md
+```
+
 ## Mappings
 
 No keys are bound. The `<Plug>` mappings type the command for you to finish
@@ -121,5 +138,5 @@ xmap <leader>ar <Plug>(prompts-rule)
 ## Command prefix
 
 ```vim
-let g:prompts_namespace = 'Ai'      " :Ai, :AiDraft, :AiPersonas, :AiRules, :AiRule
+let g:prompts_namespace = 'Ai'      " :Ai, :AiDraft, :AiPersonas, :AiRules, :AiRule, :AiUnset
 ```
