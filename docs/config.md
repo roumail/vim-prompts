@@ -33,15 +33,21 @@ value from the file that sets it ([removing a setting](#removing-a-setting)).
 | `vim-prompts.personas` | A directory of [personas](personas.md). Every value counts; for two of a name, the later wins. | anywhere |
 | `vim-prompts.rules` | A file of rules for every ask: how you push, what never to do. Every value counts, in order. | anywhere |
 | `vim-prompts.library` | A directory of rules files sent only when asked for by name, `#rule:<name>` for `<name>.md`: how tests are written, how migrations are. For two of a name, the later wins. | anywhere |
-| `vim-prompts.repository` | The file that describes this repository: what it is, its layout, its conventions, how to run its tests. | the repository's own config only |
+| `vim-prompts.repository` | The file that describes this repository: what it is, its layout, its conventions, how to run its tests. Exactly one may apply. | its own config, or a file included for its folder alone |
 
 - **Paths** are relative to the work tree's root (outside a repository, to
   the working directory), and `~` and `$VARS` are expanded.
 - **An empty value** (`git config --add vim-prompts.rules ""`) drops every
   value of that key before it, as it does for git's `credential.helper`.
-- **A missing file or directory, an unknown key, or a `repository` set
-  outside the repository's own config** refuses every ask, saying which
-  setting and which file: what you name must be there.
+- **A missing file or directory, an unknown key, or `repository` set more
+  than once** where you ask refuses every ask, saying which setting and
+  which files: what you name must be there, and one file describes the
+  repository. `:AiUnset` removes the extra one.
+- **`repository` belongs to one repository.** Set it in the repository's
+  own config, or in a file only that repository includes
+  ([kept with the prompts](#a-worked-example-dotfiles-and-a-teams-prompts-repository)),
+  never in a file a whole group includes: there, every repository without
+  its own would be described as that one.
 
 ## Scopes
 
@@ -203,27 +209,39 @@ group's, so its `test-setup.md` hides the group's there and nowhere else.
 	rules = ~/projects/acme/prompts/rules/general.md
 	library = ~/projects/acme/prompts/library
 	personas = ~/projects/acme/prompts/personas
+
+# Each repository's own, after the group's so they win; a path relative
+# to this file
+[includeIf "gitdir:~/projects/acme/api/"]
+	path = repos/api.gitconfig
+[includeIf "gitdir:~/projects/acme/etl/"]
+	path = repos/etl.gitconfig
 ```
 
-Then each repository's own config, set once per repository on a machine,
-from any of its worktrees:
-
-```sh
-P=~/projects/acme/prompts
-git config vim-prompts.repository "$P/repos/api.md"
-git config --add vim-prompts.library "$P/library-api"
-git config --add vim-prompts.rules "$P/rules/api-branches.md"    # api only
+```ini
+# ~/projects/acme/prompts/repos/api.gitconfig: api's alone
+[vim-prompts]
+	repository = ~/projects/acme/prompts/repos/api.md
+	library = ~/projects/acme/prompts/library-api
+	rules = ~/projects/acme/prompts/rules/api-branches.md
 ```
+
+Each repository's settings are in the prompts repository too, versioned
+with the rest, in a file loaded only inside that repository: `gitdir:`
+names the folder holding its `.git` or `.bare`, with a trailing `/` so that
+`api-tools/` isn't `api/`. That reaches every worktree of it, bare or not,
+even one checked out outside the folder, since the match is on the git
+directory.
 
 **What `:AiRules` shows** in `api/main/`:
 
 ```
 git.md          ~/.config/vim-prompts/git.md          global ~/.gitconfig
 general.md      ~/projects/acme/prompts/rules/general.md global ~/projects/acme/prompts/work.gitconfig
-api-branches.md ~/projects/acme/prompts/rules/api-branches.md local ~/projects/acme/api/.bare/config
-repository      ~/projects/acme/prompts/repos/api.md  local ~/projects/acme/api/.bare/config
-#rule:migrations ~/projects/acme/prompts/library-api/migrations.md local ~/projects/acme/api/.bare/config
-#rule:test-setup ~/projects/acme/prompts/library-api/test-setup.md local ~/projects/acme/api/.bare/config
+api-branches.md ~/projects/acme/prompts/rules/api-branches.md global ~/projects/acme/prompts/repos/api.gitconfig
+repository      ~/projects/acme/prompts/repos/api.md  global ~/projects/acme/prompts/repos/api.gitconfig
+#rule:migrations ~/projects/acme/prompts/library-api/migrations.md global ~/projects/acme/prompts/repos/api.gitconfig
+#rule:test-setup ~/projects/acme/prompts/library-api/test-setup.md global ~/projects/acme/prompts/repos/api.gitconfig
                 hides ~/projects/acme/prompts/library/test-setup.md
 #rule:testing   ~/projects/acme/prompts/library/testing.md global ~/projects/acme/prompts/work.gitconfig
 ```
@@ -235,8 +253,8 @@ differ.
 
 Worth knowing about this layout:
 
-- **Setting up a new machine** is the clone, one command for the include,
-  and the per-repository lines above:
+- **Setting up a new machine** is the clone and one command, nothing per
+  repository:
 
   ```sh
   git config -f ~/.gitconfig.local 'includeIf.gitdir:~/projects/acme/.path' ~/projects/acme/prompts/work.gitconfig
@@ -249,10 +267,13 @@ Worth knowing about this layout:
 - **The included files are `global`**, each value with the file it comes
   from. `:AiRule --global` opens yours in `~/.gitconfig`, never these;
   `:AiUnset` removes a value from whichever file sets it.
-- **A repository's own config is not versioned**: `.git/config`, or
-  `.bare/config` for a bare one, shared by its worktrees. That is what keeps
-  a repository you clone from briefing your agent, and why a new machine
-  sets it once per repository.
+- **A new repository** is a commit: its `repos/<name>.gitconfig` and its
+  `includeIf` in `work.gitconfig`. Nothing is set in the repository's own
+  config (`.git/config`, `.bare/config`); a value left there next to the
+  included one is refused for `repository`, so you see it.
+- **Nothing in the repository itself is read.** What briefs the agent is
+  in your prompts repository and your config files, so a repository you
+  clone still can't brief it.
 
 ### One repository
 

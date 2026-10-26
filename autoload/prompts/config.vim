@@ -1,7 +1,6 @@
 " The settings: docs/config.md
 
 let s:keys = ['personas', 'rules', 'library', 'repository']
-let s:own_scopes = ['local', 'worktree', 'command']
 
 function! prompts#config#place(bufnr) abort
   for l:gitdir in [FugitiveGitDir(a:bufnr), FugitiveExtractGitDir(getcwd())]
@@ -48,6 +47,7 @@ function! prompts#config#get(bufnr) abort
     call add(l:config.errors, 'git config: ' . join(l:lines))
     return l:config
   endif
+  let l:repository = []
   for l:line in v:shell_error ? [] : l:lines
     let l:m = matchlist(l:line, '^\(\w\+\)\t\(.\{-}\)\tvim-prompts\.\(\S\+\)\(\%( .*\)\=\)$')
     if empty(l:m)
@@ -65,16 +65,7 @@ function! prompts#config#get(bufnr) abort
             \ . (l:key ==# 'dir' ? '; name the directory as vim-prompts.personas and the file as vim-prompts.repository' : '')
             \ . l:unset)
     elseif l:key ==# 'repository'
-      if index(s:own_scopes, l:scope) < 0
-        call add(l:config.errors, l:where . ': describes one repository, so set it in that'
-              \ . ' repository: git config vim-prompts.repository <file>' . l:unset)
-      elseif empty(l:value)
-        let l:config.repository = {}
-      elseif !filereadable(prompts#config#path(l:value, l:place))
-        call add(l:config.errors, l:where . ': no file ' . l:value . l:unset)
-      else
-        let l:config.repository = {'file': prompts#config#path(l:value, l:place), 'origin': l:origin}
-      endif
+      call add(l:repository, {'value': l:value, 'origin': l:origin, 'where': l:where})
     elseif empty(l:value)
       let l:config[l:key] = []
       if l:key ==# 'rules'
@@ -100,6 +91,23 @@ function! prompts#config#get(bufnr) abort
             \ 'scope': s:scope(l:scope, l:m[2])})
     endif
   endfor
+  " One file describes the repository, set wherever suits (its own config,
+  " or a file included for its folder alone): two are a mistake to fix, not
+  " a choice to make
+  if len(l:repository) > 1
+    call add(l:config.errors, 'vim-prompts.repository is set ' . len(l:repository)
+          \ . ' times here, once is allowed: '
+          \ . join(map(copy(l:repository), {_, r -> (empty(r.value) ? '""' : r.value) . ' (' . r.origin . ')'}), ', ')
+          \ . '; :' . prompts#namespace() . 'Unset repository <Tab> removes one')
+  elseif !empty(l:repository) && !empty(l:repository[0].value)
+    let l:file = prompts#config#path(l:repository[0].value, l:place)
+    if !filereadable(l:file)
+      call add(l:config.errors, l:repository[0].where . ': no file ' . l:repository[0].value
+            \ . '; :' . prompts#namespace() . 'Unset repository removes it')
+    else
+      let l:config.repository = {'file': l:file, 'origin': l:repository[0].origin}
+    endif
+  endif
   return l:config
 endfunction
 
