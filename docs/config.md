@@ -54,7 +54,7 @@ and `git config` take:
 | --- | --- | --- | --- |
 | `system` | git's own, e.g. `/etc/gitconfig` | every user of the machine | rarely used |
 | `global` | `~/.gitconfig`, and every file it includes | everything you work on | yours, and a group's |
-| `local` | the repository's `.git/config` | one repository, in all its worktrees | one repository |
+| `local` | the repository's `.git/config` (`.bare/config` in a bare repository with worktrees) | one repository, in all its worktrees | one repository |
 | `worktree` | `.git/worktrees/<name>/config.worktree` | one worktree | one branch |
 
 - **A group is `global` too.** A file included with `includeIf` is read as
@@ -67,6 +67,10 @@ and `git config` take:
   the repository, so what you set there is yours alone. A file it names can
   be committed (a relative path, read from the checkout) or kept outside
   the repository (an absolute one).
+- **`local` is the same file from every worktree.** In a bare repository
+  with one worktree per branch (`repo/.bare`, `repo/main/`, `repo/feature/`)
+  it is `.bare/config`; `--show-origin` names it, and `git config --local`
+  or `:AiUnset` reach it from any worktree.
 - **`worktree` is one checkout.** A worktree is another checkout of the
   same repository, on its own branch (`git worktree add ../app-feature
   feature`); the first checkout is one too. Its scope needs turning on once

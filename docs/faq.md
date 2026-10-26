@@ -26,6 +26,23 @@ Put them in a library and ask for them by name, `#rule:testing`, or have
 the persona for the task take them: see
 [rules for a task](config.md#rules-for-a-task).
 
+## Can a script or an agent check the setup without Vim open?
+
+Git config is the setup, so the shell sees all of it: what is set and in
+which file, then whether each path is there.
+
+```sh
+git config --show-scope --show-origin --get-regexp '^vim-prompts\.'
+git config --get-all vim-prompts.library | while read -r d; do d=${d/#\~/$HOME}; test -d "$d" || echo "missing: $d"; done
+```
+
+The commands also run headless, with your vimrc (`-es` skips it unless
+named) and their output sent to the terminal:
+
+```sh
+vim -Nes -u ~/.vimrc -c 'redir! > /dev/stdout' -c AiRules -c 'redir END' -c 'qa!'
+```
+
 ## How do I remove something I set?
 
 `:AiUnset`, with `<Tab>`: see [removing a setting](config.md#removing-a-setting).

@@ -15,16 +15,17 @@ if exists('g:loaded_prompts')
 endif
 let g:loaded_prompts = 1
 
-" Required plugins are checked once every plugin has loaded (VimEnter, or now
-" when loaded later): their g:loaded_* guards tell whether they are installed.
-" Without them nothing below is defined.
+" Required plugins are checked by their plugin file on 'runtimepath', so
+" the commands are defined now, before any -c command (`vim -es -c AiRules`
+" runs before VimEnter), whichever of them loads after this one. Without
+" them nothing below is defined.
 function! s:init() abort
   let l:missing = filter({
-        \ 'tpope/vim-fugitive': 'g:loaded_fugitive',
-        \ 'tpope/vim-dispatch': 'g:loaded_dispatch',
-        \ 'roumail/git-extras': 'g:loaded_git_extras',
-        \ 'roumail/vim-review': 'g:loaded_review',
-        \ }, '!exists(v:val)')
+        \ 'tpope/vim-fugitive': ['g:loaded_fugitive', 'fugitive'],
+        \ 'tpope/vim-dispatch': ['g:loaded_dispatch', 'dispatch'],
+        \ 'roumail/git-extras': ['g:loaded_git_extras', 'git_extras'],
+        \ 'roumail/vim-review': ['g:loaded_review', 'review'],
+        \ }, '!exists(v:val[0]) && empty(globpath(&runtimepath, "plugin/" . v:val[1] . ".vim"))')
   if !empty(l:missing)
     echohl WarningMsg
     echomsg 'vim-prompts: not loaded, requires ' . join(sort(keys(l:missing)), ', ')
@@ -63,11 +64,4 @@ function! s:init() abort
   execute 'xnoremap <Plug>(prompts-rule) :' . l:ns . 'Rule<Space>'
 endfunction
 
-if v:vim_did_enter
-  call s:init()
-else
-  augroup prompts_init
-    autocmd!
-    autocmd VimEnter * ++once call s:init()
-  augroup END
-endif
+call s:init()
