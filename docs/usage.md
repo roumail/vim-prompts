@@ -17,7 +17,7 @@ the [sources and files](sources/) you add, and a range or visual selection.
   and `g:prompts_mode`. `:Ai --plan-mode` alone opens it bare that way.
 - **`--bare`** (anywhere before `--`): leaves the [rules](personas.md#rules)
   and the repository's description out, so only the persona, what you name
-  and your query go. `:Ai --bare question` sends the question alone.
+  (`#rule:` included) and your query go. `:Ai --bare question` sends the question alone.
 - **Context but no query** (`:Ai @`, `:'<,'>Ai #comments`): sends the context
   and the agent waits for your question, which you type in the session.
 

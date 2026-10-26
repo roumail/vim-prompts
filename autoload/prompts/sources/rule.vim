@@ -3,7 +3,8 @@ function! prompts#sources#rule#info() abort
   return {'needs': 'a rules file in vim-prompts.library: #rule:<Tab>', 'arg': 'required'}
 endfunction
 
-" The rules themselves, as {rules} has them: a few lines the agent must follow
+" The rules themselves, as {rules} has them: a few lines the agent must
+" follow. Only for {rule}: otherwise they go in {rules}, last
 function! prompts#sources#rule#context(request, arg) abort
   let l:config = prompts#config#get(a:request.bufnr)
   let l:rule = get(prompts#config#library(l:config), substitute(a:arg, '\.md$', '', ''), {})

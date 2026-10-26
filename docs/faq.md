@@ -37,7 +37,10 @@ git config --get-all vim-prompts.library | while read -r d; do d=${d/#\~/$HOME};
 ```
 
 The commands also run headless, with your vimrc (`-es` skips it unless
-named) and their output sent to the terminal:
+named) and their output sent to the terminal. An install older than commit
+`4f992b9` defines its commands only after `-c` has run, so there they are
+`E492: Not an editor command` and `exists(":AiRules")` is `0`: update the
+plugin (`git -C <plugin> cat-file -t 4f992b9` fails on an older clone).
 
 ```sh
 vim -Nes -u ~/.vimrc -c 'redir! > /dev/stdout' -c AiRules -c 'redir END' -c 'qa!'

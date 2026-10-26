@@ -17,6 +17,8 @@ function! prompts#template#render(template, request) abort
     let l:text = prompts#source#context(l:source, a:request)
     if stridx(l:prompt, '{' . l:source.name . '}') >= 0
       let l:slots[l:source.name] = get(l:slots, l:source.name, []) + [l:text]
+    elseif l:source.name ==# 'rule'
+      " Already in {rules}
     elseif !empty(l:text)
       call add(l:context, l:text)
     endif

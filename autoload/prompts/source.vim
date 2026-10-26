@@ -87,9 +87,11 @@ endfunction
 
 function! prompts#source#is_file(bufnr) abort
   let l:name = bufname(a:bufnr)
+  " A file browser's listing (netrw, dirvish) is not a file
   return l:name =~# '^fugitive://'
         \ || !empty(l:name) && empty(getbufvar(a:bufnr, '&buftype'))
         \ && empty(FugitiveResult(a:bufnr))
+        \ && getbufvar(a:bufnr, '&filetype') !=# 'netrw' && !isdirectory(l:name)
 endfunction
 
 " Lines a to b of a file, from its buffer when loaded (unsaved edits count)

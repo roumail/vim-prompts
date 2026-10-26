@@ -161,7 +161,13 @@ function! s:prompt(bang, range, line1, line2, args, Then) abort
     endif
   endfor
   let l:request = s:request(a:range, a:line1, a:line2, l:parsed.query, l:sources, l:config)
-  if l:parsed.bare
+  " The rules for the task join the rules, last, the most specific of them,
+  " so the persona's instructions and the query still come after them;
+  " unless the persona places them itself, with {rule}
+  if stridx(join(l:persona.template, "\n"), '{rule}') < 0
+    let l:names = map(filter(copy(l:sources), 'v:val.name ==# "rule"'), 'v:val.arg')
+    let l:request.rules = prompts#config#text(l:config, l:names, l:parsed.bare)
+  elseif l:parsed.bare
     let l:request.rules = ''
   endif
   let l:Finish = {files -> s:finish(a:bang, l:persona, l:request, l:parsed,
@@ -310,7 +316,7 @@ function! prompts#list(reload) abort
     let l:own = l:persona.meta.context
     let l:request = s:request(0, line('.'), line('.'), '', copy(l:own), l:config)
     echohl Identifier
-    echo printf('%-16s', '/' . l:name)
+    echo printf('%-15s ', '/' . l:name)
     echohl None
     echon printf('%-28s %-8s %s',
           \ join(map(copy(l:own), '"#" . v:val.name . (empty(v:val.arg) ? "" : ":" . v:val.arg)')),
@@ -352,15 +358,15 @@ function! s:list_rules(config) abort
         \ + (empty(a:config.repository) ? []
         \   : [['repository', a:config.repository.file, a:config.repository.origin]])
     echohl Identifier
-    echo printf('%-16s', l:label)
+    echo printf('%-15s ', l:label)
     echohl None
-    echon printf('%-37s %s', prompts#config#show(l:file, l:place), l:origin)
+    echon printf('%-36s %s', prompts#config#show(l:file, l:place), l:origin)
   endfor
   let l:names = prompts#config#rule_names(a:config)
   echohl Comment
   for l:rule in a:config.hidden
     let l:name = fnamemodify(l:rule.file, ':t')
-    echo printf('%-16s%-37s %s', l:name, prompts#config#show(l:rule.file, l:place), l:rule.origin)
+    echo printf('%-15s %-36s %s', l:name, prompts#config#show(l:rule.file, l:place), l:rule.origin)
     echo repeat(' ', 16) . 'hidden by ' . prompts#config#show(l:names[l:name], l:place)
   endfor
   echohl None
@@ -371,7 +377,7 @@ function! s:list_rules(config) abort
     echohl Identifier
     echo printf('%-15s ', '#rule:' . l:name)
     echohl None
-    echon printf('%-37s %s', prompts#config#show(l:rule.file, l:place), l:rule.origin)
+    echon printf('%-36s %s', prompts#config#show(l:rule.file, l:place), l:rule.origin)
     echohl Comment
     for l:file in l:rule.hides
       echo repeat(' ', 16) . 'hides ' . prompts#config#show(l:file, l:place)

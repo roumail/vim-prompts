@@ -151,16 +151,40 @@ A group's rules say what is common and point at what is longer: "Follow the
 Testing and Factories sections of ~/work/handbook/CONTRIBUTING.md." The agent
 reads it there.
 
-### One machine's groups, with shared dotfiles
+### A worked example: dotfiles and a team's prompts repository
 
-When `~/.gitconfig` is in your dotfiles, shared by every machine, a group
-that only exists on one machine (the work repositories on the work laptop)
-goes in a file of that machine's own, which `~/.gitconfig` includes last:
+A setup in daily use, with the names changed. `~/.gitconfig` is in the
+dotfiles, shared by every machine; the work repositories, and the prompts
+for them, are only on the work laptop, under `~/projects/acme/`. Some are
+bare repositories with a worktree per branch (`api/.bare`, `api/main/`),
+some plain clones (`etl/.git`).
+
+The prompts are a repository of their own, `~/projects/acme/prompts`:
+
+```
+work.gitconfig            the group's settings, below
+rules/general.md          sent with every ask: never push, changelog entries
+rules/api-branches.md     sent with every ask in api only
+library/testing.md        #rule:testing: how tests are written, everywhere
+library/test-setup.md     #rule:test-setup: how they run, the fallback
+library-api/test-setup.md #rule:test-setup in api: its services, its venv
+library-api/migrations.md #rule:migrations, api only
+library-etl/test-setup.md
+personas/tests.md         /tests: context [file, "rule:testing", "rule:test-setup"]
+personas/migrations.md    /migrations: context [file, "rule:migrations"]
+repos/api.md, repos/etl.md   each repository's description
+```
+
+The same names everywhere, `/tests` and `#rule:test-setup`, with what they
+hold differing per repository: a repository's library comes after the
+group's, so its `test-setup.md` hides the group's there and nowhere else.
+
+**The config files, in the order git reads them:**
 
 ```ini
 # ~/.gitconfig, in the dotfiles: yours, everywhere
 [vim-prompts]
-	rules = ~/dotfiles/prompts/git.md
+	rules = ~/.config/vim-prompts/git.md
 
 # Last, so this machine's settings win
 [include]
@@ -168,44 +192,67 @@ goes in a file of that machine's own, which `~/.gitconfig` includes last:
 ```
 
 ```ini
-# ~/.gitconfig.local, on the work laptop only, never committed
-[includeIf "gitdir:~/projects/work/"]
-	path = ~/projects/work/prompts/work.gitconfig
+# ~/.gitconfig.local, this machine only, never committed
+[includeIf "gitdir:~/projects/acme/"]
+	path = ~/projects/acme/prompts/work.gitconfig
 ```
 
 ```ini
-# ~/projects/work/prompts/work.gitconfig, in the group's prompts repository
+# ~/projects/acme/prompts/work.gitconfig
 [vim-prompts]
-	rules = ~/projects/work/prompts/rules/general.md
-	library = ~/projects/work/prompts/library
-	personas = ~/projects/work/prompts/personas
+	rules = ~/projects/acme/prompts/rules/general.md
+	library = ~/projects/acme/prompts/library
+	personas = ~/projects/acme/prompts/personas
 ```
 
-So in a repository under `~/projects/work/`, git reads `~/.gitconfig`
-(yours), then `~/.gitconfig.local`, then `work.gitconfig` (the group's), then
-the repository's own config: the order of the [layers](#order), most
-specific last. Elsewhere on that laptop, and on every other machine, only
-yours applies.
+Then each repository's own config, set once per repository on a machine,
+from any of its worktrees:
 
-- **Set it up** on a new machine with one command, which creates
-  `~/.gitconfig.local` if needed:
+```sh
+P=~/projects/acme/prompts
+git config vim-prompts.repository "$P/repos/api.md"
+git config --add vim-prompts.library "$P/library-api"
+git config --add vim-prompts.rules "$P/rules/api-branches.md"    # api only
+```
+
+**What `:AiRules` shows** in `api/main/`:
+
+```
+git.md          ~/.config/vim-prompts/git.md          global ~/.gitconfig
+general.md      ~/projects/acme/prompts/rules/general.md global ~/projects/acme/prompts/work.gitconfig
+api-branches.md ~/projects/acme/prompts/rules/api-branches.md local ~/projects/acme/api/.bare/config
+repository      ~/projects/acme/prompts/repos/api.md  local ~/projects/acme/api/.bare/config
+#rule:migrations ~/projects/acme/prompts/library-api/migrations.md local ~/projects/acme/api/.bare/config
+#rule:test-setup ~/projects/acme/prompts/library-api/test-setup.md local ~/projects/acme/api/.bare/config
+                hides ~/projects/acme/prompts/library/test-setup.md
+#rule:testing   ~/projects/acme/prompts/library/testing.md global ~/projects/acme/prompts/work.gitconfig
+```
+
+and in `/tests` from there, the prompt is: the rules (yours, the group's,
+api's), the description, `testing.md` then api's `test-setup.md`, the
+persona's task, the file, your query; each later one winning where they
+differ.
+
+Worth knowing about this layout:
+
+- **Setting up a new machine** is the clone, one command for the include,
+  and the per-repository lines above:
 
   ```sh
-  git config -f ~/.gitconfig.local 'includeIf.gitdir:~/projects/work/.path' ~/projects/work/prompts/work.gitconfig
+  git config -f ~/.gitconfig.local 'includeIf.gitdir:~/projects/acme/.path' ~/projects/acme/prompts/work.gitconfig
   ```
 
 - **`gitdir:` is the git directory**, not the checkout: `.git`, or `.bare`
-  and `.bare/worktrees/<name>` in a bare repository with worktrees. A
-  trailing `/` matches everything under the folder, so every worktree of
-  every repository there.
-- **All of it is `global`**, each value with the file it comes from
-  (`global ~/projects/work/prompts/work.gitconfig`). `:AiRule --global`
-  opens yours in `~/.gitconfig`, never these; `:AiUnset` removes a value
-  from whichever file sets it.
-- **Per repository** there is still its own config: its
-  `vim-prompts.repository`, and a library or rules of its own. Those are in
-  its `.git/config` (`.bare/config`), not in any of the files above, so a new
-  machine sets them once per repository ([one repository](#one-repository)).
+  and `.bare/worktrees/<name>` in a bare repository, where `.git` in each
+  worktree is a file pointing there. A trailing `/` matches everything
+  under the folder, so every worktree of every repository there.
+- **The included files are `global`**, each value with the file it comes
+  from. `:AiRule --global` opens yours in `~/.gitconfig`, never these;
+  `:AiUnset` removes a value from whichever file sets it.
+- **A repository's own config is not versioned**: `.git/config`, or
+  `.bare/config` for a bare one, shared by its worktrees. That is what keeps
+  a repository you clone from briefing your agent, and why a new machine
+  sets it once per repository.
 
 ### One repository
 
@@ -296,6 +343,12 @@ context: [file, "rule:testing"]
 
 A persona's rule that isn't found anywhere is left out; one you ask for with
 `#rule:` that isn't found refuses the ask.
+
+Rules for the task go with the other rules, last, as the most specific of
+them, so the persona's own instructions and your query, which come after
+the rules, still win over them: "fix the first failure" in `testing.md`
+doesn't override a persona's "don't edit unless I ask". `--bare` leaves out
+the other rules but keeps these, since the ask names them.
 
 ## Removing a setting
 

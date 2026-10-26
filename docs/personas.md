@@ -119,7 +119,7 @@ stays as written.
 | --- | --- |
 | `{query}` | What the user typed. |
 | `{selection}` | The range or visual selection, fenced, with path and lines. |
-| `{rules}` | The [rules](#rules), the repository's description last; empty without them, or with `--bare`. |
+| `{rules}` | The [rules](#rules), the repository's description, then the rules for the task (`#rule:`); with `--bare`, only those for the task. |
 | `{base}` | The persona this one hides ([building on it](#building-on-another-persona)). |
 | `{context}` | Every source's text, in order: the persona's, those added, then the files. |
 | `{<source>}` | One source's text here instead of in `{context}` (`{comments}`, `{files}` for the `@` files). |
@@ -143,8 +143,9 @@ told the later wins where they differ. See [configuration](config.md).
 
 Rules for one kind of task come from a library, by name, as a source:
 `context: [file, "rule:testing"]` in the persona, or `#rule:testing` in the
-ask ([rules for a task](config.md#rules-for-a-task)). They go in
-`{context}`, or where `{rule}` is.
+ask ([rules for a task](config.md#rules-for-a-task)). They go last in
+`{rules}`, so what the persona says after `{rules}` wins over them; a
+template with `{rule}` places them there instead, outside `{rules}`.
 
 A persona written for `{repository}`, the slot's old name, is refused, saying
 so.

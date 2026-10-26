@@ -174,10 +174,16 @@ function! prompts#config#add_rules(config, scope, file) abort
   return v:shell_error ? trim(l:out) : ''
 endfunction
 
-function! prompts#config#text(config) abort
+" The rules, the repository's description, then the rules for the task
+" (library names); with bare, only those
+function! prompts#config#text(config, names = [], bare = 0) abort
   let l:blocks = []
-  for [l:heading, l:file] in map(copy(a:config.rules), '["Rules", v:val.file]')
-        \ + (empty(a:config.repository) ? [] : [['About this repository', a:config.repository.file]])
+  let l:library = prompts#config#library(a:config)
+  let l:task = map(filter(uniq(map(copy(a:names), {_, n -> substitute(n, '\.md$', '', '')})),
+        \ 'has_key(l:library, v:val)'), '["Rules for this task", l:library[v:val].file]')
+  for [l:heading, l:file] in (a:bare ? [] : map(copy(a:config.rules), '["Rules", v:val.file]')
+        \ + (empty(a:config.repository) ? [] : [['About this repository', a:config.repository.file]]))
+        \ + l:task
     let l:text = trim(join(readfile(l:file), "\n"))
     if !empty(l:text)
       call add(l:blocks, l:heading . ' (' . prompts#config#show(l:file, a:config.place) . "):\n\n" . l:text)

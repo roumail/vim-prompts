@@ -11,7 +11,10 @@ last of that name ([rules for a task](../config.md#rules-for-a-task)).
 ```
 
 Unlike the other sources, the text goes in, not a path: rules are short,
-and must be followed rather than looked up.
+and must be followed rather than looked up. It goes with the other rules,
+last (in `{rules}`, not `{context}`), so the persona's instructions and your
+query come after it and win where they differ; `{rule}` in a template puts
+it there instead.
 
 ```
 Rules for this task (~/work/prompts/library/testing.md):
