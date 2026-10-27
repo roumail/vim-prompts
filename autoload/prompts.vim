@@ -211,6 +211,11 @@ endfunction
 " take in, and you ask in the session; other personas have their own task
 function! s:ask(persona, request, prompt) abort
   let l:prompt = a:prompt
+  " Nothing rendered (`:Ai /default --bare`): the agent opens bare
+  if empty(trim(l:prompt))
+    call prompts#agent#launch('', a:persona.meta, a:request.dirs)
+    return
+  endif
   if a:persona.name ==# 'default' && empty(a:request.query)
     let l:prompt .= "\n\nRead this, then wait for my question."
   endif
@@ -269,7 +274,11 @@ function! s:send_draft() abort
   endif
   " Left open: :wq sends and closes, :w sends again after more edits
   setlocal nomodified
-  call prompts#agent#launch(l:prompt, b:prompts_draft.meta, b:prompts_draft.request.dirs)
+  " Once the write is done: the agent's tab would otherwise be the window
+  " :wq goes on to close (and :wq wipes the draft, b: with it)
+  let l:draft = b:prompts_draft
+  call timer_start(0, {-> prompts#agent#launch(l:prompt, l:draft.meta,
+        \ l:draft.request.dirs)})
 endfunction
 
 " /personas first; #sources, @files and the mode anywhere before --
