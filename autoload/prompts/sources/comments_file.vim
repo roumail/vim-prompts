@@ -1,6 +1,6 @@
 " #comments_file: docs/sources/comments_file.md
 function! prompts#sources#comments_file#info() abort
-  return {'needs': 'a git repository, for the file', 'arg': 'none'}
+  return {'needs': 'a git repository, for the file', 'arg': 'none', 'instruction': 1}
 endfunction
 
 function! prompts#sources#comments_file#context(request, arg) abort

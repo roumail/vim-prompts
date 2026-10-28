@@ -124,12 +124,16 @@ function! s:missing(persona, request, given) abort
             \ . prompts#source#info(l:source.name).needs
     endif
   endfor
-  let l:own = a:persona.meta.context
+  " Instructions (how to work: a rule, where to write) aren't something to
+  " work on, so they don't count
+  let l:own = filter(copy(a:persona.meta.context),
+        \ '!get(prompts#source#info(v:val.name), "instruction", 0)')
   if empty(l:own) || !empty(a:request.selection)
     return ''
   endif
   for l:source in a:request.sources
-    if !empty(prompts#source#context(l:source, a:request))
+    if !get(prompts#source#info(l:source.name), 'instruction', 0)
+          \ && !empty(prompts#source#context(l:source, a:request))
       return ''
     endif
   endfor

@@ -32,6 +32,11 @@ function! prompts#sources#jira#context(request, arg) abort
 endfunction
 ```
 
+`info()` may also return `'instruction': 1` for a source that says how the
+agent works rather than what on (`#rule`, `#comments_file`): a persona isn't
+asked just because one has text (see
+[when a persona is refused](../personas.md#frontmatter)).
+
 `arg` is `'none'`, `'optional'` or `'required'`; an ask that gives the wrong
 kind is refused before `context()` is called. `context()` is called at most
 once per ask, and must not change anything or wait on the network: tell the

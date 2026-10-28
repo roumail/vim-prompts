@@ -1,6 +1,7 @@
 " #rule:name: docs/sources/rule.md
 function! prompts#sources#rule#info() abort
-  return {'needs': 'a rules file in vim-prompts.library: #rule:<Tab>', 'arg': 'required'}
+  return {'needs': 'a rules file in vim-prompts.library: #rule:<Tab>', 'arg': 'required',
+        \ 'instruction': 1}
 endfunction
 
 " The rules themselves, as {rules} has them: a few lines the agent must
