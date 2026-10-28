@@ -48,6 +48,14 @@ buffer to edit first:
 The [rules](config.md) are folded: they are the same in every draft, and are
 sent all the same. `zo` shows them.
 
+## :AiComments
+
+`:AiComments [file]` opens the agent's comments on lines, written for an ask
+with [`#comments_file`](sources/comments_file.md), as a new quickfix list:
+the newest file without an argument, `<Tab>` for the others. Step through
+them with `:cnext`; `:colder` goes back to the list before (your `Review`
+comments, say).
+
 ## :AiPersonas
 
 `:AiPersonas[!]` shows what applies where you are, and where git config sets

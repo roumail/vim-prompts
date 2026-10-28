@@ -32,3 +32,6 @@ Say what you want done with them; the comments alone aren't a question:
 `/review #comments` reviews the change and answers each comment. Comments
 stay in the list after an ask, until you load others over them or clear
 them (`review#clear()`).
+
+For the agent's comments the other way, as a quickfix list of their own, see
+[`#comments_file`](comments_file.md).

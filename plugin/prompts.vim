@@ -50,6 +50,9 @@ function! s:init() abort
   " Open a rules file that applies here, or a new one for a scope
   execute 'command! -range -nargs=* -complete=customlist,prompts#rule_complete '
         \ . l:ns . 'Rule call prompts#rule(<range>, <line1>, <line2>, <q-args>)'
+  " The agent's comments on lines (#comments_file) in a quickfix list
+  execute 'command! -nargs=? -complete=customlist,prompts#comments#complete '
+        \ . l:ns . 'Comments call prompts#comments#load(<q-args>)'
   " Remove a value from the file that sets it
   execute 'command! -nargs=+ -complete=customlist,prompts#unset_complete '
         \ . l:ns . 'Unset call prompts#unset(<q-args>)'
