@@ -58,11 +58,11 @@ comments, say).
 
 ## :AiPersonas
 
-`:AiPersonas[!]` shows what applies where you are, and where git config sets
-each part ([configuration](config.md)): the rules (as `:AiRules`), the repository's
-description, then the personas, their context, where each comes from, those
-it builds on, and what each needs that isn't there. `!` reloads the source
-files first.
+`:AiPersonas[!]` shows the personas that apply where you are: the context
+each asks for (its `#rule:`s included), where each comes from
+([configuration](config.md)), those it builds on, and what each needs that
+isn't there. `!` reloads the source files first. The rules and the
+repository's description are `:AiRules`.
 
 ## :AiRules
 
@@ -82,8 +82,6 @@ git.md          ~/dotfiles/prompts/git.md             global ~/.gitconfig
 #rule:testing   .vim-prompts/library/testing.md       local ~/work/app/.git/config
                 hides ~/work/handbook/library/testing.md
 ```
-
-`:AiPersonas` starts with the same list.
 
 ## :AiRule
 

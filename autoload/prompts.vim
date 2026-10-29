@@ -311,15 +311,14 @@ function! prompts#complete(lead, cmdline, pos) abort
   return []
 endfunction
 
-" :AiPersonas[!]: what applies here and where git config sets it. With !,
-" reload the source files first.
+" :AiPersonas[!]: the personas that apply here, the context each asks for
+" and where it comes from. With !, reload the source files first.
 function! prompts#list(reload) abort
   if a:reload
     call prompts#source#load()
   endif
   let l:config = prompts#config#get(bufnr())
   call s:list_errors(l:config.errors + prompts#persona#errors(l:config))
-  call s:list_rules(l:config)
   for l:name in prompts#persona#names(l:config)
     let l:persona = prompts#persona#get(l:name, l:config)
     if empty(l:persona)

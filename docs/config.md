@@ -19,8 +19,8 @@ brief your agent, and what applies is always what git config lists:
 git config --show-origin --get-regexp '^vim-prompts\.'
 ```
 
-`:AiRules` shows the rules files from inside Vim, where each is set, and
-those hidden; `:AiPersonas` adds the repository's file and each persona.
+`:AiRules` shows the rules files and the repository's file from inside Vim,
+where each is set, and those hidden; `:AiPersonas` shows each persona.
 
 `:AiRule` opens one of the rules files from inside Vim, or creates one for
 a scope and names it there ([usage](usage.md#airule)); `:AiUnset` removes a
