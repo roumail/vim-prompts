@@ -158,6 +158,12 @@ function! s:resolve(stack, i) abort
   return l:p
 endfunction
 
+" The ones of a persona's name below it that it replaces, not builds on
+function! prompts#persona#hidden(persona, config) abort
+  return filter(get(s:stacks(a:config), a:persona.name, [])[:-2],
+        \ {_, p -> index(a:persona.bases, p.file) < 0})
+endfunction
+
 " Read again on each ask, so edits apply at once
 function! prompts#persona#get(name, config) abort
   let l:stack = get(s:stacks(a:config), a:name, [])

@@ -58,29 +58,48 @@ comments, say).
 
 ## :AiPersonas
 
-`:AiPersonas[!]` shows the personas that apply where you are: the context
-each asks for (its `#rule:`s included), where each comes from
-([configuration](config.md)), those it builds on, and what each needs that
-isn't there. `!` reloads the source files first. The rules and the
-repository's description are `:AiRules`.
+`:AiPersonas[!]` shows the personas where you are: for each, whether it is
+loaded or hidden by a later one of its name, where it comes from (bundled
+with vim-prompts, or the `vim-prompts.personas` setting and the
+[scope](config.md#scopes) and file that set it), the context it asks for
+(its `#rule:`s included), those it builds on, and what it needs that isn't
+there. `!` reloads the source files first. The rules and the repository's
+description are `:AiRules`.
 
 ## :AiRules
 
-`:AiRules` shows the rules files that apply where you are, in the order
-they are sent, and where each is set: the [scope](config.md#scopes) and
-the file that names it. A rules file hides an earlier one of its file name,
-so a group's `git.md` replaces yours; the hidden ones are listed after them,
-with what hides them. Last come the rules you ask for by name, `#rule:<name>`
-([rules for a task](config.md#rules-for-a-task)), and what each hides.
+`:AiRules` shows the rules files where you are, in the order they are
+sent, the repository's description, then the rules you ask for by name,
+`#rule:<name>` ([rules for a task](config.md#rules-for-a-task)). For each,
+whether it is loaded or hidden, and where it comes from: the setting, its
+[scope](config.md#scopes) and the file that sets it. A rules file hides an
+earlier one of its file name, so a group's `git.md` replaces yours.
 
 ```
-comments.md     ~/dotfiles/prompts/comments.md        global ~/.gitconfig
-git.md          ~/work/handbook/git.md                global ~/work/.gitconfig
-repository      .vim-prompts/repository.md            local ~/work/app/.git/config
-git.md          ~/dotfiles/prompts/git.md             global ~/.gitconfig
-                hidden by ~/work/handbook/git.md
-#rule:testing   .vim-prompts/library/testing.md       local ~/work/app/.git/config
-                hides ~/work/handbook/library/testing.md
+comments.md
+  ~/dotfiles/prompts/comments.md
+  loaded
+  from vim-prompts.rules, global ~/.gitconfig
+git.md
+  ~/work/handbook/git.md
+  loaded
+  from vim-prompts.rules, global ~/work/.gitconfig
+repository
+  .vim-prompts/repository.md
+  loaded
+  from vim-prompts.repository, local ~/work/app/.git/config
+git.md
+  ~/dotfiles/prompts/git.md
+  hidden by ~/work/handbook/git.md
+  from vim-prompts.rules, global ~/.gitconfig
+#rule:testing
+  .vim-prompts/library/testing.md
+  loaded
+  from vim-prompts.library, local ~/work/app/.git/config
+#rule:testing
+  ~/work/handbook/library/testing.md
+  hidden by .vim-prompts/library/testing.md
+  from vim-prompts.library, global ~/work/.gitconfig
 ```
 
 ## :AiRule

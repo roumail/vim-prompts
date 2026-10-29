@@ -141,7 +141,8 @@ function! prompts#config#library(config) abort
       let l:name = fnamemodify(l:file, ':t:r')
       if l:name =~# '^\S\+$'
         let l:rules[l:name] = {'file': l:file, 'origin': l:library.origin,
-              \ 'hides': has_key(l:rules, l:name) ? l:rules[l:name].hides + [l:rules[l:name].file] : []}
+              \ 'hides': has_key(l:rules, l:name)
+              \   ? l:rules[l:name].hides + [{'file': l:rules[l:name].file, 'origin': l:rules[l:name].origin}] : []}
       endif
     endfor
   endfor

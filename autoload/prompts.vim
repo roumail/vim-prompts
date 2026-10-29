@@ -326,25 +326,22 @@ function! prompts#list(reload) abort
     endif
     let l:own = l:persona.meta.context
     let l:request = s:request(0, line('.'), line('.'), '', copy(l:own), l:config)
-    echohl Identifier
-    echo printf('%-15s ', '/' . l:name)
-    echohl None
-    echon printf('%-28s %-8s %s',
-          \ join(map(copy(l:own), '"#" . v:val.name . (empty(v:val.arg) ? "" : ":" . v:val.arg)')),
-          \ l:persona.source ==# 'bundled' ? 'bundled' : '', fnamemodify(l:persona.file, ':~'))
-    echohl Comment
-    if l:persona.source !=# 'bundled'
-      echo repeat(' ', 16) . 'from vim-prompts.personas, ' . l:persona.source
-    endif
-    for l:base in l:persona.bases
-      echo repeat(' ', 16) . 'on {base} ' . fnamemodify(l:base, ':~')
-    endfor
     let l:missing = s:missing(l:persona, l:request, [])
-    if !empty(l:missing)
-      echo repeat(' ', 16) . l:missing
-    endif
-    echohl None
+    call s:entry('Identifier', '/' . l:name,
+          \ [fnamemodify(l:persona.file, ':~'), 'loaded', s:persona_source(l:persona)]
+          \ + (empty(l:own) ? [] : [join(map(copy(l:own), '"#" . v:val.name . (empty(v:val.arg) ? "" : ":" . v:val.arg)'))])
+          \ + map(copy(l:persona.bases), '"on {base} " . fnamemodify(v:val, ":~")')
+          \ + (empty(l:missing) ? [] : [l:missing]))
+    for l:hidden in prompts#persona#hidden(l:persona, l:config)
+      call s:entry('Comment', '/' . l:name,
+            \ [fnamemodify(l:hidden.file, ':~'), 'hidden by ' . fnamemodify(l:persona.file, ':~'),
+            \  s:persona_source(l:hidden)])
+    endfor
   endfor
+endfunction
+
+function! s:persona_source(persona) abort
+  return a:persona.source ==# 'bundled' ? 'from vim-prompts, bundled' : 'from vim-prompts.personas, ' . a:persona.source
 endfunction
 
 " :AiRules: the rules files that apply here, in the order they are sent,
@@ -365,36 +362,48 @@ endfunction
 
 function! s:list_rules(config) abort
   let l:place = a:config.place
-  for [l:label, l:file, l:origin] in map(copy(a:config.rules), '[fnamemodify(v:val.file, ":t"), v:val.file, v:val.origin]')
-        \ + (empty(a:config.repository) ? []
-        \   : [['repository', a:config.repository.file, a:config.repository.origin]])
-    echohl Identifier
-    echo printf('%-15s ', l:label)
-    echohl None
-    echon printf('%-36s %s', prompts#config#show(l:file, l:place), l:origin)
+  for l:rule in a:config.rules
+    call s:entry('Identifier', fnamemodify(l:rule.file, ':t'),
+          \ [prompts#config#show(l:rule.file, l:place), 'loaded', 'from vim-prompts.rules, ' . l:rule.origin])
   endfor
+  if !empty(a:config.repository)
+    call s:entry('Identifier', 'repository',
+          \ [prompts#config#show(a:config.repository.file, l:place), 'loaded',
+          \  'from vim-prompts.repository, ' . a:config.repository.origin])
+  endif
   let l:names = prompts#config#rule_names(a:config)
-  echohl Comment
   for l:rule in a:config.hidden
     let l:name = fnamemodify(l:rule.file, ':t')
-    echo printf('%-15s %-36s %s', l:name, prompts#config#show(l:rule.file, l:place), l:rule.origin)
-    echo repeat(' ', 16) . 'hidden by ' . prompts#config#show(l:names[l:name], l:place)
+    call s:entry('Comment', l:name,
+          \ [prompts#config#show(l:rule.file, l:place), 'hidden by ' . prompts#config#show(l:names[l:name], l:place),
+          \  'from vim-prompts.rules, ' . l:rule.origin])
   endfor
-  echohl None
   " Sent only when asked for
   let l:library = prompts#config#library(a:config)
   for l:name in sort(keys(l:library))
     let l:rule = l:library[l:name]
-    echohl Identifier
-    echo printf('%-15s ', '#rule:' . l:name)
-    echohl None
-    echon printf('%-36s %s', prompts#config#show(l:rule.file, l:place), l:rule.origin)
-    echohl Comment
-    for l:file in l:rule.hides
-      echo repeat(' ', 16) . 'hides ' . prompts#config#show(l:file, l:place)
+    call s:entry('Identifier', '#rule:' . l:name,
+          \ [prompts#config#show(l:rule.file, l:place), 'loaded', 'from vim-prompts.library, ' . l:rule.origin])
+    for l:hidden in l:rule.hides
+      call s:entry('Comment', '#rule:' . l:name,
+            \ [prompts#config#show(l:hidden.file, l:place), 'hidden by ' . prompts#config#show(l:rule.file, l:place),
+            \  'from vim-prompts.library, ' . l:hidden.origin])
     endfor
-    echohl None
   endfor
+endfunction
+
+" A name, then each of its lines on a line of its own: paths too long for
+" columns. A hidden one is dimmed throughout.
+function! s:entry(group, name, lines) abort
+  execute 'echohl' a:group
+  echo a:name
+  if a:group !=# 'Comment'
+    echohl None
+  endif
+  for l:line in a:lines
+    echo '  ' . l:line
+  endfor
+  echohl None
 endfunction
 
 " :[range]AiRule {file|--global|--local|--worktree} [text]: open a rules file

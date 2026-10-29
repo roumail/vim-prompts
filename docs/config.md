@@ -20,7 +20,8 @@ git config --show-origin --get-regexp '^vim-prompts\.'
 ```
 
 `:AiRules` shows the rules files and the repository's file from inside Vim,
-where each is set, and those hidden; `:AiPersonas` shows each persona.
+and `:AiPersonas` each persona: whether each is loaded or hidden, and where
+it is set.
 
 `:AiRule` opens one of the rules files from inside Vim, or creates one for
 a scope and names it there ([usage](usage.md#airule)); `:AiUnset` removes a
@@ -52,8 +53,8 @@ value from the file that sets it ([removing a setting](#removing-a-setting)).
 ## Scopes
 
 Each value lives in one of git's config scopes, and the scope says where
-it applies. These are the names `:AiRules` and `:AiPersonas` show in their
-last column, next to the file that sets the value, and the flags `:AiRule`
+it applies. These are the names `:AiRules` and `:AiPersonas` show under each
+entry, next to the file that sets the value, and the flags `:AiRule`
 and `git config` take:
 
 | Scope | File | Applies to | Layer |
@@ -236,14 +237,38 @@ directory.
 **What `:AiRules` shows** in `api/main/`:
 
 ```
-git.md          ~/.config/vim-prompts/git.md          global ~/.gitconfig
-general.md      ~/projects/acme/prompts/rules/general.md global ~/projects/acme/prompts/work.gitconfig
-api-branches.md ~/projects/acme/prompts/rules/api-branches.md global ~/projects/acme/prompts/repos/api.gitconfig
-repository      ~/projects/acme/prompts/repos/api.md  global ~/projects/acme/prompts/repos/api.gitconfig
-#rule:migrations ~/projects/acme/prompts/library-api/migrations.md global ~/projects/acme/prompts/repos/api.gitconfig
-#rule:test-setup ~/projects/acme/prompts/library-api/test-setup.md global ~/projects/acme/prompts/repos/api.gitconfig
-                hides ~/projects/acme/prompts/library/test-setup.md
-#rule:testing   ~/projects/acme/prompts/library/testing.md global ~/projects/acme/prompts/work.gitconfig
+git.md
+  ~/.config/vim-prompts/git.md
+  loaded
+  from vim-prompts.rules, global ~/.gitconfig
+general.md
+  ~/projects/acme/prompts/rules/general.md
+  loaded
+  from vim-prompts.rules, global ~/projects/acme/prompts/work.gitconfig
+api-branches.md
+  ~/projects/acme/prompts/rules/api-branches.md
+  loaded
+  from vim-prompts.rules, global ~/projects/acme/prompts/repos/api.gitconfig
+repository
+  ~/projects/acme/prompts/repos/api.md
+  loaded
+  from vim-prompts.repository, global ~/projects/acme/prompts/repos/api.gitconfig
+#rule:migrations
+  ~/projects/acme/prompts/library-api/migrations.md
+  loaded
+  from vim-prompts.library, global ~/projects/acme/prompts/repos/api.gitconfig
+#rule:test-setup
+  ~/projects/acme/prompts/library-api/test-setup.md
+  loaded
+  from vim-prompts.library, global ~/projects/acme/prompts/repos/api.gitconfig
+#rule:test-setup
+  ~/projects/acme/prompts/library/test-setup.md
+  hidden by ~/projects/acme/prompts/library-api/test-setup.md
+  from vim-prompts.library, global ~/projects/acme/prompts/work.gitconfig
+#rule:testing
+  ~/projects/acme/prompts/library/testing.md
+  loaded
+  from vim-prompts.library, global ~/projects/acme/prompts/work.gitconfig
 ```
 
 and in `/tests` from there, the prompt is: the rules (yours, the group's,
