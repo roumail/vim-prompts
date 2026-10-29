@@ -226,8 +226,9 @@ function! s:ask(persona, request, prompt) abort
   call prompts#agent#launch(l:prompt, a:persona.meta, a:request.dirs)
 endfunction
 
-" :[range]AiDraft[!] ...: the same prompt in a buffer to edit; :w sends it
-" and leaves it open, :wq sends it and closes it, :q! drops it
+" :[range]AiDraft[!] ...: the same prompt in a buffer to edit. As a git
+" commit message: :w saves, closing the draft sends what was last saved, and
+" an empty one (or :q! before any :w) sends nothing.
 function! prompts#draft(bang, range, line1, line2, args) abort
   call s:prompt(a:bang, a:range, a:line1, a:line2, a:args, function('s:open_draft'))
 endfunction
@@ -245,13 +246,14 @@ function! s:open_draft(persona, request, prompt) abort
   endif
   normal! G
   setlocal nomodified
-  let b:prompts_draft = {'meta': a:persona.meta, 'request': a:request}
+  let b:prompts_draft = {'meta': a:persona.meta, 'request': a:request, 'prompt': ''}
   let &l:statusline = '%f  ' . (empty(l:command) ? '(no agent)'
         \ : substitute(join(l:command[1] + ['<this>'] + l:command[2]), '%', '%%', 'g'))
-        \ . '%=:w sends, :wq sends and closes, :q! drops '
+        \ . '%=:w saves, closing sends, :q! drops '
   augroup prompts_draft
     autocmd! * <buffer>
-    autocmd BufWriteCmd <buffer> call s:send_draft()
+    autocmd BufWriteCmd <buffer> call s:save_draft()
+    autocmd BufWipeout <buffer> call s:send_draft(getbufvar(str2nr(expand('<abuf>')), 'prompts_draft'))
   augroup END
 endfunction
 
@@ -270,19 +272,22 @@ function! s:fold_rules(prompt, rules) abort
   execute l:first . ',' . (l:first + count(l:rules, "\n")) . 'fold'
 endfunction
 
-function! s:send_draft() abort
-  let l:prompt = trim(join(getline(1, '$'), "\n"))
-  if empty(l:prompt)
-    call s:error('the draft is empty')
+" BufWriteCmd of the draft: keeps the prompt for when it closes
+function! s:save_draft() abort
+  let b:prompts_draft.prompt = trim(join(getline(1, '$'), "\n"))
+  setlocal nomodified
+  echo empty(b:prompts_draft.prompt) ? 'Draft empty: closing sends nothing' : 'Draft saved: closing sends it'
+endfunction
+
+" BufWipeout of the draft: sends the prompt last saved
+function! s:send_draft(draft) abort
+  if empty(a:draft) || empty(a:draft.prompt)
     return
   endif
-  " Left open: :wq sends and closes, :w sends again after more edits
-  setlocal nomodified
-  " Once the write is done: the agent's tab would otherwise be the window
-  " :wq goes on to close (and :wq wipes the draft, b: with it)
-  let l:draft = b:prompts_draft
-  call timer_start(0, {-> prompts#agent#launch(l:prompt, l:draft.meta,
-        \ l:draft.request.dirs)})
+  " Once the draft's window is closed, so the agent's tab isn't the window
+  " :wq goes on to close
+  call timer_start(0, {-> prompts#agent#launch(a:draft.prompt, a:draft.meta,
+        \ a:draft.request.dirs)})
 endfunction
 
 " /personas first; #sources, @files and the mode anywhere before --

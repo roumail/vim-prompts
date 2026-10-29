@@ -37,13 +37,13 @@ isn't sent as text. After `--`, everything is your query as typed, so
 ## :AiDraft
 
 `:[range]AiDraft[!] ...` takes the same arguments but opens the prompt in a
-buffer to edit first:
+buffer to edit first. It works as a git commit message:
 
 | | |
 | --- | --- |
-| `:w` | Send it and keep the draft open (edit and `:w` again for another session). |
-| `:wq` | Send it and close the draft. |
-| `:q!` | Drop it. |
+| `:w` | Save it; nothing is sent. |
+| `:wq` (or `:q` after `:w`) | Close the draft and send what was last saved; the agent opens. |
+| `:q!` before any `:w` | Drop it. To drop a saved draft, empty it and `:wq`. |
 
 The [rules](config.md) are folded: they are the same in every draft, and are
 sent all the same. `zo` shows them.

@@ -32,7 +32,7 @@ let s:ns = prompts#namespace()
 " and the sources asked for; with nothing, open the agent
 execute 'command! -bang -range -nargs=* -complete=customlist,prompts#complete '
       \ . s:ns . ' call prompts#ask(<bang>0, <range>, <line1>, <line2>, <q-args>)'
-" The same, as a draft to edit; :w sends it
+" The same, as a draft to edit; :w saves it, closing it sends it
 execute 'command! -bang -range -nargs=* -complete=customlist,prompts#complete '
       \ . s:ns . 'Draft call prompts#draft(<bang>0, <range>, <line1>, <line2>, <q-args>)'
 " The personas that apply here and what each asks for; ! reloads the sources
