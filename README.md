@@ -33,12 +33,15 @@ Requires Vim 9.1+, the agent CLI (installed and logged in), and:
   `#diff_pairs` names.
 - [vim-review](https://github.com/roumail/vim-review): the review comments
   (`:Comment`) that `#comments` sends.
+- [vim-draft](https://github.com/roumail/vim-draft): the buffer `:AiDraft`
+  writes in.
 
 ```vim
 Plug 'tpope/vim-fugitive'
 Plug 'tpope/vim-dispatch'
 Plug 'roumail/git-extras'
 Plug 'roumail/vim-review'
+Plug 'roumail/vim-draft'
 Plug 'roumail/vim-requires'  " optional: the startup warning
 Plug 'roumail/vim-prompts'
 ```

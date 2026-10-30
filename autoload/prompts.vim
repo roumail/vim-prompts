@@ -226,39 +226,27 @@ function! s:ask(persona, request, prompt) abort
   call prompts#agent#launch(l:prompt, a:persona.meta, a:request.dirs)
 endfunction
 
-" :[range]AiDraft[!] ...: the same prompt in a buffer to edit. As a git
-" commit message: :w saves, closing the draft sends what was last saved, and
-" an empty one (or :q! before any :w) sends nothing. Closing it never quits
-" Vim, which would drop the draft.
+" :[range]AiDraft[!] ...: the same prompt in a draft (roumail/vim-draft) to
+" edit: closing it sends what was last saved.
 function! prompts#draft(bang, range, line1, line2, args) abort
   call s:prompt(a:bang, a:range, a:line1, a:line2, a:args, function('s:open_draft'))
 endfunction
 
 function! s:open_draft(persona, request, prompt) abort
   let l:command = prompts#agent#command(a:persona.meta, a:request.dirs)
-  let l:from = bufnr()
-  botright vnew
-  setlocal buftype=acwrite bufhidden=wipe noswapfile filetype=markdown
-  execute 'silent file' fnameescape('ai-draft://' . a:persona.name . '/' . bufnr())
-  call setline(1, split(a:prompt, "\n", 1))
+  " Room for the query, last
+  let l:room = empty(a:request.query) ? ['', ''] : []
+  call roumail_draft#open('ai-draft://' . a:persona.name,
+        \ split(a:prompt, "\n", 1) + l:room,
+        \ function('s:send_draft', [a:persona.meta, a:request.dirs]),
+        \ {'split': 'botright vnew', 'saved': 'Draft saved: closing sends it',
+        \  'empty': 'Draft empty: closing sends nothing'})
+  setlocal filetype=markdown
   call s:fold_rules(a:prompt, a:request.rules)
-  if empty(a:request.query)
-    " Room for the query, last
-    call append('$', ['', ''])
-  endif
   normal! G
-  setlocal nomodified
-  let b:prompts_draft = {'meta': a:persona.meta, 'request': a:request, 'prompt': '',
-        \ 'from': l:from}
   let &l:statusline = '%f  ' . (empty(l:command) ? '(no agent)'
         \ : substitute(join(l:command[1] + ['<this>'] + l:command[2]), '%', '%%', 'g'))
         \ . '%=:w saves, closing sends, :q! drops '
-  augroup prompts_draft
-    autocmd! * <buffer>
-    autocmd BufWriteCmd <buffer> call s:save_draft()
-    autocmd QuitPre <buffer> call s:keep_vim()
-    autocmd BufWipeout <buffer> call s:send_draft(getbufvar(str2nr(expand('<abuf>')), 'prompts_draft'))
-  augroup END
 endfunction
 
 " The rules, the same in every draft, folded so the query stands out; they
@@ -276,34 +264,11 @@ function! s:fold_rules(prompt, rules) abort
   execute l:first . ',' . (l:first + count(l:rules, "\n")) . 'fold'
 endfunction
 
-" BufWriteCmd of the draft: keeps the prompt for when it closes
-function! s:save_draft() abort
-  let b:prompts_draft.prompt = trim(join(getline(1, '$'), "\n"))
-  setlocal nomodified
-  echo empty(b:prompts_draft.prompt) ? 'Draft empty: closing sends nothing' : 'Draft saved: closing sends it'
-endfunction
-
-" QuitPre of the draft: when it is the last window, opens the buffer it was
-" drafted from beside it, so that closing the draft closes only its window
-" and the prompt is sent rather than lost with Vim
-function! s:keep_vim() abort
-  if len(getwininfo()) > 1
-    return
-  endif
-  let l:from = b:prompts_draft.from
-  execute 'topleft vertical' (bufexists(l:from) ? 'sbuffer ' . l:from : 'new')
-  wincmd p
-endfunction
-
-" BufWipeout of the draft: sends the prompt last saved
-function! s:send_draft(draft) abort
-  if empty(a:draft) || empty(a:draft.prompt)
-    return
-  endif
+" Sends the prompt once its draft closes
+function! s:send_draft(meta, dirs, prompt) abort
   " Once the draft's window is closed, so the agent's tab isn't the window
   " :wq goes on to close
-  call timer_start(0, {-> prompts#agent#launch(a:draft.prompt, a:draft.meta,
-        \ a:draft.request.dirs)})
+  call timer_start(0, {-> prompts#agent#launch(a:prompt, a:meta, a:dirs)})
 endfunction
 
 " /personas first; #sources, @files and the mode anywhere before --

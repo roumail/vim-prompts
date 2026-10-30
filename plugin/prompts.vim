@@ -6,8 +6,8 @@
 " (vim-prompts.rules, vim-prompts.repository; vim-prompts.library for
 " #rule:<name>), is the agent's first prompt. Commands and <Plug> mappings only;
 " no keys are bound here. Requires tpope/vim-fugitive,
-" tpope/vim-dispatch (the agent runs with :Start), roumail/git-extras and
-" roumail/vim-review.
+" tpope/vim-dispatch (the agent runs with :Start), roumail/git-extras,
+" roumail/vim-review and roumail/vim-draft (:AiDraft).
 " The agent CLI (install, auth, model) is yours to set up; this only checks
 " that it is executable.
 if exists('g:loaded_prompts')
@@ -22,6 +22,7 @@ try
         \ 'tpope/vim-dispatch': 'g:loaded_dispatch',
         \ 'roumail/git-extras': 'g:loaded_git_extras',
         \ 'roumail/vim-review': 'g:loaded_review',
+        \ 'roumail/vim-draft': 'g:loaded_roumail_draft',
         \ })
 catch /^Vim\%((\a\+)\)\=:E117:/
 endtry
