@@ -45,6 +45,10 @@ buffer to edit first. It works as a git commit message:
 | `:wq` (or `:q` after `:w`) | Close the draft and send what was last saved; the agent opens. |
 | `:q!` before any `:w` | Drop it. To drop a saved draft, empty it and `:wq`. |
 
+Closing the draft never quits Vim, even when it is the last window (after
+`:only`): the buffer it was drafted from opens beside it, so the prompt is
+still sent.
+
 The [rules](config.md) are folded: they are the same in every draft, and are
 sent all the same. `zo` shows them.
 

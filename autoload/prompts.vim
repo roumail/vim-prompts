@@ -228,13 +228,15 @@ endfunction
 
 " :[range]AiDraft[!] ...: the same prompt in a buffer to edit. As a git
 " commit message: :w saves, closing the draft sends what was last saved, and
-" an empty one (or :q! before any :w) sends nothing.
+" an empty one (or :q! before any :w) sends nothing. Closing it never quits
+" Vim, which would drop the draft.
 function! prompts#draft(bang, range, line1, line2, args) abort
   call s:prompt(a:bang, a:range, a:line1, a:line2, a:args, function('s:open_draft'))
 endfunction
 
 function! s:open_draft(persona, request, prompt) abort
   let l:command = prompts#agent#command(a:persona.meta, a:request.dirs)
+  let l:from = bufnr()
   botright vnew
   setlocal buftype=acwrite bufhidden=wipe noswapfile filetype=markdown
   execute 'silent file' fnameescape('ai-draft://' . a:persona.name . '/' . bufnr())
@@ -246,13 +248,15 @@ function! s:open_draft(persona, request, prompt) abort
   endif
   normal! G
   setlocal nomodified
-  let b:prompts_draft = {'meta': a:persona.meta, 'request': a:request, 'prompt': ''}
+  let b:prompts_draft = {'meta': a:persona.meta, 'request': a:request, 'prompt': '',
+        \ 'from': l:from}
   let &l:statusline = '%f  ' . (empty(l:command) ? '(no agent)'
         \ : substitute(join(l:command[1] + ['<this>'] + l:command[2]), '%', '%%', 'g'))
         \ . '%=:w saves, closing sends, :q! drops '
   augroup prompts_draft
     autocmd! * <buffer>
     autocmd BufWriteCmd <buffer> call s:save_draft()
+    autocmd QuitPre <buffer> call s:keep_vim()
     autocmd BufWipeout <buffer> call s:send_draft(getbufvar(str2nr(expand('<abuf>')), 'prompts_draft'))
   augroup END
 endfunction
@@ -277,6 +281,18 @@ function! s:save_draft() abort
   let b:prompts_draft.prompt = trim(join(getline(1, '$'), "\n"))
   setlocal nomodified
   echo empty(b:prompts_draft.prompt) ? 'Draft empty: closing sends nothing' : 'Draft saved: closing sends it'
+endfunction
+
+" QuitPre of the draft: when it is the last window, opens the buffer it was
+" drafted from beside it, so that closing the draft closes only its window
+" and the prompt is sent rather than lost with Vim
+function! s:keep_vim() abort
+  if len(getwininfo()) > 1
+    return
+  endif
+  let l:from = b:prompts_draft.from
+  execute 'topleft vertical' (bufexists(l:from) ? 'sbuffer ' . l:from : 'new')
+  wincmd p
 endfunction
 
 " BufWipeout of the draft: sends the prompt last saved
