@@ -60,6 +60,13 @@ the newest file without an argument, `<Tab>` for the others. Step through
 them with `:cnext`; `:colder` goes back to the list before (your `Review`
 comments, say).
 
+## :AiCommentsLoad
+
+`:AiCommentsLoad [file]` loads the same comments into vim-review's `Review`
+list, to make them yours, as `:CommentsLoad` does with a save: they replace
+what the list holds (`:CommentsSave` first to keep those). The same files
+as `:AiComments`, the newest without an argument.
+
 ## :AiPersonas
 
 `:AiPersonas[!]` shows the personas where you are: for each, whether it is
@@ -167,5 +174,5 @@ xmap <leader>ar <Plug>(prompts-rule)
 ## Command prefix
 
 ```vim
-let g:prompts_namespace = 'Ai'      " :Ai, :AiDraft, :AiPersonas, :AiRules, :AiRule, :AiUnset
+let g:prompts_namespace = 'Ai'      " :Ai, :AiDraft, :AiComments, :AiCommentsLoad, :AiPersonas, :AiRules, :AiRule, :AiUnset
 ```

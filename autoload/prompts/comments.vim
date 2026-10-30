@@ -3,7 +3,8 @@
 " (`path:line: text`, `path:start-end: text`, further lines tab-indented,
 " paths from the work tree's root). :AiComments reads one into a quickfix
 " list of its own: vim-review's Review list holds my comments, so it is left
-" alone, and `:colder` goes back to it.
+" alone, and `:colder` goes back to it. :AiCommentsLoad makes them mine,
+" loading one into the Review list as :CommentsLoad does.
 
 function! s:error(msg) abort
   echohl ErrorMsg
@@ -47,15 +48,15 @@ function! prompts#comments#complete(lead, cmdline, pos) abort
   return filter(s:files(prompts#comments#dir(bufnr())), 'stridx(v:val, a:lead) == 0')
 endfunction
 
-" :AiComments [file]: the comments in the file (a name from the completion,
-" or a path), else in the newest one, as a new quickfix list
-function! prompts#comments#load(file) abort
+" The file asked for (a name from the completion, or a path), else the
+" newest one; '' when there is none
+function! s:file(file) abort
   let l:dir = prompts#comments#dir(bufnr())
   let l:files = s:files(l:dir)
   if empty(a:file)
     if empty(l:files)
       call s:error('no comments from the agent here: ask with #comments_file')
-      return
+      return ''
     endif
     let l:file = l:dir . '/' . l:files[0]
   else
@@ -63,6 +64,24 @@ function! prompts#comments#load(file) abort
   endif
   if !filereadable(l:file)
     call s:error('no file ' . fnamemodify(l:file, ':~'))
+    return ''
+  endif
+  return l:file
+endfunction
+
+" :AiCommentsLoad [file]: the comments in the file in vim-review's Review
+" list, in place of what it holds, as :CommentsLoad does
+function! prompts#comments#review(file) abort
+  let l:file = s:file(a:file)
+  if !empty(l:file)
+    call review#load(l:file)
+  endif
+endfunction
+
+" :AiComments [file]: the comments in the file as a new quickfix list
+function! prompts#comments#load(file) abort
+  let l:file = s:file(a:file)
+  if empty(l:file)
     return
   endif
   let l:root = prompts#config#place(bufnr()).dir

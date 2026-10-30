@@ -47,6 +47,9 @@ execute 'command! -range -nargs=* -complete=customlist,prompts#rule_complete '
 " The agent's comments on lines (#comments_file) in a quickfix list
 execute 'command! -nargs=? -complete=customlist,prompts#comments#complete '
       \ . s:ns . 'Comments call prompts#comments#load(<q-args>)'
+" The same comments in vim-review's Review list, as :CommentsLoad
+execute 'command! -nargs=? -complete=customlist,prompts#comments#complete '
+      \ . s:ns . 'CommentsLoad call prompts#comments#review(<q-args>)'
 " Remove a value from the file that sets it
 execute 'command! -nargs=+ -complete=customlist,prompts#unset_complete '
       \ . s:ns . 'Unset call prompts#unset(<q-args>)'
