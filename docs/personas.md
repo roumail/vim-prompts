@@ -30,7 +30,6 @@ once. `:AiPersonas` lists where every persona comes from.
 | Persona | Context | Does |
 | --- | --- | --- |
 | `/default` | | Your query, the selection, and what you add. Used without a `/persona`. |
-| `/explain` | `#file` | Explains the selection, or the code at your line. Doesn't edit. |
 | `/review` | `#changes` | Reviews your branch's changes, and answers your comments if you add `#comments`. Ask mode. |
 
 ## Where personas go

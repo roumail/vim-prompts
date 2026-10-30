@@ -354,7 +354,7 @@ or `:AiRule --worktree`.
 
 ## Rules for a task
 
-`vim-prompts.rules` goes with every ask, `/review` and `/explain` included.
+`vim-prompts.rules` goes with every ask, `/review` included.
 Rules that only matter for one kind of task (writing tests, writing a
 migration) go in a library instead, a directory of rules files named in
 git config, and are sent when an ask names them:

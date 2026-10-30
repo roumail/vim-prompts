@@ -57,7 +57,7 @@ let g:prompts_mode = 'auto'   " the default is 'ask'
 ```
 
 ```vim
-:'<,'>Ai /explain --plan-mode
+:'<,'>Ai --plan-mode how would you split this
 :Ai /review --agent-mode fix what you find
 :Ai --plan-mode
 ```

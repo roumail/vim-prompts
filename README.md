@@ -15,8 +15,8 @@ and you carry on the conversation there.
 - **You say what it sees.** A short syntax hands it what Vim knows: a
   selection, `@files`, the change on your branch (`#changes`), your review
   comments (`#comments`). Nothing else is sent, but the rules you set.
-- **You decide how it's briefed, per project.** A persona (`/review`,
-  `/explain`, or your own) is a saved prompt that frames your question;
+- **You decide how it's briefed, per project.** A persona (`/review`, or
+  your own) is a saved prompt that frames your question;
   rules apply to every ask. Each project can describe itself once and bring
   its own personas and rules.
 
@@ -64,15 +64,8 @@ there; `:Ai` alone brings you back to it, and `/exit` or Ctrl-D leaves it.
 Only this first prompt is sent from Vim.
 
 **If you don't want to write a question,** use a persona, a saved prompt
-that asks for you. `/explain` asks what the code does, why it's written that
-way and what's surprising, and sends the whole file around your lines:
-
-```vim
-:'<,'>Ai /explain
-```
-
-Without a selection it explains the code at your cursor. Without a persona
-you get `/default`, which adds nothing to your query but your rules.
+that asks for you. Without one you get `/default`, which adds nothing to
+your query but your rules.
 
 **If you want it to look at your change,** `/review` brings in your branch,
 committed or not; `#changes:staged` narrows it to what's staged:

@@ -7,7 +7,7 @@ last of that name ([rules for a task](../config.md#rules-for-a-task)).
 
 ```vim
 :Ai #rule:testing add a test for the empty case
-:'<,'>Ai /explain #rule:migrations is this reversible
+:'<,'>Ai #rule:migrations is this reversible
 ```
 
 Unlike the other sources, the text goes in, not a path: rules are short,

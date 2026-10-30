@@ -1,7 +1,6 @@
 # #file
 
 The file you asked from and your line (the range's first, or the cursor's).
-`/explain` takes it.
 
 ```
 Current file: `src/app.py`, line 42
