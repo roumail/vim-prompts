@@ -16,7 +16,7 @@ function! s:scope(bufnr, scope) abort
   if s:git(a:bufnr, ['rev-parse', '--verify', '--quiet', l:branch . '^{commit}']) is v:null
     return []
   endif
-  let l:main = git_extras#main_ref()
+  let l:main = fugitive_extras#main_ref()
   let l:base = empty(l:main) ? v:null : s:git(a:bufnr, ['merge-base', l:branch, l:main])
   if empty(l:base)
     " No default branch to fork from: what isn't committed, or the branch's

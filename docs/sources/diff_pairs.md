@@ -5,7 +5,7 @@ each, left to right. Unlike `#changes` it depends on your windows, so use it
 when you've set up the comparison yourself: `:BranchDiff`, or `:Gdiffsplit` /
 `:DiffThis` against a commit.
 
-Each `:BranchDiff` is a comparison in git-extras' `:Compares`, named for the
+Each `:BranchDiff` is a comparison in fugitive-extras' `:Compares`, named for the
 branch, and its tabs carry the name. Close the files that raise no
 questions, and `#diff_pairs:<name>` sends the ones left, whatever else is
 open:

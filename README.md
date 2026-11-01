@@ -28,7 +28,7 @@ Requires Vim 9.1+, the agent CLI (installed and logged in), and:
   repository and runs git.
 - [vim-dispatch](https://github.com/tpope/vim-dispatch): starts the agent
   (`:Start`), in a Vim terminal or a tmux window.
-- [git-extras](https://github.com/roumail/git-extras): knows your default
+- [fugitive-extras](https://github.com/roumail/fugitive-extras): knows your default
   branch, which `#changes` diffs against, and the `:BranchDiff` comparisons
   `#diff_pairs` names.
 - [vim-review](https://github.com/roumail/vim-review): the review comments
@@ -39,7 +39,7 @@ Requires Vim 9.1+, the agent CLI (installed and logged in), and:
 ```vim
 Plug 'tpope/vim-fugitive'
 Plug 'tpope/vim-dispatch'
-Plug 'roumail/git-extras'
+Plug 'roumail/fugitive-extras'
 Plug 'roumail/vim-review'
 Plug 'roumail/vim-draft'
 Plug 'roumail/vim-requires'  " optional: the startup warning

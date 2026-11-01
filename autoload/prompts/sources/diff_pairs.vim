@@ -10,7 +10,7 @@ function! s:dir(bufnr) abort
 endfunction
 
 function! prompts#sources#diff_pairs#complete(lead) abort
-  return filter(map(git_extras#compares#list(s:dir(bufnr())), 'v:val.name'),
+  return filter(map(fugitive_extras#compares#list(s:dir(bufnr())), 'v:val.name'),
         \ 'stridx(v:val, a:lead) == 0')
 endfunction
 
@@ -53,7 +53,7 @@ function! s:compare(compare) abort
 endfunction
 
 function! prompts#sources#diff_pairs#context(request, arg) abort
-  let l:compares = git_extras#compares#list(s:dir(a:request.bufnr))
+  let l:compares = fugitive_extras#compares#list(s:dir(a:request.bufnr))
   let l:named = empty(a:arg)
         \ ? filter(copy(l:compares), 'index(v:val.tabs, tabpagenr()) >= 0')
         \ : filter(copy(l:compares), 'v:val.name ==# a:arg')

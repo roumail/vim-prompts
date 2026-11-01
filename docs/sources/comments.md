@@ -3,7 +3,7 @@
 Your review comments, from [vim-review](https://github.com/roumail/vim-review).
 Leave one on a line or a selection with `:Comment`; they collect in a
 quickfix list called Review (`:Comments` opens it), and `:CommentsSave` /
-`:CommentsLoad` keep them (per branch, with git-extras).
+`:CommentsLoad` keep them (per branch, with fugitive-extras).
 
 Each comment goes with the lines it is on, quoted from the file as it is now:
 
