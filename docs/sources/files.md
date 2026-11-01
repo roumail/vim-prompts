@@ -30,7 +30,7 @@ a terminal and calls back when you're done).
 [fzf-utils](https://github.com/roumail/fzf-utils) has one:
 
 ```vim
-let g:prompts_file_picker = 'fzf_utils#fd#files#pick'
+let g:prompts_file_picker = 'fzf_utils#pick_files'
 ```
 
 `:Ai @` alone sends the files you pick and waits for your question in the
