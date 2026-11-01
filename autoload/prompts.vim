@@ -65,8 +65,10 @@ function! s:missing(persona, request, given) abort
         \ . join(map(copy(l:own), 'prompts#source#info(v:val.name).needs'), ', or ')
 endfunction
 
-" 1 once the ask is under way, 0 when it stopped at an error
-function! s:prompt(bang, from, args, Then) abort
+" 1 once the ask is under way, 0 when it stopped at an error. A draft's
+" lines after its first come as {rest}, and are taken as written
+function! s:prompt(bang, from, args, Then, ...) abort
+  let l:rest = get(a:, 1, '')
   let [l:_, l:start, l:end] = matchstrpos(a:args, '\%(^\|\_s\)--\%(\_s\|$\)')
   let l:head = l:start < 0 ? a:args : strpart(a:args, 0, l:start)
   let l:words = []
@@ -107,7 +109,7 @@ function! s:prompt(bang, from, args, Then) abort
         " glob() expands ~ and $VARS too
         let l:files = filter(glob(l:path, 1, 1), 'filereadable(v:val)')
         if empty(l:files)
-          call prompts#error('@' . l:path . ': no such file')
+          call prompts#error('@' . l:path . ': no such file; text after -- is taken as is')
           return 0
         endif
         let l:parsed.files += map(l:files, 'fnamemodify(v:val, ":p")')
@@ -134,7 +136,15 @@ function! s:prompt(bang, from, args, Then) abort
   let l:parsed.query = trim(substitute(join(map(split(l:parsed.query . strpart(l:head, l:pos), "\n", 1),
         \ 'trim(v:val, "", 2)'), "\n"), '\n\{3,}', "\n\n", 'g'))
   if l:start >= 0
-    let l:parsed.query = trim(l:parsed.query . (a:args =~# '\n' ? "\n\n" : ' ') . trim(a:args[l:end :]))
+    let l:parsed.query = trim(l:parsed.query . ' ' . trim(a:args[l:end :]))
+  endif
+  " Its trailing blanks go, and its blank lines at the top when nothing
+  " comes before them; its indentation stays
+  let l:rest = trim(l:rest, '', 2)
+  if empty(l:parsed.query)
+    let l:parsed.query = substitute(l:rest, '^\%(\s*\n\)*', '', '')
+  elseif !empty(trim(l:rest))
+    let l:parsed.query .= "\n" . l:rest
   endif
   let l:config = s:config(a:from.bufnr)
   if empty(l:config)
@@ -242,7 +252,10 @@ endfunction
 function! s:send_draft(bang, from, text) abort
   " Once the draft's window is closed, so the agent's tab isn't the window
   " :wq goes on to close
-  call timer_start(0, {-> s:prompt(a:bang, a:from, a:text, function('s:ask'))
+  " Only its first line is read for a persona, #sources, @files and flags,
+  " so a pasted @decorator, #comment or --flag further down stays text
+  let [l:first, l:rest] = matchlist(a:text, '^\([^\n]*\)\n\=\(\_.*\)$')[1:2]
+  call timer_start(0, {-> s:prompt(a:bang, a:from, l:first, function('s:ask'), l:rest)
         \ || s:open_draft(a:bang, a:from, split(a:text, "\n", 1))})
 endfunction
 

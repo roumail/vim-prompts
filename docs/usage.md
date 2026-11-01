@@ -37,11 +37,13 @@ isn't sent as text. After `--`, everything is your query as typed, so
 ## :AiDraft
 
 `:[range]AiDraft[!] ...` opens a buffer holding the ask, for when it is
-longer than a command line: what you would type after `:Ai`, over as many
-lines as you like. It is read when you send it, as `:Ai` reads its
-arguments when you press Enter, so a persona first, then `#sources`,
-`@files` and flags anywhere, and the rest is your query with its lines and
-indentation kept. After `--`, as with `:Ai`, everything is taken as written.
+longer than a command line. Its first line is what you would type after
+`:Ai`, read when you send it as `:Ai` reads its arguments when you press
+Enter: a persona first, then `#sources`, `@files` and flags anywhere, and
+the rest is your query. After `--`, as with `:Ai`, everything is taken as
+written. The lines below it are your query too, taken as written with
+their indentation kept, so a pasted `@decorator`, `# comment` or `--flag`
+is only text.
 
 ```
 /review #rule:testing #changes
@@ -49,6 +51,17 @@ Is the retry safe here? This part:
 
     for attempt in range(3):
         send()
+```
+
+Pasting a whole document under the first line, a handoff for one, needs
+nothing special:
+
+```
+/review
+Is the retry safe here?
+
+@celery.task(bind=True)
+def archive(): ...
 ```
 
 It works as a git commit message:

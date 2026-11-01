@@ -24,7 +24,8 @@ ask stops.
 
 To pick them in fzf, `prompts#sources#commits#fzf()` is the repository's log
 for fzf.vim's insert-mode completion: mark commits with `<Tab>`, and Enter
-inserts `#commits:<hash>,<hash>` in your `:AiDraft`:
+inserts `#commits:<hash>,<hash>` in your `:AiDraft` (on its first line, where
+sources are read):
 
 ```vim
 inoremap <expr> <C-x><C-g> fzf#vim#complete(prompts#sources#commits#fzf())
