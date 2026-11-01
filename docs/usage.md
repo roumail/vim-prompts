@@ -36,8 +36,22 @@ isn't sent as text. After `--`, everything is your query as typed, so
 
 ## :AiDraft
 
-`:[range]AiDraft[!] ...` takes the same arguments but opens the prompt in a
-buffer to edit first. It works as a git commit message:
+`:[range]AiDraft[!] ...` opens a buffer holding the ask, for when it is
+longer than a command line: what you would type after `:Ai`, over as many
+lines as you like. It is read when you send it, as `:Ai` reads its
+arguments when you press Enter, so a persona first, then `#sources`,
+`@files` and flags anywhere, and the rest is your query with its lines and
+indentation kept. After `--`, as with `:Ai`, everything is taken as written.
+
+```
+/review #rule:testing #changes
+Is the retry safe here? This part:
+
+    for attempt in range(3):
+        send()
+```
+
+It works as a git commit message:
 
 | | |
 | --- | --- |
@@ -49,8 +63,19 @@ Closing the draft never quits Vim, even when it is the last window (after
 `:only`), so the prompt is still sent. The draft is
 [vim-draft](https://github.com/roumail/vim-draft)'s.
 
-The [rules](config.md) are folded: they are the same in every draft, and are
-sent all the same. `zo` shows them.
+The range, the selection and the cursor line are taken when the draft
+opens, so you can move around before sending it. When the ask can't be sent
+(a source that doesn't exist, a persona's context missing), the draft opens
+again with your text and the error.
+
+In the draft, `prompts#tokens()` lists every word it can take, but files:
+the personas, the sources with their arguments (`#rule:testing`,
+`#diff_pairs:<name>`) and the flags, as `<Tab>` completes them after `:Ai`. Hand
+it to an insert-mode picker, fzf.vim's for one:
+
+```vim
+inoremap <expr> <C-x><C-a> fzf#vim#complete({'source': prompts#tokens(), 'prefix': '\S*$'})
+```
 
 ## :AiComments
 

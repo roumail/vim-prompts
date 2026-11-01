@@ -92,8 +92,9 @@ Put together, an ask reads:
 A selection, if you made one, always goes. `:Ai` refuses when there's no
 context to send; `:Ai!` asks anyway. `<Tab>` completes everything.
 
-**If you want to edit the prompt before it goes,** `:AiDraft` opens it in a
-buffer; `:w` saves it and `:wq` sends it ([usage](docs/usage.md)).
+**If your ask is longer than a command line,** `:AiDraft` opens it in a
+buffer to write: the same words `:Ai` takes, over as many lines as you
+like. `:w` saves it and `:wq` sends it ([usage](docs/usage.md#aidraft)).
 
 **If you want every ask briefed the same way,** name the files that brief it
 in git config, so they layer the way git config does: yours, a group of

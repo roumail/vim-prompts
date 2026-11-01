@@ -9,8 +9,8 @@ function! prompts#error(msg) abort
   echohl None
 endfunction
 
-function! s:config() abort
-  let l:config = prompts#config#get(bufnr())
+function! s:config(bufnr) abort
+  let l:config = prompts#config#get(a:bufnr)
   call map(copy(l:config.errors), 'prompts#error(v:val)')
   return empty(l:config.errors) ? l:config : {}
 endfunction
@@ -19,13 +19,17 @@ function! s:key_and_rest(args) abort
   return matchlist(a:args, '^\s*\(\S*\)\s*\(.\{-}\)\s*$')[1:2]
 endfunction
 
-function! s:request(range, line1, line2, query, sources, config) abort
-  let l:request = {'query': a:query, 'sources': a:sources, 'dirs': [],
-        \ 'bufnr': bufnr(), 'line': a:range ? a:line1 : line('.'),
+" Where an ask comes from, taken when it is made: a draft is sent later
+function! s:from(range, line1, line2) abort
+  let l:from = {'bufnr': bufnr(), 'line': a:range ? a:line1 : line('.'),
         \ 'range': a:range, 'line1': a:line1, 'line2': a:line2,
-        \ 'selection': [], 'charwise': 0, 'context': {},
-        \ 'rules': prompts#config#text(a:config)}
-  return a:range ? extend(l:request, s:selection(a:line1, a:line2)) : l:request
+        \ 'selection': [], 'charwise': 0}
+  return a:range ? extend(l:from, s:selection(a:line1, a:line2)) : l:from
+endfunction
+
+function! s:request(from, query, sources, config) abort
+  return extend({'query': a:query, 'sources': a:sources, 'dirs': [], 'context': {},
+        \ 'rules': prompts#config#text(a:config)}, a:from)
 endfunction
 
 function! s:selection(line1, line2) abort
@@ -61,37 +65,41 @@ function! s:missing(persona, request, given) abort
         \ . join(map(copy(l:own), 'prompts#source#info(v:val.name).needs'), ', or ')
 endfunction
 
-function! s:prompt(bang, range, line1, line2, args, Then) abort
-  let [l:_, l:start, l:end] = matchstrpos(a:args, '\%(^\|\s\)--\%(\s\|$\)')
+" 1 once the ask is under way, 0 when it stopped at an error
+function! s:prompt(bang, from, args, Then) abort
+  let [l:_, l:start, l:end] = matchstrpos(a:args, '\%(^\|\_s\)--\%(\_s\|$\)')
   let l:head = l:start < 0 ? a:args : strpart(a:args, 0, l:start)
   let l:words = []
   let l:pos = 0
   while 1
-    let [l:word, l:s, l:pos] = matchstrpos(l:head, '[#@]\%(\h\w*:\)\="[^"]*"\|\S\+', l:pos)
+    let [l:word, l:s, l:pos] = matchstrpos(l:head, '[#@]\%(\h\w*:\)\="[^"]*"\|[^[:space:]]\+', l:pos)
     if l:s < 0
       break
     endif
-    call add(l:words, l:word)
+    call add(l:words, [l:word, l:s, l:pos])
   endwhile
   let l:parsed = {'persona': 'default', 'given': [], 'files': [], 'pick': [], 'mode': '',
-        \ 'bare': 0, 'query': []}
-  if get(l:words, 0, '') =~# '^/\a[[:alnum:]_-]*$'
-    let l:parsed.persona = remove(l:words, 0)[1:]
+        \ 'bare': 0, 'query': ''}
+  let l:taken = []
+  if get(get(l:words, 0, []), 0, '') =~# '^/\a[[:alnum:]_-]*$'
+    let l:parsed.persona = l:words[0][0][1:]
+    call add(l:taken, remove(l:words, 0))
   endif
-  for l:word in l:words
+  for [l:word, l:s, l:e] in l:words
+    call add(l:taken, [l:word, l:s, l:e])
     let l:word = substitute(l:word, '^\([#@]\%(\h\w*:\)\=\)"\(.*\)"$', '\1\2', '')
     if l:word =~# '^#\h'
       let l:source = prompts#source#parse(l:word[1:])
       if has_key(l:source, 'error')
         call prompts#error(l:source.error . '; text after -- is taken as is')
-        return
+        return 0
       endif
       call add(l:parsed.given, l:source)
     elseif l:word =~# '^@'
       let l:path = l:word[1:]
       let l:dir = expand(escape(l:path, '*?[]'))
       if empty(l:path)
-        let l:tree = FugitiveWorkTree()
+        let l:tree = FugitiveWorkTree(a:from.bufnr)
         call add(l:parsed.pick, empty(l:tree) ? getcwd() : l:tree)
       elseif isdirectory(l:dir)
         call add(l:parsed.pick, fnamemodify(l:dir, ':p:h'))
@@ -100,7 +108,7 @@ function! s:prompt(bang, range, line1, line2, args, Then) abort
         let l:files = filter(glob(l:path, 1, 1), 'filereadable(v:val)')
         if empty(l:files)
           call prompts#error('@' . l:path . ': no such file')
-          return
+          return 0
         endif
         let l:parsed.files += map(l:files, 'fnamemodify(v:val, ":p")')
       endif
@@ -109,24 +117,32 @@ function! s:prompt(bang, range, line1, line2, args, Then) abort
     elseif l:word ==# '--bare'
       let l:parsed.bare = 1
     else
-      call add(l:parsed.query, l:word)
+      call remove(l:taken, -1)
     endif
   endfor
   if len(l:parsed.pick) > 1
     call prompts#error('one @ to pick files with, per ask')
-    return
+    return 0
   endif
+  " The query as written, its lines kept (a draft's), less what was taken
+  " out and the blanks that followed it
+  let l:pos = 0
+  for [l:_, l:s, l:e] in l:taken
+    let l:parsed.query .= strpart(l:head, l:pos, l:s - l:pos)
+    let l:pos = matchend(l:head, '[ \t]*', l:e)
+  endfor
+  let l:parsed.query = trim(substitute(join(map(split(l:parsed.query . strpart(l:head, l:pos), "\n", 1),
+        \ 'trim(v:val, "", 2)'), "\n"), '\n\{3,}', "\n\n", 'g'))
   if l:start >= 0
-    call add(l:parsed.query, trim(a:args[l:end :]))
+    let l:parsed.query = trim(l:parsed.query . (a:args =~# '\n' ? "\n\n" : ' ') . trim(a:args[l:end :]))
   endif
-  let l:parsed.query = trim(join(l:parsed.query))
-  let l:config = s:config()
+  let l:config = s:config(a:from.bufnr)
   if empty(l:config)
-    return
+    return 0
   endif
   let l:persona = prompts#persona#get(l:parsed.persona, l:config)
   if empty(l:persona)
-    return
+    return 0
   endif
   if !empty(l:parsed.mode)
     let l:persona.meta.mode = l:parsed.mode
@@ -137,7 +153,7 @@ function! s:prompt(bang, range, line1, line2, args, Then) abort
       call add(l:sources, l:source)
     endif
   endfor
-  let l:request = s:request(a:range, a:line1, a:line2, l:parsed.query, l:sources, l:config)
+  let l:request = s:request(a:from, l:parsed.query, l:sources, l:config)
   " #rule's text goes last in {rules}, so the persona and the query still
   " come after it; a persona with {rule} places it itself
   if stridx(join(l:persona.template, "\n"), '{rule}') < 0
@@ -149,13 +165,14 @@ function! s:prompt(bang, range, line1, line2, args, Then) abort
   let l:Finish = {files -> s:finish(a:bang, l:persona, l:request, l:parsed,
         \ l:parsed.files + files, a:Then)}
   if empty(l:parsed.pick)
-    call l:Finish([])
+    return l:Finish([])
   elseif empty(get(g:, 'prompts_file_picker', ''))
     call prompts#error('@ without a file needs g:prompts_file_picker (docs/sources/files.md)')
-  else
-    " The picker may call back at once, or later (fzf runs in a terminal)
-    call call(g:prompts_file_picker, [l:parsed.pick[0], l:Finish])
+    return 0
   endif
+  " The picker may call back at once, or later (fzf runs in a terminal)
+  call call(g:prompts_file_picker, [l:parsed.pick[0], l:Finish])
+  return 1
 endfunction
 
 function! s:finish(bang, persona, request, parsed, files, Then) abort
@@ -173,10 +190,11 @@ function! s:finish(bang, persona, request, parsed, files, Then) abort
     let l:missing = s:missing(a:persona, a:request, a:parsed.given)
     if !empty(l:missing)
       call prompts#error(l:missing . ' (! asks anyway)')
-      return
+      return 0
     endif
   endif
   call a:Then(a:persona, a:request, prompts#template#render(a:persona.template, a:request))
+  return 1
 endfunction
 
 function! prompts#ask(bang, range, line1, line2, args) abort
@@ -184,7 +202,7 @@ function! prompts#ask(bang, range, line1, line2, args) abort
     call prompts#agent#launch('', {'mode': matchstr(a:args, '--\zs\a\+\ze-mode')}, [])
     return
   endif
-  call s:prompt(a:bang, a:range, a:line1, a:line2, a:args, function('s:ask'))
+  call s:prompt(a:bang, s:from(a:range, a:line1, a:line2), a:args, function('s:ask'))
 endfunction
 
 function! s:ask(persona, request, prompt) abort
@@ -203,38 +221,29 @@ function! s:ask(persona, request, prompt) abort
 endfunction
 
 function! prompts#draft(bang, range, line1, line2, args) abort
-  call s:prompt(a:bang, a:range, a:line1, a:line2, a:args, function('s:open_draft'))
+  call s:open_draft(a:bang, s:from(a:range, a:line1, a:line2), empty(a:args) ? [''] : [a:args, ''])
 endfunction
 
-function! s:open_draft(persona, request, prompt) abort
-  let l:command = prompts#agent#command(a:persona.meta, a:request.dirs)
-  call roumail_draft#open('ai-draft://' . a:persona.name,
-        \ split(a:prompt, "\n", 1) + (empty(a:request.query) ? ['', ''] : []),
-        \ function('s:send_draft', [a:persona.meta, a:request.dirs]),
+" The draft holds the ask as :Ai takes it, and is read when it is sent
+function! s:open_draft(bang, from, lines) abort
+  let l:git_dir = FugitiveGitDir(a:from.bufnr)
+  call roumail_draft#open('ai-draft://ask', a:lines, function('s:send_draft', [a:bang, a:from]),
         \ {'split': 'botright vnew', 'saved': 'Draft saved: closing sends it',
         \  'empty': 'Draft empty: closing sends nothing'})
   setlocal filetype=markdown
-  " The rules, the same in every draft, folded so the query stands out; they
-  " are sent all the same. Runs of blank lines squeezed as
-  " prompts#template#render() leaves them.
-  let l:rules = trim(substitute(a:request.rules, '\n\s*\n\%(\s*\n\)\+', "\n\n", 'g'))
-  let l:start = empty(l:rules) ? -1 : stridx(a:prompt, l:rules)
-  if l:start >= 0
-    let l:first = count(strpart(a:prompt, 0, l:start), "\n") + 1
-    setlocal foldmethod=manual foldenable foldminlines=0
-    let &l:foldtext = '"+-- " . (v:foldend - v:foldstart + 1) . " lines of rules, sent with the draft (zo shows them) "'
-    execute l:first . ',' . (l:first + count(l:rules, "\n")) . 'fold'
+  " Its repository, for what completes in it (#rule:, #diff_pairs:, /personas)
+  if !empty(l:git_dir)
+    let b:git_dir = l:git_dir
   endif
-  normal! G
-  let &l:statusline = '%f  ' . (empty(l:command) ? '(no agent)'
-        \ : substitute(join(l:command[1] + ['<this>'] + l:command[2]), '%', '%%', 'g'))
-        \ . '%=:w saves, closing sends, :q! drops '
+  normal! G$
+  let &l:statusline = '%f%=:w saves, closing sends, :q! drops '
 endfunction
 
-function! s:send_draft(meta, dirs, prompt) abort
+function! s:send_draft(bang, from, text) abort
   " Once the draft's window is closed, so the agent's tab isn't the window
   " :wq goes on to close
-  call timer_start(0, {-> prompts#agent#launch(a:prompt, a:meta, a:dirs)})
+  call timer_start(0, {-> s:prompt(a:bang, a:from, a:text, function('s:ask'))
+        \ || s:open_draft(a:bang, a:from, split(a:text, "\n", 1))})
 endfunction
 
 function! prompts#complete(lead, cmdline, pos) abort
@@ -261,6 +270,17 @@ function! prompts#complete(lead, cmdline, pos) abort
   return []
 endfunction
 
+" Every word an ask can take but @files, as it completes: for an insert-mode
+" picker in a draft
+function! prompts#tokens() abort
+  let l:tokens = prompts#complete('/', 'Ai /', 4)
+  for l:token in prompts#complete('#', '', 0)
+    let l:args = prompts#complete(substitute(l:token, ':\=$', ':', ''), '', 0)
+    let l:tokens += (l:token =~# ':$' && !empty(l:args) ? [] : [l:token]) + l:args
+  endfor
+  return l:tokens + prompts#complete('-', '', 0)
+endfunction
+
 function! prompts#list(reload) abort
   if a:reload
     call prompts#source#load()
@@ -273,7 +293,7 @@ function! prompts#list(reload) abort
       continue
     endif
     let l:own = l:persona.meta.context
-    let l:missing = s:missing(l:persona, s:request(0, line('.'), line('.'), '', copy(l:own), l:config), [])
+    let l:missing = s:missing(l:persona, s:request(s:from(0, line('.'), line('.')), '', copy(l:own), l:config), [])
     call s:entry('Identifier', '/' . l:name,
           \ [fnamemodify(l:persona.file, ':~'), 'loaded', s:persona_source(l:persona)]
           \ + (empty(l:own) ? [] : [join(map(copy(l:own), '"#" . v:val.name . (empty(v:val.arg) ? "" : ":" . v:val.arg)'))])
@@ -348,7 +368,7 @@ endfunction
 
 function! prompts#rule(range, line1, line2, args) abort
   let [l:target, l:text] = s:key_and_rest(a:args)
-  let l:config = s:config()
+  let l:config = s:config(bufnr())
   if empty(l:config)
     return
   endif
