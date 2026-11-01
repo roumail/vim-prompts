@@ -12,6 +12,7 @@ for is sent, whatever else is open.
 | [`#diff_pairs`](diff_pairs.md) | the diffs you have open in Vim, or one `:BranchDiff`'s |
 | [`#comments`](comments.md) | your review comments |
 | [`#agent_comments`](agent_comments.md) | the agent's comments on lines, also as a file `:AiComments` opens as a quickfix list |
+| [`#quickfix`](quickfix.md) | your quickfix list: a search's hits, a build's errors |
 | [`@path`](files.md) | files for the agent to read |
 | [`#rule`](rule.md) | rules for the task, by name: `#rule:testing` |
 | [`#repo`](repo.md) | a GitHub repository |
