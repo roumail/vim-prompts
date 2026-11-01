@@ -73,8 +73,11 @@ context: [file]
 In this repository, tests go only through the Flask test client.
 ```
 
-- **The template below** goes where `{base}` is, without its `{query}`: the
-  query goes where this one puts it, or last.
+- **The template below** goes where `{base}` is, without its `{query}` and
+  without any slot this one names itself: each slot is filled once, where
+  this one puts it (the query, if this one doesn't, last). A `{context}`
+  after your own instructions keeps the context there, not where the one
+  below had it.
 - **Its frontmatter** applies under this one's: a key this one sets wins,
   and `context` is both, the one below's first.
 - **The one below** may have its own `{base}`, down to the built-in one.

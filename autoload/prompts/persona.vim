@@ -130,9 +130,13 @@ function! s:resolve(stack, i) abort
     throw '{base}, but no /' . l:p.name . ' below it'
   endif
   let l:base = s:resolve(a:stack, a:i - 1)
-  " The persona on top places {query}
+  " The persona on top places {query}, and any slot it names itself: each
+  " is filled once
+  let l:slots = ['query']
+  call substitute(l:text, '{\(\h\w*\)}', '\=add(l:slots, submatch(1))', 'g')
+  let l:pattern = '{\%(' . join(filter(l:slots, 'v:val !=# "base"'), '\|') . '\)}'
   let l:p.template = split(substitute(l:text, '{base}',
-        \ {-> join(map(copy(l:base.template), {_, l -> substitute(l, '{query}', '', 'g')}), "\n")}, 'g'), "\n", 1)
+        \ {-> join(map(copy(l:base.template), {_, l -> substitute(l, l:pattern, '', 'g')}), "\n")}, 'g'), "\n", 1)
   let l:context = copy(l:base.meta.context)
   for l:source in l:p.meta.context
     if index(l:context, l:source) < 0
