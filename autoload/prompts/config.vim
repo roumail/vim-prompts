@@ -1,6 +1,6 @@
 " The settings: docs/config.md
 
-let s:keys = ['personas', 'rules', 'library', 'repository']
+let s:keys = ['personas', 'rules', 'task-rules', 'repository']
 
 function! prompts#config#place(bufnr) abort
   for l:gitdir in [FugitiveGitDir(a:bufnr), FugitiveExtractGitDir(getcwd())]
@@ -29,7 +29,7 @@ endfunction
 function! prompts#config#get(bufnr) abort
   let l:place = prompts#config#place(a:bufnr)
   let l:config = {'place': l:place, 'personas': [], 'rules': [], 'hidden': [],
-        \ 'library': [], 'repository': {}, 'entries': [], 'errors': []}
+        \ 'task-rules': [], 'repository': {}, 'entries': [], 'errors': []}
   let l:lines = systemlist('git -C ' . shellescape(l:place.dir)
         \ . ' config --show-scope --show-origin --get-regexp ' . shellescape('^vim-prompts\.'))
   " 1: nothing set
@@ -55,7 +55,8 @@ function! prompts#config#get(bufnr) abort
     let l:unset = '; :' . prompts#namespace() . 'Unset ' . l:key . ' removes it'
     if index(s:keys, l:key) < 0
       call add(l:config.errors, l:where . ': unknown key'
-            \ . (l:key ==# 'dir' ? '; name the directory as vim-prompts.personas and the file as vim-prompts.repository' : '')
+            \ . (l:key ==# 'dir' ? '; name the directory as vim-prompts.personas and the file as vim-prompts.repository'
+            \   : l:key ==# 'library' ? '; it is vim-prompts.task-rules now' : '')
             \ . l:unset)
     elseif l:key ==# 'repository'
       call add(l:repository, {'value': l:value, 'origin': l:origin, 'where': l:where})
@@ -107,13 +108,13 @@ function! prompts#config#get(bufnr) abort
   return l:config
 endfunction
 
-function! prompts#config#library(config) abort
+function! prompts#config#task_rules(config) abort
   let l:rules = {}
-  for l:library in a:config.library
-    for l:file in sort(glob(l:library.dir . '/*.md', 1, 1))
+  for l:dir in a:config['task-rules']
+    for l:file in sort(glob(l:dir.dir . '/*.md', 1, 1))
       let l:name = fnamemodify(l:file, ':t:r')
       if l:name =~# '^\S\+$'
-        let l:rules[l:name] = {'file': l:file, 'origin': l:library.origin,
+        let l:rules[l:name] = {'file': l:file, 'origin': l:dir.origin,
               \ 'hides': has_key(l:rules, l:name)
               \   ? l:rules[l:name].hides + [{'file': l:rules[l:name].file, 'origin': l:rules[l:name].origin}] : []}
       endif
@@ -132,11 +133,11 @@ endfunction
 
 function! prompts#config#text(config, names = [], bare = 0) abort
   let l:blocks = []
-  let l:library = prompts#config#library(a:config)
+  let l:task_rules = prompts#config#task_rules(a:config)
   for [l:heading, l:file] in (a:bare ? [] : map(copy(a:config.rules), '["Rules", v:val.file]')
         \ + (empty(a:config.repository) ? [] : [['About this repository', a:config.repository.file]]))
         \ + map(filter(uniq(map(copy(a:names), {_, n -> substitute(n, '\.md$', '', '')})),
-        \   'has_key(l:library, v:val)'), '["Rules for this task", l:library[v:val].file]')
+        \   'has_key(l:task_rules, v:val)'), '["Rules for this task", l:task_rules[v:val].file]')
     let l:text = trim(join(readfile(l:file), "\n"))
     if !empty(l:text)
       call add(l:blocks, l:heading . ' (' . prompts#config#show(l:file, a:config.place) . "):\n\n" . l:text)

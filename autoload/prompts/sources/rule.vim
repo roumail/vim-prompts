@@ -1,6 +1,6 @@
 " #rule:name: docs/sources/rule.md
 function! prompts#sources#rule#info() abort
-  return {'needs': 'a rules file in vim-prompts.library: #rule:<Tab>', 'arg': 'required',
+  return {'needs': 'a rules file in vim-prompts.task-rules: #rule:<Tab>', 'arg': 'required',
         \ 'instruction': 1}
 endfunction
 
@@ -8,7 +8,7 @@ endfunction
 " follow. Only for {rule}: otherwise they go in {rules}, last
 function! prompts#sources#rule#context(request, arg) abort
   let l:config = prompts#config#get(a:request.bufnr)
-  let l:rule = get(prompts#config#library(l:config), substitute(a:arg, '\.md$', '', ''), {})
+  let l:rule = get(prompts#config#task_rules(l:config), substitute(a:arg, '\.md$', '', ''), {})
   if empty(l:rule)
     return ''
   endif
@@ -18,6 +18,6 @@ function! prompts#sources#rule#context(request, arg) abort
 endfunction
 
 function! prompts#sources#rule#complete(lead) abort
-  return filter(sort(keys(prompts#config#library(prompts#config#get(bufnr())))),
+  return filter(sort(keys(prompts#config#task_rules(prompts#config#get(bufnr())))),
         \ 'stridx(v:val, a:lead) == 0')
 endfunction

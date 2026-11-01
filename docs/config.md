@@ -33,8 +33,13 @@ value from the file that sets it ([removing a setting](#removing-a-setting)).
 | --- | --- | --- |
 | `vim-prompts.personas` | A directory of [personas](personas.md). Every value counts; for two of a name, the later wins. | anywhere |
 | `vim-prompts.rules` | A file of rules for every ask: how you push, what never to do. Every value counts, in order. | anywhere |
-| `vim-prompts.library` | A directory of rules files sent only when asked for by name, `#rule:<name>` for `<name>.md`: how tests are written, how migrations are. For two of a name, the later wins. | anywhere |
+| `vim-prompts.task-rules` | A directory of rules files sent only when asked for by name, `#rule:<name>` for `<name>.md`: how tests are written, how migrations are. For two of a name, the later wins. | anywhere |
 | `vim-prompts.repository` | The file that describes this repository: what it is, its layout, its conventions, how to run its tests. Exactly one may apply. | its own config, or a file included for its folder alone |
+
+`rules` and `task-rules` are both rules, for the agent to follow; they
+differ only in when they are sent: `rules` with every ask, `task-rules`
+when an ask or a persona names one. `repository` isn't rules but a
+description, for the agent to know where it is.
 
 - **Paths** are relative to the work tree's root (outside a repository, to
   the working directory), and `~` and `$VARS` are expanded.
@@ -115,7 +120,7 @@ Values come in the order git reads the [scopes](#scopes): `system`,
   group's `git.md` replaces yours), and the rest all go in the prompt, the
   repository's file last, under "where two parts differ, follow the later
   one". `:AiRules` lists both.
-- **Libraries** stack like personas: `#rule:testing` is the last
+- **Task rules** stack like personas: `#rule:testing` is the last
   `testing.md` of any of them, so a repository's own `testing.md` replaces
   the group's in that repository only. `:AiRules` lists each name and what
   it hides.
@@ -169,21 +174,21 @@ some plain clones (`etl/.git`).
 The prompts are a repository of their own, `~/projects/acme/prompts`:
 
 ```
-work.gitconfig            the group's settings, below
-rules/general.md          sent with every ask: never push, changelog entries
-rules/api-branches.md     sent with every ask in api only
-library/testing.md        #rule:testing: how tests are written, everywhere
-library/test-setup.md     #rule:test-setup: how they run, the fallback
-library-api/test-setup.md #rule:test-setup in api: its services, its venv
-library-api/migrations.md #rule:migrations, api only
-library-etl/test-setup.md
-personas/tests.md         /tests: context [file, "rule:testing", "rule:test-setup"]
-personas/migrations.md    /migrations: context [file, "rule:migrations"]
-repos/api.md, repos/etl.md   each repository's description
+work.gitconfig                the group's settings, below
+rules/general.md              sent with every ask: never push, changelog entries
+rules/api-branches.md         sent with every ask in api only
+task-rules/testing.md         #rule:testing: how tests are written, everywhere
+task-rules/test-setup.md      #rule:test-setup: how they run, the fallback
+task-rules-api/test-setup.md  #rule:test-setup in api: its services, its venv
+task-rules-api/migrations.md  #rule:migrations, api only
+task-rules-etl/test-setup.md
+personas/tests.md             /tests: context [file, "rule:testing", "rule:test-setup"]
+personas/migrations.md        /migrations: context [file, "rule:migrations"]
+repos/api.md, repos/etl.md    each repository's description
 ```
 
 The same names everywhere, `/tests` and `#rule:test-setup`, with what they
-hold differing per repository: a repository's library comes after the
+hold differing per repository: a repository's task rules come after the
 group's, so its `test-setup.md` hides the group's there and nowhere else.
 
 **The config files, in the order git reads them:**
@@ -208,7 +213,7 @@ group's, so its `test-setup.md` hides the group's there and nowhere else.
 # ~/projects/acme/prompts/work.gitconfig
 [vim-prompts]
 	rules = ~/projects/acme/prompts/rules/general.md
-	library = ~/projects/acme/prompts/library
+	task-rules = ~/projects/acme/prompts/task-rules
 	personas = ~/projects/acme/prompts/personas
 
 # Each repository's own, after the group's so they win; a path relative
@@ -223,7 +228,7 @@ group's, so its `test-setup.md` hides the group's there and nowhere else.
 # ~/projects/acme/prompts/repos/api.gitconfig: api's alone
 [vim-prompts]
 	repository = ~/projects/acme/prompts/repos/api.md
-	library = ~/projects/acme/prompts/library-api
+	task-rules = ~/projects/acme/prompts/task-rules-api
 	rules = ~/projects/acme/prompts/rules/api-branches.md
 ```
 
@@ -254,21 +259,21 @@ repository
   loaded
   from vim-prompts.repository, global ~/projects/acme/prompts/repos/api.gitconfig
 #rule:migrations
-  ~/projects/acme/prompts/library-api/migrations.md
+  ~/projects/acme/prompts/task-rules-api/migrations.md
   loaded
-  from vim-prompts.library, global ~/projects/acme/prompts/repos/api.gitconfig
+  from vim-prompts.task-rules, global ~/projects/acme/prompts/repos/api.gitconfig
 #rule:test-setup
-  ~/projects/acme/prompts/library-api/test-setup.md
+  ~/projects/acme/prompts/task-rules-api/test-setup.md
   loaded
-  from vim-prompts.library, global ~/projects/acme/prompts/repos/api.gitconfig
+  from vim-prompts.task-rules, global ~/projects/acme/prompts/repos/api.gitconfig
 #rule:test-setup
-  ~/projects/acme/prompts/library/test-setup.md
-  hidden by ~/projects/acme/prompts/library-api/test-setup.md
-  from vim-prompts.library, global ~/projects/acme/prompts/work.gitconfig
+  ~/projects/acme/prompts/task-rules/test-setup.md
+  hidden by ~/projects/acme/prompts/task-rules-api/test-setup.md
+  from vim-prompts.task-rules, global ~/projects/acme/prompts/work.gitconfig
 #rule:testing
-  ~/projects/acme/prompts/library/testing.md
+  ~/projects/acme/prompts/task-rules/testing.md
   loaded
-  from vim-prompts.library, global ~/projects/acme/prompts/work.gitconfig
+  from vim-prompts.task-rules, global ~/projects/acme/prompts/work.gitconfig
 ```
 
 and in `/tests` from there, the prompt is: the rules (yours, the group's,
@@ -356,14 +361,14 @@ or `:AiRule --worktree`.
 
 `vim-prompts.rules` goes with every ask, `/review` included.
 Rules that only matter for one kind of task (writing tests, writing a
-migration) go in a library instead, a directory of rules files named in
-git config, and are sent when an ask names them:
+migration) go in `vim-prompts.task-rules` instead, a directory of rules files
+named in git config, and are sent when an ask names them:
 
 ```ini
 # ~/work/.gitconfig, the group's
 [vim-prompts]
 	rules = ~/work/prompts/rules/general.md     # every ask
-	library = ~/work/prompts/library            # testing.md, migrations.md
+	task-rules = ~/work/prompts/task-rules     # testing.md, migrations.md
 ```
 
 ```vim
@@ -372,11 +377,11 @@ git config, and are sent when an ask names them:
 ```
 
 `<Tab>` lists the names that apply where you are, so the same name works in
-every repository: give one its own version by naming a library of its own,
-with a file of the same name, in its config:
+every repository: give one its own version by naming a task-rules directory
+of its own, with a file of the same name, in its config:
 
 ```sh
-git config --add vim-prompts.library ~/work/prompts/library-gecowt   # its testing.md
+git config --add vim-prompts.task-rules ~/work/prompts/task-rules-gecowt   # its testing.md
 ```
 
 A persona for the task takes the rule itself, so it is never forgotten:
@@ -406,7 +411,7 @@ completes the keys set here, then their values as git stores them.
 :AiUnset dir                         " a key no longer read
 :AiUnset rules testing.md            " a rules file, by its file name
 :AiUnset rules ""                    " the empty value
-:AiUnset library ~/work/prompts/library
+:AiUnset task-rules ~/work/prompts/task-rules
 ```
 
 Without a value it removes the key's only one. A value set in several

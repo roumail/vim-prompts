@@ -1,7 +1,7 @@
 # #rule
 
 Rules for the task at hand, by name: `#rule:testing` sends `testing.md`
-from the `vim-prompts.library` directories that apply where you are, the
+from the `vim-prompts.task-rules` directories that apply where you are, the
 last of that name ([rules for a task](../config.md#rules-for-a-task)).
 `<Tab>` after `#rule:` lists the names.
 
@@ -17,12 +17,12 @@ query come after it and win where they differ; `{rule}` in a template puts
 it there instead.
 
 ```
-Rules for this task (~/work/prompts/library/testing.md):
+Rules for this task (~/work/prompts/task-rules/testing.md):
 
 - Group tests in classes: tests sharing setup share a class.
 ...
 ```
 
 A persona takes one with `context: [file, "rule:testing"]`; there it is
-left out where no library has it, while `#rule:` in the ask refuses the
-ask.
+left out where no task-rules directory has it, while `#rule:` in the ask
+refuses the ask.

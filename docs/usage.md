@@ -104,13 +104,13 @@ git.md
   hidden by ~/work/handbook/git.md
   from vim-prompts.rules, global ~/.gitconfig
 #rule:testing
-  .vim-prompts/library/testing.md
+  .vim-prompts/task-rules/testing.md
   loaded
-  from vim-prompts.library, local ~/work/app/.git/config
+  from vim-prompts.task-rules, local ~/work/app/.git/config
 #rule:testing
-  ~/work/handbook/library/testing.md
-  hidden by .vim-prompts/library/testing.md
-  from vim-prompts.library, global ~/work/.gitconfig
+  ~/work/handbook/task-rules/testing.md
+  hidden by .vim-prompts/task-rules/testing.md
+  from vim-prompts.task-rules, global ~/work/.gitconfig
 ```
 
 ## :AiRule

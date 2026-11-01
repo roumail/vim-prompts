@@ -312,15 +312,15 @@ function! prompts#rules() abort
           \  'from vim-prompts.rules, ' . l:rule.origin])
   endfor
   " Sent only when asked for
-  let l:library = prompts#config#library(l:config)
-  for l:name in sort(keys(l:library))
-    let l:rule = l:library[l:name]
+  let l:task_rules = prompts#config#task_rules(l:config)
+  for l:name in sort(keys(l:task_rules))
+    let l:rule = l:task_rules[l:name]
     call s:entry('Identifier', '#rule:' . l:name,
-          \ [prompts#config#show(l:rule.file, l:place), 'loaded', 'from vim-prompts.library, ' . l:rule.origin])
+          \ [prompts#config#show(l:rule.file, l:place), 'loaded', 'from vim-prompts.task-rules, ' . l:rule.origin])
     for l:hidden in l:rule.hides
       call s:entry('Comment', '#rule:' . l:name,
             \ [prompts#config#show(l:hidden.file, l:place), 'hidden by ' . prompts#config#show(l:rule.file, l:place),
-            \  'from vim-prompts.library, ' . l:hidden.origin])
+            \  'from vim-prompts.task-rules, ' . l:hidden.origin])
     endfor
   endfor
 endfunction

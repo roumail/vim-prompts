@@ -22,7 +22,7 @@ of the shared files rather than add to it, give yours the same file name;
 
 ## How do I send rules only for some asks?
 
-Put them in a library and ask for them by name, `#rule:testing`, or have
+Put them in a `vim-prompts.task-rules` directory and ask for them by name, `#rule:testing`, or have
 the persona for the task take them: see
 [rules for a task](config.md#rules-for-a-task).
 
@@ -33,7 +33,7 @@ which file, then whether each path is there.
 
 ```sh
 git config --show-scope --show-origin --get-regexp '^vim-prompts\.'
-git config --get-all vim-prompts.library | while read -r d; do d=${d/#\~/$HOME}; test -d "$d" || echo "missing: $d"; done
+git config --get-all vim-prompts.task-rules | while read -r d; do d=${d/#\~/$HOME}; test -d "$d" || echo "missing: $d"; done
 ```
 
 The commands also run headless, with your vimrc (`-es` skips it unless
