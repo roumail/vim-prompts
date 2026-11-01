@@ -4,15 +4,6 @@ let s:bundled = expand('<sfile>:p:h:h:h') . '/personas'
 let s:keys = ['context', 'agent', 'args', 'mode']
 let s:name = '^\a[[:alnum:]_-]*$'
 
-function! s:error(msg) abort
-  echohl ErrorMsg
-  echomsg 'vim-prompts: ' . a:msg
-  echohl None
-endfunction
-
-" ---------------------------------------------------------------------------
-" Frontmatter
-
 function! s:parse_value(text) abort
   let l:s = trim(a:text, ' ', 1)
   if l:s[0] ==# '['
@@ -60,46 +51,6 @@ function! s:parse_value(text) abort
         \ l:s[len(l:word):]]
 endfunction
 
-function! s:read(file) abort
-  let l:lines = readfile(a:file)
-  let l:meta = {}
-  if get(l:lines, 0, '') !~# '^---\s*$'
-    return {'meta': {'context': []}, 'template': l:lines}
-  endif
-  let l:end = match(l:lines, '^---\s*$', 1)
-  if l:end < 0
-    throw 'frontmatter not closed with ---'
-  endif
-  for l:line in l:lines[1 : l:end - 1]
-    if l:line =~# '^\s*\%(#.*\)\=$'
-      continue
-    endif
-    let l:m = matchlist(l:line, '^\(\w\+\)\s*:\s*\(.\{-}\)\s*$')
-    if empty(l:m)
-      throw 'expected key: value, got: ' . l:line
-    elseif index(s:keys, l:m[1]) < 0
-      throw 'unknown key ' . l:m[1]
-    endif
-    let l:meta[l:m[1]] = s:parse_value(substitute(l:m[2], '\s\+#.*$', '', ''))[0]
-  endfor
-  if index(['', 'ask', 'plan', 'agent', 'auto'], get(l:meta, 'mode', '')) < 0
-    throw 'mode: ask, plan, agent or auto'
-  endif
-  let l:context = get(l:meta, 'context', [])
-  let l:meta.context = []
-  for l:item in type(l:context) == v:t_list ? l:context : [l:context]
-    let l:source = prompts#source#parse(l:item)
-    if has_key(l:source, 'error')
-      throw 'context: ' . l:source.error
-    endif
-    call add(l:meta.context, l:source)
-  endfor
-  return {'meta': l:meta, 'template': l:lines[l:end + 1 :]}
-endfunction
-
-" ---------------------------------------------------------------------------
-" The stack
-
 function! s:stacks(config) abort
   let l:stacks = {}
   for [l:source, l:dir] in [['bundled', s:bundled]]
@@ -132,7 +83,42 @@ function! prompts#persona#names(config) abort
 endfunction
 
 function! s:resolve(stack, i) abort
-  let l:p = extend(copy(a:stack[a:i]), s:read(a:stack[a:i].file))
+  let l:lines = readfile(a:stack[a:i].file)
+  let l:meta = {'context': []}
+  let l:template = l:lines
+  if get(l:lines, 0, '') =~# '^---\s*$'
+    let l:end = match(l:lines, '^---\s*$', 1)
+    if l:end < 0
+      throw 'frontmatter not closed with ---'
+    endif
+    let l:meta = {}
+    for l:line in l:lines[1 : l:end - 1]
+      if l:line =~# '^\s*\%(#.*\)\=$'
+        continue
+      endif
+      let l:m = matchlist(l:line, '^\(\w\+\)\s*:\s*\(.\{-}\)\s*$')
+      if empty(l:m)
+        throw 'expected key: value, got: ' . l:line
+      elseif index(s:keys, l:m[1]) < 0
+        throw 'unknown key ' . l:m[1]
+      endif
+      let l:meta[l:m[1]] = s:parse_value(substitute(l:m[2], '\s\+#.*$', '', ''))[0]
+    endfor
+    if index(['', 'ask', 'plan', 'agent', 'auto'], get(l:meta, 'mode', '')) < 0
+      throw 'mode: ask, plan, agent or auto'
+    endif
+    let l:context = get(l:meta, 'context', [])
+    let l:meta.context = []
+    for l:item in type(l:context) == v:t_list ? l:context : [l:context]
+      let l:source = prompts#source#parse(l:item)
+      if has_key(l:source, 'error')
+        throw 'context: ' . l:source.error
+      endif
+      call add(l:meta.context, l:source)
+    endfor
+    let l:template = l:lines[l:end + 1 :]
+  endif
+  let l:p = extend(copy(a:stack[a:i]), {'meta': l:meta, 'template': l:template})
   let l:p.bases = []
   let l:text = join(l:p.template, "\n")
   if stridx(l:text, '{repository}') >= 0
@@ -145,8 +131,8 @@ function! s:resolve(stack, i) abort
   endif
   let l:base = s:resolve(a:stack, a:i - 1)
   " The persona on top places {query}
-  let l:below = join(map(copy(l:base.template), {_, l -> substitute(l, '{query}', '', 'g')}), "\n")
-  let l:p.template = split(substitute(l:text, '{base}', {-> l:below}, 'g'), "\n", 1)
+  let l:p.template = split(substitute(l:text, '{base}',
+        \ {-> join(map(copy(l:base.template), {_, l -> substitute(l, '{query}', '', 'g')}), "\n")}, 'g'), "\n", 1)
   let l:context = copy(l:base.meta.context)
   for l:source in l:p.meta.context
     if index(l:context, l:source) < 0
@@ -158,23 +144,22 @@ function! s:resolve(stack, i) abort
   return l:p
 endfunction
 
-" The ones of a persona's name below it that it replaces, not builds on
 function! prompts#persona#hidden(persona, config) abort
   return filter(get(s:stacks(a:config), a:persona.name, [])[:-2],
         \ {_, p -> index(a:persona.bases, p.file) < 0})
 endfunction
 
-" Read again on each ask, so edits apply at once
 function! prompts#persona#get(name, config) abort
+  " Read again on each ask, so edits apply at once
   let l:stack = get(s:stacks(a:config), a:name, [])
   if empty(l:stack)
-    call s:error('no persona /' . a:name . ' (:' . prompts#namespace() . 'Personas)')
+    call prompts#error('no persona /' . a:name . ' (:' . prompts#namespace() . 'Personas)')
     return {}
   endif
   try
     return s:resolve(l:stack, len(l:stack) - 1)
   catch
-    call s:error(fnamemodify(l:stack[-1].file, ':~') . ': ' . v:exception)
+    call prompts#error(fnamemodify(l:stack[-1].file, ':~') . ': ' . v:exception)
     return {}
   endtry
 endfunction

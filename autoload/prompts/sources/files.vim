@@ -4,12 +4,9 @@ function! prompts#sources#files#info() abort
 endfunction
 
 function! prompts#sources#files#context(request, arg) abort
-  let l:tree = FugitiveWorkTree(a:request.bufnr)
   let l:files = []
   for l:file in split(a:arg, "\n")
-    let l:path = !empty(l:tree) && stridx(l:file, l:tree . '/') == 0
-          \ ? l:file[len(l:tree) + 1 :] : l:file
-    call add(l:files, '- `' . l:path . '`')
+    call add(l:files, '- `' . prompts#source#path(l:file, a:request.bufnr) . '`')
   endfor
   return empty(l:files) ? '' : "Files to read:\n" . join(l:files, "\n")
 endfunction

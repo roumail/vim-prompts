@@ -8,40 +8,33 @@ function! s:git(bufnr, args) abort
   return l:result.exit_status ? v:null : filter(copy(l:result.stdout), '!empty(v:val)')
 endfunction
 
-function! s:scope(bufnr, scope) abort
-  if a:scope ==# 'staged'
-    return [['--cached'], 'Staged changes']
-  endif
-  let l:branch = empty(a:scope) ? 'HEAD' : a:scope
-  if s:git(a:bufnr, ['rev-parse', '--verify', '--quiet', l:branch . '^{commit}']) is v:null
-    return []
-  endif
-  let l:main = fugitive_extras#main_ref()
-  let l:base = empty(l:main) ? v:null : s:git(a:bufnr, ['merge-base', l:branch, l:main])
-  if empty(l:base)
-    " No default branch to fork from: what isn't committed, or the branch's
-    " last commit
-    return empty(a:scope) ? [['HEAD'], 'Uncommitted changes']
-          \ : [[l:branch . '^', l:branch], 'Changes in the last commit of ' . l:branch]
-  endif
-  if empty(a:scope) && l:base[0] ==# s:git(a:bufnr, ['rev-parse', 'HEAD'])[0]
-    " No commits of its own (the default branch itself)
-    return [['HEAD'], 'Uncommitted changes']
-  endif
-  let l:base = l:base[0][:6]
-  return empty(a:scope)
-        \ ? [[l:base], 'Changes on this branch since it forked from ' . l:main
-        \   . ' at ' . l:base . ', committed or not']
-        \ : [[l:base, l:branch], 'Changes on ' . l:branch . ' since it forked from '
-        \   . l:main . ' at ' . l:base . ' (not checked out)']
-endfunction
-
 function! prompts#sources#changes#context(request, arg) abort
-  let l:scope = s:scope(a:request.bufnr, a:arg)
-  if empty(l:scope)
-    return ''
+  if a:arg ==# 'staged'
+    let [l:args, l:what] = [['--cached'], 'Staged changes']
+  else
+    let l:branch = empty(a:arg) ? 'HEAD' : a:arg
+    if s:git(a:request.bufnr, ['rev-parse', '--verify', '--quiet', l:branch . '^{commit}']) is v:null
+      return ''
+    endif
+    let l:main = fugitive_extras#main_ref()
+    let l:base = empty(l:main) ? v:null : s:git(a:request.bufnr, ['merge-base', l:branch, l:main])
+    if empty(l:base)
+      " No default branch to fork from: what isn't committed, or the branch's
+      " last commit
+      let [l:args, l:what] = empty(a:arg) ? [['HEAD'], 'Uncommitted changes']
+            \ : [[l:branch . '^', l:branch], 'Changes in the last commit of ' . l:branch]
+    elseif empty(a:arg) && l:base[0] ==# s:git(a:request.bufnr, ['rev-parse', 'HEAD'])[0]
+      " No commits of its own (the default branch itself)
+      let [l:args, l:what] = [['HEAD'], 'Uncommitted changes']
+    else
+      let l:base = l:base[0][:6]
+      let [l:args, l:what] = empty(a:arg)
+            \ ? [[l:base], 'Changes on this branch since it forked from ' . l:main
+            \   . ' at ' . l:base . ', committed or not']
+            \ : [[l:base, l:branch], 'Changes on ' . l:branch . ' since it forked from '
+            \   . l:main . ' at ' . l:base . ' (not checked out)']
+    endif
   endif
-  let [l:args, l:what] = l:scope
   let l:files = s:git(a:request.bufnr, ['diff', '--name-status'] + l:args)
   let l:files = l:files is v:null ? [] : map(l:files, '"- " . substitute(v:val, "\t", " ", "g")')
   if empty(a:arg)

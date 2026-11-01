@@ -1,8 +1,5 @@
 " Context sources and the helpers they use: docs/sources/writing.md
 
-" ---------------------------------------------------------------------------
-" Registry
-
 let s:sources = {}
 
 function! prompts#source#load() abort
@@ -13,9 +10,7 @@ function! prompts#source#load() abort
       try
         let s:sources[l:name] = call('prompts#sources#' . l:name . '#info', [])
       catch
-        echohl ErrorMsg
-        echomsg 'vim-prompts: source ' . fnamemodify(l:file, ':~') . ': ' . v:exception
-        echohl None
+        call prompts#error('source ' . fnamemodify(l:file, ':~') . ': ' . v:exception)
       endtry
     endif
   endfor
@@ -59,30 +54,22 @@ function! prompts#source#context(source, request) abort
   return a:request.context[l:key]
 endfunction
 
-" ---------------------------------------------------------------------------
-" Buffers
-
 function! prompts#source#describe(bufnr) abort
   let l:name = bufname(a:bufnr)
   " No agent can open a fugitive:// name: its path, and the object to read
   if l:name =~# '^fugitive://'
     let l:object = substitute(FugitiveParse(l:name)[0], '^\(\x\{7}\)\x*:', '\1:', '')
-    let l:side = l:object =~# '^:0:' ? 'index'
-          \ : l:object =~# '^:\d:' ? 'merge stage ' . l:object[1]
-          \ : 'commit ' . matchstr(l:object, '^\x\+')
-    return {'path': FugitivePath(l:name, ''), 'object': l:object, 'side': l:side}
+    return {'path': FugitivePath(l:name, ''), 'object': l:object,
+          \ 'side': l:object =~# '^:0:' ? 'index'
+          \   : l:object =~# '^:\d:' ? 'merge stage ' . l:object[1]
+          \   : 'commit ' . matchstr(l:object, '^\x\+')}
   endif
-  let l:file = fnamemodify(l:name, ':p')
-  let l:tree = FugitiveWorkTree(a:bufnr)
-  let l:path = !empty(l:tree) && stridx(l:file, l:tree . '/') == 0
-        \ ? l:file[len(l:tree) + 1 :] : l:file
-  return {'path': l:path, 'object': '', 'side': 'work tree'}
+  return {'path': prompts#source#path(fnamemodify(l:name, ':p'), a:bufnr), 'object': '', 'side': 'work tree'}
 endfunction
 
-function! prompts#source#side(bufnr) abort
-  let l:d = prompts#source#describe(a:bufnr)
-  return empty(l:d.object) ? '`' . l:d.path . '` (work tree)'
-        \ : '`' . l:d.object . '` (' . l:d.side . ')'
+function! prompts#source#path(file, bufnr) abort
+  let l:tree = FugitiveWorkTree(a:bufnr)
+  return !empty(l:tree) && stridx(a:file, l:tree . '/') == 0 ? a:file[len(l:tree) + 1 :] : a:file
 endfunction
 
 function! prompts#source#is_file(bufnr) abort
@@ -93,34 +80,3 @@ function! prompts#source#is_file(bufnr) abort
         \ && empty(FugitiveResult(a:bufnr))
         \ && getbufvar(a:bufnr, '&filetype') !=# 'netrw' && !isdirectory(l:name)
 endfunction
-
-" Lines a to b of a file, from its buffer when loaded (unsaved edits count)
-function! prompts#source#lines(file, a, b) abort
-  for l:info in getbufinfo({'bufloaded': 1})
-    if fnamemodify(l:info.name, ':p') ==# a:file
-      return getbufline(l:info.bufnr, a:a, a:b)
-    endif
-  endfor
-  return filereadable(a:file) ? readfile(a:file, '', a:b)[a:a - 1 :] : []
-endfunction
-
-" ---------------------------------------------------------------------------
-" Not a source: a range is always sent
-function! prompts#source#selection(request) abort
-  if empty(a:request.selection)
-    return ''
-  endif
-  let l:d = prompts#source#describe(a:request.bufnr)
-  let l:where = a:request.line1
-        \ . (a:request.line2 != a:request.line1 ? '-' . a:request.line2 : '')
-  let l:head = (a:request.charwise ? 'Selected text, ' : 'Selected lines, ')
-        \ . (empty(bufname(a:request.bufnr)) ? 'line ' . l:where
-        \ : l:d.path . ':' . l:where)
-  if !empty(l:d.object)
-    let l:head .= ' (' . l:d.side . ' version: `git show ' . l:d.object . '`)'
-  endif
-  let l:fence = match(a:request.selection, '^\s*```') >= 0 ? '````' : '```'
-  return l:head . ":\n" . l:fence . getbufvar(a:request.bufnr, '&filetype') . "\n"
-        \ . join(a:request.selection, "\n") . "\n" . l:fence
-endfunction
-

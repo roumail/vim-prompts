@@ -30,7 +30,21 @@ function! prompts#template#render(template, request) abort
   endfor
   let l:values.context = join(l:context, "\n\n")
   let l:values.rules = a:request.rules
-  let l:values.selection = prompts#source#selection(a:request)
+  " Not a source: a range is always sent
+  let l:values.selection = ''
+  if !empty(a:request.selection)
+    let l:d = prompts#source#describe(a:request.bufnr)
+    let l:where = a:request.line1
+          \ . (a:request.line2 != a:request.line1 ? '-' . a:request.line2 : '')
+    let l:head = (a:request.charwise ? 'Selected text, ' : 'Selected lines, ')
+          \ . (empty(bufname(a:request.bufnr)) ? 'line ' . l:where : l:d.path . ':' . l:where)
+    if !empty(l:d.object)
+      let l:head .= ' (' . l:d.side . ' version: `git show ' . l:d.object . '`)'
+    endif
+    let l:fence = match(a:request.selection, '^\s*```') >= 0 ? '````' : '```'
+    let l:values.selection = l:head . ":\n" . l:fence . getbufvar(a:request.bufnr, '&filetype') . "\n"
+          \ . join(a:request.selection, "\n") . "\n" . l:fence
+  endif
   let l:values.query = (l:heading ? "Additional request from the user:\n" : '')
         \ . a:request.query
   " One pass, so text from the context is never taken for a slot

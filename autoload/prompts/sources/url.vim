@@ -3,15 +3,6 @@ function! prompts#sources#url#info() abort
   return {'needs': 'a link: #url:https://...', 'arg': 'required'}
 endfunction
 
-" The Stack Exchange API's site parameter: https://api.stackexchange.com/docs/sites
-function! s:site(host) abort
-  let l:host = substitute(a:host, '^www\.', '', '')
-  if l:host =~# '^\%(stackoverflow\|superuser\|serverfault\|askubuntu\)\.com$'
-    return matchstr(l:host, '^[^.]\+')
-  endif
-  return matchstr(l:host, '^\zs[[:alnum:]-]\+\ze\.stackexchange\.com$')
-endfunction
-
 function! prompts#sources#url#context(request, arg) abort
   let l:url = trim(a:arg)
   let l:m = matchlist(l:url, '^https\=://\([^/?#]\+\)\(/[^?#]*\)\=')
@@ -30,7 +21,11 @@ function! prompts#sources#url#context(request, arg) abort
           \ . l:n . ' --repo ' . l:repo . ' --comments` and `gh pr diff ' . l:n . ' --repo '
           \ . l:repo . '`. Only read it.'
   endif
-  let l:site = s:site(l:host)
+  " The Stack Exchange API's site parameter: https://api.stackexchange.com/docs/sites
+  let l:bare = substitute(l:host, '^www\.', '', '')
+  let l:site = l:bare =~# '^\%(stackoverflow\|superuser\|serverfault\|askubuntu\)\.com$'
+        \ ? matchstr(l:bare, '^[^.]\+')
+        \ : matchstr(l:bare, '^\zs[[:alnum:]-]\+\ze\.stackexchange\.com$')
   let l:se = matchlist(l:path, '^/\%(\(questions\|q\)\|\(a\)\)/\(\d\+\)')
   if !empty(l:site) && !empty(l:se)
     let l:api = 'https://api.stackexchange.com/2.3/'

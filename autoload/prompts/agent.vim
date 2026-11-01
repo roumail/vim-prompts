@@ -16,19 +16,6 @@ let s:agents = {
       \     'auto': []}},
       \ }
 
-" Whether :Start runs in a Vim terminal rather than tmux or screen, as
-" vim-dispatch decides
-function! s:vim_terminal() abort
-  return empty($STY) && (get(g:, 'dispatch_no_tmux_start', 0)
-        \ || empty($TMUX) && empty(get(g:, 'tmux_session', '')))
-endfunction
-
-function! s:error(msg) abort
-  echohl ErrorMsg
-  echomsg 'vim-prompts: ' . a:msg
-  echohl None
-endfunction
-
 function! s:table() abort
   return extend(copy(s:agents), get(g:, 'prompts_agent_table', {}))
 endfunction
@@ -38,66 +25,37 @@ function! s:installed(name) abort
   return !empty(l:agent) && executable(l:agent.cmd[0])
 endfunction
 
-function! s:pick(meta, forced) abort
-  if !empty(a:forced)
-    if !has_key(s:table(), a:forced)
-      call s:error('unknown agent ' . a:forced . ' (g:prompts_agent_table)')
-      return ''
-    elseif !s:installed(a:forced)
-      call s:error(s:table()[a:forced].cmd[0] . ' is not executable')
-      return ''
-    endif
-    return a:forced
-  endif
-  let l:wanted = get(a:meta, 'agent', '')
-  if !empty(l:wanted) && s:installed(l:wanted)
-    return l:wanted
-  endif
-  let l:agents = get(g:, 'prompts_agents', ['claude', 'copilot'])
-  for l:name in l:agents
-    if s:installed(l:name)
-      if !empty(l:wanted)
-        echomsg 'vim-prompts: ' . l:wanted . ' is not installed, using ' . l:name
-      endif
-      return l:name
-    endif
-  endfor
-  call s:error('no agent CLI found (' . join(l:agents, ', ')
-        \ . '); install one or set g:prompts_agent')
-  return ''
-endfunction
-
-function! s:args(meta, name) abort
-  let l:args = get(a:meta, 'args', [])
-  let l:args = type(l:args) == v:t_dict ? get(l:args, a:name, []) : l:args
-  return type(l:args) == v:t_list ? copy(l:args) : [l:args]
-endfunction
-
 " Counts asks so no two :Start commands are the same
 let s:asked = 0
-function! s:prompt_file(prompt) abort
-  let s:asked += 1
-  let l:dir = FugitiveGitDir()
-  let l:file = empty(l:dir) ? tempname() . '.md'
-        \ : printf('%s/vim-prompts/prompts/%s-%d.md', l:dir, strftime('%Y%m%d-%H%M%S'), s:asked)
-  call mkdir(fnamemodify(l:file, ':h'), 'p')
-  " A leading - would be taken for an option of the agent
-  call writefile(split((a:prompt =~# '^-' ? ' ' : '') . a:prompt, "\n", 1), l:file)
-  return l:file
-endfunction
-
-function! s:mode(meta) abort
-  let l:mode = get(a:meta, 'mode', '')
-  return empty(l:mode) ? get(g:, 'prompts_mode', 'ask') : l:mode
-endfunction
 
 function! prompts#agent#command(meta, dirs) abort
-  let l:name = s:pick(a:meta, get(g:, 'prompts_agent', ''))
-  if empty(l:name)
-    return []
+  let l:table = s:table()
+  let l:name = get(g:, 'prompts_agent', '')
+  let l:wanted = get(a:meta, 'agent', '')
+  if !empty(l:name)
+    if !has_key(l:table, l:name)
+      call prompts#error('unknown agent ' . l:name . ' (g:prompts_agent_table)')
+      return []
+    elseif !s:installed(l:name)
+      call prompts#error(l:table[l:name].cmd[0] . ' is not executable')
+      return []
+    endif
+  elseif !empty(l:wanted) && s:installed(l:wanted)
+    let l:name = l:wanted
+  else
+    let l:agents = get(g:, 'prompts_agents', ['claude', 'copilot'])
+    let l:name = get(filter(copy(l:agents), 's:installed(v:val)'), 0, '')
+    if empty(l:name)
+      call prompts#error('no agent CLI found (' . join(l:agents, ', ')
+            \ . '); install one or set g:prompts_agent')
+      return []
+    elseif !empty(l:wanted)
+      echomsg 'vim-prompts: ' . l:wanted . ' is not installed, using ' . l:name
+    endif
   endif
-  let l:agent = s:table()[l:name]
-  let l:mode = s:mode(a:meta)
+  let l:agent = l:table[l:name]
+  let l:mode = get(a:meta, 'mode', '')
+  let l:mode = empty(l:mode) ? get(g:, 'prompts_mode', 'ask') : l:mode
   let l:modes = get(l:agent, 'modes', {})
   if !has_key(l:modes, l:mode)
     echomsg 'vim-prompts: ' . l:name . ' has no ' . l:mode
@@ -108,9 +66,14 @@ function! prompts#agent#command(meta, dirs) abort
   for l:dir in a:dirs
     let l:after += empty(get(l:agent, 'dir', '')) ? [] : [l:agent.dir, l:dir]
   endfor
-  let l:before = l:agent.cmd + (s:vim_terminal() ? get(l:agent, 'vim_terminal', []) : [])
-        \ + get(l:modes, l:mode, [])
-  return [l:name, l:before + s:args(a:meta, l:name) + l:agent.prompt, l:after]
+  let l:args = get(a:meta, 'args', [])
+  let l:args = type(l:args) == v:t_dict ? get(l:args, l:name, []) : l:args
+  " Whether :Start runs in a Vim terminal rather than tmux or screen, as
+  " vim-dispatch decides, comes first
+  return [l:name, l:agent.cmd + (empty($STY) && (get(g:, 'dispatch_no_tmux_start', 0)
+        \ || empty($TMUX) && empty(get(g:, 'tmux_session', ''))) ? get(l:agent, 'vim_terminal', []) : [])
+        \ + get(l:modes, l:mode, []) + (type(l:args) == v:t_list ? copy(l:args) : [l:args])
+        \ + l:agent.prompt, l:after]
 endfunction
 
 function! prompts#agent#launch(prompt, meta, dirs) abort
@@ -124,7 +87,13 @@ function! prompts#agent#launch(prompt, meta, dirs) abort
   endif
   let l:cmd = join(map(l:argv, 'shellescape(v:val)'))
   if !empty(a:prompt)
-    let l:file = s:prompt_file(a:prompt)
+    let s:asked += 1
+    let l:dir = FugitiveGitDir()
+    let l:file = empty(l:dir) ? tempname() . '.md'
+          \ : printf('%s/vim-prompts/prompts/%s-%d.md', l:dir, strftime('%Y%m%d-%H%M%S'), s:asked)
+    call mkdir(fnamemodify(l:file, ':h'), 'p')
+    " A leading - would be taken for an option of the agent
+    call writefile(split((a:prompt =~# '^-' ? ' ' : '') . a:prompt, "\n", 1), l:file)
     " From a file, so its length doesn't matter to tmux
     let l:cmd .= strlen(a:prompt) <= get(g:, 'prompts_max_arg', 100000)
           \ ? ' "$(cat ' . shellescape(l:file) . ')"'

@@ -19,7 +19,9 @@ function! s:pair(tabnr) abort
   for l:winid in gettabinfo(a:tabnr)[0].windows
     " Not getwinvar(), which finds only the current tab's windows
     if gettabwinvar(a:tabnr, l:winid, '&diff') && prompts#source#is_file(winbufnr(l:winid))
-      call add(l:sides, prompts#source#side(winbufnr(l:winid)))
+      let l:d = prompts#source#describe(winbufnr(l:winid))
+      call add(l:sides, empty(l:d.object) ? '`' . l:d.path . '` (work tree)'
+            \ : '`' . l:d.object . '` (' . l:d.side . ')')
     endif
   endfor
   return len(l:sides) > 1 ? join(l:sides, ' vs ') : ''
@@ -40,25 +42,22 @@ function! s:diff(compare) abort
   return '`git diff ' . a:compare.base[:6] . (empty(a:compare.head) ? '' : ' ' . a:compare.head) . '`'
 endfunction
 
-function! s:compare(compare) abort
-  let l:pairs = s:unique(map(copy(a:compare.tabs), 's:pair(v:val)'))
-  let l:what = 'the comparison ' . a:compare.name . ' (' . s:diff(a:compare) . ', '
-        \ . a:compare.files . ' files)'
-  if empty(l:pairs)
-    return 'All of ' . l:what . '; none of its diffs are open in Vim. List its files with '
-          \ . substitute(s:diff(a:compare), 'diff', 'diff --name-status', '') . '.'
-  endif
-  return 'Diffs open in Vim from ' . l:what . ', one per tab:' . "\n- " . join(l:pairs, "\n- ")
-        \ . "\nRead a side that is not the work tree with `git show <object>`."
-endfunction
-
 function! prompts#sources#diff_pairs#context(request, arg) abort
   let l:compares = fugitive_extras#compares#list(s:dir(a:request.bufnr))
   let l:named = empty(a:arg)
         \ ? filter(copy(l:compares), 'index(v:val.tabs, tabpagenr()) >= 0')
         \ : filter(copy(l:compares), 'v:val.name ==# a:arg')
   if !empty(l:named)
-    return s:compare(l:named[0])
+    let l:compare = l:named[0]
+    let l:pairs = s:unique(map(copy(l:compare.tabs), 's:pair(v:val)'))
+    let l:what = 'the comparison ' . l:compare.name . ' (' . s:diff(l:compare) . ', '
+          \ . l:compare.files . ' files)'
+    if empty(l:pairs)
+      return 'All of ' . l:what . '; none of its diffs are open in Vim. List its files with '
+            \ . substitute(s:diff(l:compare), 'diff', 'diff --name-status', '') . '.'
+    endif
+    return 'Diffs open in Vim from ' . l:what . ', one per tab:' . "\n- " . join(l:pairs, "\n- ")
+          \ . "\nRead a side that is not the work tree with `git show <object>`."
   elseif !empty(a:arg)
     return ''
   endif

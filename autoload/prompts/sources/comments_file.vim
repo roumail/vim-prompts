@@ -3,12 +3,17 @@ function! prompts#sources#comments_file#info() abort
   return {'needs': 'a git repository, for the file', 'arg': 'none', 'instruction': 1}
 endfunction
 
+" Counts asks, so each gets a file of its own; nothing is created
+let s:asked = 0
+
 function! prompts#sources#comments_file#context(request, arg) abort
-  let l:file = prompts#comments#new_file(a:request.bufnr)
-  if empty(l:file)
+  let l:dir = prompts#comments#dir(a:request.bufnr)
+  if empty(l:dir)
     return ''
   endif
-  return 'Besides your answer, write each comment you make on a line of code to `' . l:file
+  let s:asked += 1
+  return 'Besides your answer, write each comment you make on a line of code to `'
+        \ . printf('%s/%s-%d.txt', l:dir, strftime('%Y%m%d-%H%M%S'), s:asked)
         \ . '` (create its directory), for me to step through in Vim. One entry per comment: '
         \ . '`path:line: text`, or `path:start-end: text` for a range, `path` relative to the '
         \ . "repository's root and the lines as they are in the working tree now. `text` starts "

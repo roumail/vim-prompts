@@ -12,18 +12,8 @@ function! prompts#config#place(bufnr) abort
   return {'dir': getcwd(), 'repo': 0}
 endfunction
 
-function! s:origin(scope, origin) abort
-  let l:file = substitute(a:origin, '^file:', '', '')
-  return a:scope . (l:file ==# a:origin ? '' : ' ' . fnamemodify(l:file, ':~'))
-endfunction
-
-" `git config --global` writes to ~/.gitconfig, not to a file it includes:
-" an included value is the include's, for :AiRule --global to pass over
-function! s:scope(scope, origin) abort
-  let l:file = fnamemodify(substitute(a:origin, '^file:', '', ''), ':p')
-  let l:own = [expand('~/.gitconfig'),
-        \ (empty($XDG_CONFIG_HOME) ? expand('~/.config') : $XDG_CONFIG_HOME) . '/git/config']
-  return a:scope ==# 'global' && index(l:own, l:file) < 0 ? 'include' : a:scope
+function! prompts#config#home() abort
+  return empty($XDG_CONFIG_HOME) ? expand('~/.config') : $XDG_CONFIG_HOME
 endfunction
 
 function! prompts#config#path(value, place) abort
@@ -54,11 +44,14 @@ function! prompts#config#get(bufnr) abort
       continue
     endif
     let [l:scope, l:key, l:value] = [l:m[1], l:m[3], l:m[4][1:]]
-    let l:origin = s:origin(l:scope, l:m[2])
+    let l:file = substitute(l:m[2], '^file:', '', '')
+    let l:origin = l:scope . (l:file ==# l:m[2] ? '' : ' ' . fnamemodify(l:file, ':~'))
     let l:where = 'vim-prompts.' . l:key . ' (' . l:origin . ')'
-    " As git stores it, and the file that sets it, for :AiUnset
+    " As git stores it, and the file that sets it, for :AiUnset: '' for a value
+    " given on the command line; git names the repository's own relative to
+    " the work tree
     call add(l:config.entries, {'key': l:key, 'value': l:value, 'origin': l:origin,
-          \ 'file': s:file(l:m[2], l:place)})
+          \ 'file': l:file ==# l:m[2] ? '' : l:file =~# '^/' ? l:file : l:place.dir . '/' . l:file})
     let l:unset = '; :' . prompts#namespace() . 'Unset ' . l:key . ' removes it'
     if index(s:keys, l:key) < 0
       call add(l:config.errors, l:where . ': unknown key'
@@ -87,8 +80,11 @@ function! prompts#config#get(bufnr) abort
         let l:config.hidden += filter(copy(l:config.rules), {_, v -> fnamemodify(v.file, ':t') ==# l:name})
         call filter(l:config.rules, {_, v -> fnamemodify(v.file, ':t') !=# l:name})
       endif
+      " `git config --global` writes to ~/.gitconfig, not to a file it includes:
+      " an included value is the include's, for :AiRule --global to pass over
       call add(l:config[l:key], {l:field : l:path, 'origin': l:origin,
-            \ 'scope': s:scope(l:scope, l:m[2])})
+            \ 'scope': l:scope ==# 'global' && index([expand('~/.gitconfig'), prompts#config#home() . '/git/config'],
+            \   fnamemodify(l:file, ':p')) < 0 ? 'include' : l:scope})
     endif
   endfor
   " One file describes the repository, set wherever suits (its own config,
@@ -111,29 +107,6 @@ function! prompts#config#get(bufnr) abort
   return l:config
 endfunction
 
-" The file a value is in, '' for one given on the command line; git names
-" the repository's own relative to the work tree
-function! s:file(origin, place) abort
-  if a:origin !~# '^file:'
-    return ''
-  endif
-  let l:file = a:origin[5:]
-  return l:file =~# '^/' ? l:file : a:place.dir . '/' . l:file
-endfunction
-
-" Removes a value from the file that sets it, as git stores it (a path as
-" written, ~ and all): git config --unset only matches that text
-function! prompts#config#unset(entry) abort
-  if empty(a:entry.file)
-    return 'set on the command line, not in a file'
-  endif
-  let l:out = system('git config -f ' . shellescape(a:entry.file) . ' --fixed-value --unset-all '
-        \ . shellescape('vim-prompts.' . a:entry.key) . ' ' . shellescape(a:entry.value))
-  return v:shell_error ? (empty(trim(l:out)) ? 'git config exited ' . v:shell_error : trim(l:out)) : ''
-endfunction
-
-" The rules files to ask for by name, #rule:<name>: every .md in the
-" vim-prompts.library directories, a later one's hiding an earlier one's
 function! prompts#config#library(config) abort
   let l:rules = {}
   for l:library in a:config.library
@@ -149,7 +122,6 @@ function! prompts#config#library(config) abort
   return l:rules
 endfunction
 
-" A rules file is named by its file name, which hides an earlier one's
 function! prompts#config#rule_names(config) abort
   let l:names = {}
   for l:rule in a:config.rules
@@ -158,41 +130,13 @@ function! prompts#config#rule_names(config) abort
   return l:names
 endfunction
 
-" Where a new rules file for a scope goes: outside any repository, so a
-" shared one never sees it
-function! prompts#config#new_rules(config, scope) abort
-  let l:dir = (empty($XDG_CONFIG_HOME) ? expand('~/.config') : $XDG_CONFIG_HOME) . '/vim-prompts'
-  if a:scope ==# 'global'
-    return l:dir . '/rules.md'
-  endif
-  " repo/.git, repo/.bare, repo.git
-  let l:common = FugitiveCommonDir(FugitiveExtractGitDir(a:config.place.dir))
-  let l:repo = l:common =~# '/\.[^/]\+$' ? fnamemodify(l:common, ':h:t')
-        \ : fnamemodify(l:common, ':t:s?\.git$??')
-  return l:dir . '/repos/' . l:repo
-        \ . (a:scope ==# 'worktree' ? '-' . fnamemodify(a:config.place.dir, ':t') : '') . '.md'
-endfunction
-
-function! prompts#config#add_rules(config, scope, file) abort
-  if !filereadable(a:file)
-    call mkdir(fnamemodify(a:file, ':h'), 'p')
-    call writefile([], a:file)
-  endif
-  let l:out = system('git -C ' . shellescape(a:config.place.dir) . ' config --' . a:scope
-        \ . ' --add vim-prompts.rules ' . shellescape(fnamemodify(a:file, ':~')))
-  return v:shell_error ? trim(l:out) : ''
-endfunction
-
-" The rules, the repository's description, then the rules for the task
-" (library names); with bare, only those
 function! prompts#config#text(config, names = [], bare = 0) abort
   let l:blocks = []
   let l:library = prompts#config#library(a:config)
-  let l:task = map(filter(uniq(map(copy(a:names), {_, n -> substitute(n, '\.md$', '', '')})),
-        \ 'has_key(l:library, v:val)'), '["Rules for this task", l:library[v:val].file]')
   for [l:heading, l:file] in (a:bare ? [] : map(copy(a:config.rules), '["Rules", v:val.file]')
         \ + (empty(a:config.repository) ? [] : [['About this repository', a:config.repository.file]]))
-        \ + l:task
+        \ + map(filter(uniq(map(copy(a:names), {_, n -> substitute(n, '\.md$', '', '')})),
+        \   'has_key(l:library, v:val)'), '["Rules for this task", l:library[v:val].file]')
     let l:text = trim(join(readfile(l:file), "\n"))
     if !empty(l:text)
       call add(l:blocks, l:heading . ' (' . prompts#config#show(l:file, a:config.place) . "):\n\n" . l:text)
