@@ -1,4 +1,4 @@
-# #comments_file
+# #agent_comments
 
 Has the agent write its comments on lines to a file too, which
 `:AiComments` opens as a quickfix list, so you step through them in Vim on
@@ -7,7 +7,7 @@ way: that one sends your comments to the agent, this one brings the agent's
 back.
 
 ```vim
-:Ai /review #comments_file
+:Ai /review #agent_comments
 ```
 
 The file is new for each ask, in the repository's git dir (each worktree's
@@ -43,7 +43,7 @@ A persona can take it, so its answers always come with the file:
 
 ```markdown
 ---
-context: [changes, comments_file]
+context: [changes, agent_comments]
 ---
 ```
 

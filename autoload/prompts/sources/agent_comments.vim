@@ -1,12 +1,12 @@
-" #comments_file: docs/sources/comments_file.md
-function! prompts#sources#comments_file#info() abort
+" #agent_comments: docs/sources/agent_comments.md
+function! prompts#sources#agent_comments#info() abort
   return {'needs': 'a git repository, for the file', 'arg': 'none', 'instruction': 1}
 endfunction
 
 " Counts asks, so each gets a file of its own; nothing is created
 let s:asked = 0
 
-function! prompts#sources#comments_file#context(request, arg) abort
+function! prompts#sources#agent_comments#context(request, arg) abort
   let l:dir = prompts#comments#dir(a:request.bufnr)
   if empty(l:dir)
     return ''

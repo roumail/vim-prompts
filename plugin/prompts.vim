@@ -32,7 +32,7 @@ execute 'command! ' . s:ns . 'Rules call prompts#rules()'
 " Open a rules file that applies here, or a new one for a scope
 execute 'command! -range -nargs=* -complete=customlist,prompts#rule_complete '
       \ . s:ns . 'Rule call prompts#rule(<range>, <line1>, <line2>, <q-args>)'
-" The agent's comments on lines (#comments_file) in a quickfix list
+" The agent's comments on lines (#agent_comments) in a quickfix list
 execute 'command! -nargs=? -complete=customlist,prompts#comments#complete '
       \ . s:ns . 'Comments call prompts#comments#load(<q-args>)'
 " The same comments in vim-review's Review list, as :CommentsLoad

@@ -25,7 +25,7 @@ function! s:file(file) abort
   let l:files = s:files(l:dir)
   if empty(a:file)
     if empty(l:files)
-      call prompts#error('no comments from the agent here: ask with #comments_file')
+      call prompts#error('no comments from the agent here: ask with #agent_comments')
       return ''
     endif
     let l:file = l:dir . '/' . l:files[0]
