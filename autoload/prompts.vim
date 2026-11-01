@@ -275,7 +275,9 @@ endfunction
 function! prompts#tokens() abort
   let l:tokens = prompts#complete('/', 'Ai /', 4)
   for l:token in prompts#complete('#', '', 0)
-    let l:args = prompts#complete(substitute(l:token, ':\=$', ':', ''), '', 0)
+    " Not every recent hash: #commits has its own picker
+    let l:args = l:token ==# '#commits:' ? []
+          \ : prompts#complete(substitute(l:token, ':\=$', ':', ''), '', 0)
     let l:tokens += (l:token =~# ':$' && !empty(l:args) ? [] : [l:token]) + l:args
   endfor
   return l:tokens + prompts#complete('-', '', 0)

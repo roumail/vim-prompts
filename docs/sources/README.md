@@ -9,6 +9,7 @@ for is sent, whatever else is open.
 | --- | --- |
 | [`#file`](file.md) | the file and line you're on |
 | [`#changes`](changes.md) | the files your branch changes, committed or not |
+| [`#commits`](commits.md) | commits by hash: `#commits:a1b2c3d,e4f5a6b` |
 | [`#diff_pairs`](diff_pairs.md) | the diffs you have open in Vim, or one `:BranchDiff`'s |
 | [`#comments`](comments.md) | your review comments |
 | [`#agent_comments`](agent_comments.md) | the agent's comments on lines, also as a file `:AiComments` opens as a quickfix list |
