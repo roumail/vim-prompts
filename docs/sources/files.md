@@ -19,7 +19,9 @@ Files to read:
 ```
 
 Files outside the repository have their directories opened to the agent
-(`--add-dir`), so it may read them.
+(`--add-dir`), so it may read them. That is done for you: name or pick the
+files, and each one's directory is added once. `--add-dir` is the agent's
+flag, not one `:Ai` takes.
 
 ## Picking files
 
@@ -35,3 +37,8 @@ let g:prompts_file_picker = 'fzf_utils#pick_files'
 
 `:Ai @` alone sends the files you pick and waits for your question in the
 agent.
+
+The picker lists files, not directories, and fzf-utils' takes several
+(`<Tab>` marks one). An ask opens one picker, so a second `@dir/` is an
+error: to pick in `~/A/B` and `~/A/C`, pick from their parent, `:Ai @~/A/`.
+Files named outright (`@~/A/B/*.py`) can go with it, as many as you like.
