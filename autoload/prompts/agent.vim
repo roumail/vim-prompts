@@ -78,15 +78,29 @@ function! prompts#agent#command(meta, dirs, ...) abort
         \ + (l:oneoff ? get(l:agent, 'oneoff', ['-p']) : l:agent.prompt), l:after]
 endfunction
 
+" Without a prompt, its option goes too
+function! s:argv(name, argv, prompt) abort
+  return empty(a:prompt) ? a:argv[: -1 - len(s:table()[a:name].prompt)] : a:argv
+endfunction
+
+" The command line an ask would run, <prompt> standing for the prompt's
+" text; '' without an agent
+function! prompts#agent#line(meta, dirs, oneoff, prompt) abort
+  let l:command = prompts#agent#command(a:meta, a:dirs, a:oneoff)
+  if empty(l:command)
+    return ''
+  endif
+  let [l:name, l:argv, l:after] = l:command
+  return join(s:argv(l:name, l:argv, a:prompt ? 'x' : '') + (a:prompt ? ['<prompt>'] : []) + l:after)
+endfunction
+
 function! prompts#agent#launch(prompt, meta, dirs) abort
   let l:command = prompts#agent#command(a:meta, a:dirs)
   if empty(l:command)
     return 0
   endif
   let [l:name, l:argv, l:after] = l:command
-  if empty(a:prompt)
-    let l:argv = l:argv[: -1 - len(s:table()[l:name].prompt)]
-  endif
+  let l:argv = s:argv(l:name, l:argv, a:prompt)
   let l:cmd = s:shell(l:argv, a:prompt, l:after)
   let l:tree = FugitiveWorkTree()
   " Modifiers place a Vim terminal (your :Start strategy may use tmux

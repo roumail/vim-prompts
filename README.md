@@ -101,6 +101,10 @@ to it ([usage](docs/usage.md#ai)).
 buffer to write: the same words `:Ai` takes on its first line, and your
 query over as many lines as you like below it. `:w` saves it and `:wq` sends it ([usage](docs/usage.md#aidraft)).
 
+**If you want to see what an ask would send,** `:AiPreview` takes the same
+words as `:Ai` and shows the prompt, rules included, without sending it
+([usage](docs/usage.md#aipreview)).
+
 **If you want every ask briefed the same way,** name the files that brief it
 in git config, so they layer the way git config does: yours, a group of
 repositories' (with `includeIf`), then one repository's, which wins:

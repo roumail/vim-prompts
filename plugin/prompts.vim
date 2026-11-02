@@ -24,6 +24,9 @@ execute 'command! -bang -range -nargs=* -complete=customlist,prompts#complete '
 " The same, as a draft to edit; :w saves it, closing it sends it
 execute 'command! -bang -range -nargs=* -complete=customlist,prompts#complete '
       \ . s:ns . 'Draft call prompts#draft(<bang>0, <range>, <line1>, <line2>, <q-args>)'
+" What :Ai with the same arguments would send, shown and never sent
+execute 'command! -bang -range -nargs=* -complete=customlist,prompts#complete '
+      \ . s:ns . 'Preview call prompts#preview(<bang>0, <range>, <line1>, <line2>, <q-args>)'
 " The personas that apply here and what each asks for; ! reloads the sources
 execute 'command! -bang ' . s:ns . 'Personas call prompts#list(<bang>0)'
 " The rules files that apply here, where each is set, those hidden, and

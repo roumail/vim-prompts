@@ -205,9 +205,15 @@ function! s:finish(persona, request, parsed, files, Then) abort
   return 1
 endfunction
 
+" Arguments with which :Ai sends nothing: it opens the agent, or the last
+" one-off
+function! s:opens_only(range, args) abort
+  return !a:range && a:args =~# '^\%(\s*--\%(\%(ask\|plan\|agent\|auto\)-mode\|bare\)\)*\s*$'
+endfunction
+
 " With !, a one-off: the agent answers once, into a buffer
 function! prompts#ask(oneoff, range, line1, line2, args) abort
-  if a:args =~# '^\%(\s*--\%(\%(ask\|plan\|agent\|auto\)-mode\|bare\)\)*\s*$' && !a:range
+  if s:opens_only(a:range, a:args)
     if a:oneoff
       call prompts#agent#oneoff_last()
     else
@@ -218,28 +224,76 @@ function! prompts#ask(oneoff, range, line1, line2, args) abort
   call s:prompt(s:from(a:range, a:line1, a:line2), a:args, function('s:ask', [a:oneoff]))
 endfunction
 
-function! s:ask(oneoff, persona, request, prompt) abort
-  let l:prompt = a:prompt
+" What an ask sends, as [1, text]: '' opens the agent bare; [0, ''] when it
+" can't go
+function! s:sent(oneoff, persona, request, prompt) abort
   if a:oneoff
     " There is no session to ask the question in afterwards
-    if empty(trim(l:prompt)) || a:persona.name ==# 'default' && empty(a:request.query)
+    if empty(trim(a:prompt)) || a:persona.name ==# 'default' && empty(a:request.query)
       call prompts#error('a one-off needs a question or a persona')
-      return
+      return [0, '']
     endif
-    call prompts#agent#oneoff(l:prompt, a:persona.meta, a:request.dirs)
-    return
+    return [1, a:prompt]
   endif
   " Nothing rendered (`:Ai /default --bare`): the agent opens bare
-  if empty(trim(l:prompt))
-    call prompts#agent#launch('', a:persona.meta, a:request.dirs)
-    return
+  if empty(trim(a:prompt))
+    return [1, '']
   endif
   " Without a query, the default persona sends the context for the agent to
   " take in, and you ask in the session; other personas have their own task
   if a:persona.name ==# 'default' && empty(a:request.query)
-    let l:prompt .= "\n\nRead this, then wait for my question."
+    return [1, a:prompt . "\n\nRead this, then wait for my question."]
   endif
-  call prompts#agent#launch(l:prompt, a:persona.meta, a:request.dirs)
+  return [1, a:prompt]
+endfunction
+
+function! s:ask(oneoff, persona, request, prompt) abort
+  let [l:ok, l:prompt] = s:sent(a:oneoff, a:persona, a:request, a:prompt)
+  if !l:ok
+    return
+  endif
+  if a:oneoff
+    call prompts#agent#oneoff(l:prompt, a:persona.meta, a:request.dirs)
+  else
+    call prompts#agent#launch(l:prompt, a:persona.meta, a:request.dirs)
+  endif
+endfunction
+
+" What :Ai with the same arguments would send, in a buffer that sends nothing
+function! prompts#preview(oneoff, range, line1, line2, args) abort
+  if s:opens_only(a:range, a:args)
+    echomsg 'vim-prompts: :' . prompts#namespace() . (a:oneoff ? '!' : '')
+          \ . ' with these sends nothing: it ' . (a:oneoff ? 'goes back to the last one-off' : 'opens the agent')
+    return
+  endif
+  call s:prompt(s:from(a:range, a:line1, a:line2), a:args, function('s:preview', [a:oneoff]))
+endfunction
+
+" One preview buffer, refilled by the next :AiPreview while it is shown
+let s:preview = -1
+
+function! s:preview(oneoff, persona, request, prompt) abort
+  let [l:ok, l:prompt] = s:sent(a:oneoff, a:persona, a:request, a:prompt)
+  if !l:ok
+    return
+  endif
+  let l:line = prompts#agent#line(a:persona.meta, a:request.dirs, a:oneoff, !empty(l:prompt))
+  if bufwinnr(s:preview) > 0
+    execute bufwinnr(s:preview) . 'wincmd w'
+  else
+    botright vnew
+    setlocal buftype=nofile bufhidden=wipe noswapfile filetype=markdown
+    silent file ai-preview://
+    let s:preview = bufnr()
+  endif
+  setlocal modifiable noreadonly
+  silent %delete _
+  call setline(1, empty(l:prompt) ? [] : split(l:prompt, "\n", 1))
+  setlocal nomodifiable readonly nomodified
+  normal! gg
+  let &l:statusline = '%f  /' . a:persona.name . ' would run: '
+        \ . substitute(empty(l:line) ? '(no agent)' : l:line, '%', '%%', 'g')
+        \ . (empty(l:prompt) ? '%=nothing sent: the agent opens bare ' : '%=nothing is sent from here ')
 endfunction
 
 function! prompts#draft(oneoff, range, line1, line2, args) abort

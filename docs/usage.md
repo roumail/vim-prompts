@@ -98,6 +98,20 @@ pick several with `<Tab>`, inserted with a space between:
 inoremap <expr> <C-x><C-a> fzf#vim#complete(prompts#fzf())
 ```
 
+## :AiPreview
+
+`:[range]AiPreview[!] ...` takes what `:Ai` takes and shows, in a buffer on
+the right, the prompt `:Ai` would send: the rules and the repository's
+description, the persona, its context and your query, as the agent would
+read them. Nothing is sent from it. Its statusline has the persona and the
+command line the agent would run, `<prompt>` standing for the prompt; with
+`!`, the one-off's. It goes the same way `:Ai` does up to sending, so an ask
+`:Ai` would refuse is refused here too, saying why. `:AiRules` says which
+rules files apply; this shows what they add up to for one ask.
+
+The buffer can't be changed, and the next `:AiPreview` refills it while it
+is shown.
+
 ## :AiComments
 
 `:AiComments [file]` opens the agent's comments on lines, written for an ask
@@ -220,5 +234,5 @@ xmap <leader>ar <Plug>(prompts-rule)
 ## Command prefix
 
 ```vim
-let g:prompts_namespace = 'Ai'      " :Ai, :AiDraft, :AiComments, :AiCommentsLoad, :AiPersonas, :AiRules, :AiRule, :AiUnset
+let g:prompts_namespace = 'Ai'      " :Ai, :AiDraft, :AiPreview, :AiComments, :AiCommentsLoad, :AiPersonas, :AiRules, :AiRule, :AiUnset
 ```
