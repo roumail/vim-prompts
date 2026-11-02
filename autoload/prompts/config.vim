@@ -54,10 +54,7 @@ function! prompts#config#get(bufnr) abort
           \ 'file': l:file ==# l:m[2] ? '' : l:file =~# '^/' ? l:file : l:place.dir . '/' . l:file})
     let l:unset = '; :' . prompts#namespace() . 'Unset ' . l:key . ' removes it'
     if index(s:keys, l:key) < 0
-      call add(l:config.errors, l:where . ': unknown key'
-            \ . (l:key ==# 'dir' ? '; name the directory as vim-prompts.personas and the file as vim-prompts.repository'
-            \   : l:key ==# 'library' ? '; it is vim-prompts.task-rules now' : '')
-            \ . l:unset)
+      call add(l:config.errors, l:where . ': unknown key' . l:unset)
     elseif l:key ==# 'repository'
       call add(l:repository, {'value': l:value, 'origin': l:origin, 'where': l:where})
     elseif empty(l:value)

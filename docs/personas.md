@@ -150,6 +150,3 @@ Rules for one kind of task come from `vim-prompts.task-rules`, by name, as a sou
 ask ([rules for a task](config.md#rules-for-a-task)). They go last in
 `{rules}`, so what the persona says after `{rules}` wins over them; a
 template with `{rule}` places them there instead, outside `{rules}`.
-
-A persona written for `{repository}`, the slot's old name, is refused, saying
-so.

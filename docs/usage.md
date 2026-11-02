@@ -199,7 +199,7 @@ Without a value it removes the key's only one; of a value set in several
 files, the last ([removing a setting](config.md#removing-a-setting)).
 
 ```vim
-:AiUnset dir
+:AiUnset task-rules
 :AiUnset rules testing.md
 ```
 

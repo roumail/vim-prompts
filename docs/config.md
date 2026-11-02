@@ -408,7 +408,6 @@ a group's included file, the repository's or the worktree's. `<Tab>`
 completes the keys set here, then their values as git stores them.
 
 ```vim
-:AiUnset dir                         " a key no longer read
 :AiUnset rules testing.md            " a rules file, by its file name
 :AiUnset rules ""                    " the empty value
 :AiUnset task-rules ~/work/prompts/task-rules
