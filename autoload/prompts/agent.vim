@@ -5,13 +5,13 @@
 " manual or assisted approval in a session, so ask and auto start it as its
 " config (defaultPermissionMode) says.
 let s:agents = {
-      \ 'claude': {'cmd': ['claude'], 'prompt': [], 'dir': '--add-dir',
+      \ 'claude': {'cmd': ['claude'], 'prompt': [], 'oneoff': ['-p'], 'dir': '--add-dir',
       \   'vim_terminal': ['--settings', '{"tui":"default"}'],
       \   'modes': {'ask': ['--permission-mode', 'default'],
       \     'plan': ['--permission-mode', 'plan'],
       \     'agent': ['--permission-mode', 'acceptEdits'],
       \     'auto': ['--permission-mode', 'auto']}},
-      \ 'copilot': {'cmd': ['copilot'], 'prompt': ['-i'], 'dir': '--add-dir',
+      \ 'copilot': {'cmd': ['copilot'], 'prompt': ['-i'], 'oneoff': ['-p'], 'dir': '--add-dir',
       \   'modes': {'ask': [], 'plan': ['--plan'], 'agent': ['--allow-tool=write'],
       \     'auto': []}},
       \ }
@@ -28,7 +28,9 @@ endfunction
 " Counts asks so no two :Start commands are the same
 let s:asked = 0
 
-function! prompts#agent#command(meta, dirs) abort
+" With {oneoff}, the arguments to answer once and exit, and no terminal's
+function! prompts#agent#command(meta, dirs, ...) abort
+  let l:oneoff = get(a:, 1, 0)
   let l:table = s:table()
   let l:name = get(g:, 'prompts_agent', '')
   let l:wanted = get(a:meta, 'agent', '')
@@ -70,10 +72,10 @@ function! prompts#agent#command(meta, dirs) abort
   let l:args = type(l:args) == v:t_dict ? get(l:args, l:name, []) : l:args
   " Whether :Start runs in a Vim terminal rather than tmux or screen, as
   " vim-dispatch decides, comes first
-  return [l:name, l:agent.cmd + (empty($STY) && (get(g:, 'dispatch_no_tmux_start', 0)
+  return [l:name, l:agent.cmd + (!l:oneoff && empty($STY) && (get(g:, 'dispatch_no_tmux_start', 0)
         \ || empty($TMUX) && empty(get(g:, 'tmux_session', ''))) ? get(l:agent, 'vim_terminal', []) : [])
         \ + get(l:modes, l:mode, []) + (type(l:args) == v:t_list ? copy(l:args) : [l:args])
-        \ + l:agent.prompt, l:after]
+        \ + (l:oneoff ? get(l:agent, 'oneoff', ['-p']) : l:agent.prompt), l:after]
 endfunction
 
 function! prompts#agent#launch(prompt, meta, dirs) abort
@@ -85,7 +87,24 @@ function! prompts#agent#launch(prompt, meta, dirs) abort
   if empty(a:prompt)
     let l:argv = l:argv[: -1 - len(s:table()[l:name].prompt)]
   endif
-  let l:cmd = join(map(l:argv, 'shellescape(v:val)'))
+  let l:cmd = s:shell(l:argv, a:prompt, l:after)
+  let l:tree = FugitiveWorkTree()
+  " Modifiers place a Vim terminal (your :Start strategy may use tmux
+  " instead): an agent's TUI wants the room of a tab
+  execute get(g:, 'prompts_start_mods', 'tab') . ' Start -wait=error -title=' . l:name
+        \ . ' -dir=' . fnameescape(empty(l:tree) ? getcwd() : l:tree) . ' ' . l:cmd
+  if &buftype ==# 'terminal'
+    " Started from a callback (a file picker's), the terminal is left in
+    " Terminal-Normal mode, where its window stays blank: once the callback
+    " is done, go to Terminal-Job mode so the agent shows and takes the keys
+    call timer_start(0, function('s:job_mode', [bufnr()]))
+  endif
+  return 1
+endfunction
+
+" The agent's command line, its prompt read from a file
+function! s:shell(argv, prompt, after) abort
+  let l:cmd = join(map(copy(a:argv), 'shellescape(v:val)'))
   if !empty(a:prompt)
     let s:asked += 1
     let l:dir = FugitiveGitDir()
@@ -100,19 +119,49 @@ function! prompts#agent#launch(prompt, meta, dirs) abort
           \ : ' ' . shellescape('My request and its context are in ' . l:file
           \ . '. Read it first, then follow it.')
   endif
-  let l:cmd .= join([''] + map(l:after, 'shellescape(v:val)'))
-  let l:tree = FugitiveWorkTree()
-  " Modifiers place a Vim terminal (your :Start strategy may use tmux
-  " instead): an agent's TUI wants the room of a tab
-  execute get(g:, 'prompts_start_mods', 'tab') . ' Start -wait=error -title=' . l:name
-        \ . ' -dir=' . fnameescape(empty(l:tree) ? getcwd() : l:tree) . ' ' . l:cmd
-  if &buftype ==# 'terminal'
-    " Started from a callback (a file picker's), the terminal is left in
-    " Terminal-Normal mode, where its window stays blank: once the callback
-    " is done, go to Terminal-Job mode so the agent shows and takes the keys
-    call timer_start(0, function('s:job_mode', [bufnr()]))
+  return l:cmd . join([''] + map(copy(a:after), 'shellescape(v:val)'))
+endfunction
+
+" The last one-off's buffer, for :Ai! alone
+let s:oneoff = -1
+
+" The agent answers once, in the background, into a scratch buffer
+function! prompts#agent#oneoff(prompt, meta, dirs) abort
+  let l:command = prompts#agent#command(a:meta, a:dirs, 1)
+  if empty(l:command)
+    return 0
   endif
+  let [l:name, l:argv, l:after] = l:command
+  let l:cmd = s:shell(l:argv, a:prompt, l:after)
+  let l:tree = FugitiveWorkTree()
+  execute get(g:, 'prompts_oneoff_mods', 'botright') . ' new'
+  setlocal buftype=nofile bufhidden=hide noswapfile filetype=markdown
+  execute 'silent file' fnameescape('ai-oneoff://' . s:asked)
+  let b:prompts_oneoff = l:name . ': answering'
+  setlocal statusline=%f%=%{get(b:,'prompts_oneoff','')}\ 
+  let s:oneoff = bufnr()
+  call job_start([&shell, &shellcmdflag, l:cmd], {
+        \ 'cwd': empty(l:tree) ? getcwd() : l:tree,
+        \ 'in_io': 'null', 'out_io': 'buffer', 'out_buf': s:oneoff, 'out_msg': 0,
+        \ 'err_io': 'out', 'exit_cb': function('s:oneoff_exit', [s:oneoff, l:name])})
+  wincmd p
   return 1
+endfunction
+
+function! s:oneoff_exit(bufnr, name, job, status) abort
+  call setbufvar(a:bufnr, 'prompts_oneoff', a:name
+        \ . (a:status ? ': failed (' . a:status . ')' : ': done'))
+  redrawstatus!
+endfunction
+
+function! prompts#agent#oneoff_last() abort
+  if !bufexists(s:oneoff)
+    call prompts#error('no one-off yet: :Ai! <question>')
+  elseif bufwinnr(s:oneoff) > 0
+    execute bufwinnr(s:oneoff) . 'wincmd w'
+  else
+    execute get(g:, 'prompts_oneoff_mods', 'botright') . ' sbuffer ' . s:oneoff
+  endif
 endfunction
 
 function! s:job_mode(bufnr, timer) abort

@@ -9,9 +9,16 @@
 Asks the [persona](personas.md) (`/default` without one) with its context,
 the [sources and files](sources/) you add, and a range or visual selection.
 
-- **No context to send:** refused, saying what is missing. `:Ai!` asks anyway.
+- **No context to send:** refused, saying what is missing.
 - **Nothing at all** (`:Ai`): opens the agent, or goes back to the session
   `:Ai` opened before.
+- **`!`, a one-off** (`:'<,'>Ai! what does this do`): instead of a session,
+  the agent answers once, without asking you anything, into a scratch buffer
+  below (`claude -p`, `copilot -p`). The answer comes in while you keep
+  working, and the statusline says when it's done. It needs a question or a
+  persona with a task, since there is no session to ask in afterwards.
+  `:Ai!` alone goes back to the last answer. Anything the agent would ask
+  you about (an edit in `ask` mode, say) it doesn't do.
 - **`--ask-mode`, `--plan-mode`, `--agent-mode` or `--auto-mode`**
   (anywhere before `--`): the [mode](agent.md#modes) the agent starts in, over the persona's
   and `g:prompts_mode`. `:Ai --plan-mode` alone opens it bare that way.
@@ -37,9 +44,9 @@ isn't sent as text. After `--`, everything is your query as typed, so
 ## :AiDraft
 
 `:[range]AiDraft[!] ...` opens a buffer holding the ask, for when it is
-longer than a command line. Its first line is what you would type after
-`:Ai`, read when you send it as `:Ai` reads its arguments when you press
-Enter: a persona first, then `#sources`, `@files` and flags anywhere, and
+longer than a command line; with `!`, it goes as a one-off, as with `:Ai!`.
+Its first line is what you would type after `:Ai`, read when you send it as
+`:Ai` reads its arguments when you press Enter: a persona first, then `#sources`, `@files` and flags anywhere, and
 the rest is your query. After `--`, as with `:Ai`, everything is taken as
 written. The lines below it are your query too, taken as written with
 their indentation kept, so a pasted `@decorator`, `# comment` or `--flag`
@@ -84,10 +91,11 @@ again with your text and the error.
 In the draft, `prompts#tokens()` lists every word it can take, but files:
 the personas, the sources with their arguments (`#rule:testing`,
 `#diff_pairs:<name>`) and the flags, as `<Tab>` completes them after `:Ai`. Hand
-it to an insert-mode picker, fzf.vim's for one:
+it to an insert-mode picker. For fzf.vim's, `prompts#fzf()` has them ready to
+pick several with `<Tab>`, inserted with a space between:
 
 ```vim
-inoremap <expr> <C-x><C-a> fzf#vim#complete({'source': prompts#tokens(), 'prefix': '\S*$'})
+inoremap <expr> <C-x><C-a> fzf#vim#complete(prompts#fzf())
 ```
 
 ## :AiComments

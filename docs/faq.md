@@ -4,7 +4,7 @@
 
 There was no context to send, and the message says what is missing: for
 example `/review` on a branch with no changes, or
-`#comments` with no comments. `:Ai!` asks anyway. See
+`#comments` with no comments. See
 [when a persona can be asked](personas.md#frontmatter).
 
 ## How do I change what `/review` does?

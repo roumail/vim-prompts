@@ -67,7 +67,7 @@ endfunction
 
 " 1 once the ask is under way, 0 when it stopped at an error. A draft's
 " lines after its first come as {rest}, and are taken as written
-function! s:prompt(bang, from, args, Then, ...) abort
+function! s:prompt(from, args, Then, ...) abort
   let l:rest = get(a:, 1, '')
   let [l:_, l:start, l:end] = matchstrpos(a:args, '\%(^\|\_s\)--\%(\_s\|$\)')
   let l:head = l:start < 0 ? a:args : strpart(a:args, 0, l:start)
@@ -172,7 +172,7 @@ function! s:prompt(bang, from, args, Then, ...) abort
   elseif l:parsed.bare
     let l:request.rules = ''
   endif
-  let l:Finish = {files -> s:finish(a:bang, l:persona, l:request, l:parsed,
+  let l:Finish = {files -> s:finish(l:persona, l:request, l:parsed,
         \ l:parsed.files + files, a:Then)}
   if empty(l:parsed.pick)
     return l:Finish([])
@@ -185,7 +185,7 @@ function! s:prompt(bang, from, args, Then, ...) abort
   return 1
 endfunction
 
-function! s:finish(bang, persona, request, parsed, files, Then) abort
+function! s:finish(persona, request, parsed, files, Then) abort
   if !empty(a:files)
     call add(a:request.sources, {'name': 'files', 'arg': join(uniq(copy(a:files)), "\n")})
     let l:tree = FugitiveWorkTree(a:request.bufnr)
@@ -196,27 +196,39 @@ function! s:finish(bang, persona, request, parsed, files, Then) abort
     endfor
     call uniq(sort(a:request.dirs))
   endif
-  if !a:bang
-    let l:missing = s:missing(a:persona, a:request, a:parsed.given)
-    if !empty(l:missing)
-      call prompts#error(l:missing . ' (! asks anyway)')
-      return 0
-    endif
+  let l:missing = s:missing(a:persona, a:request, a:parsed.given)
+  if !empty(l:missing)
+    call prompts#error(l:missing)
+    return 0
   endif
   call a:Then(a:persona, a:request, prompts#template#render(a:persona.template, a:request))
   return 1
 endfunction
 
-function! prompts#ask(bang, range, line1, line2, args) abort
+" With !, a one-off: the agent answers once, into a buffer
+function! prompts#ask(oneoff, range, line1, line2, args) abort
   if a:args =~# '^\%(\s*--\%(\%(ask\|plan\|agent\|auto\)-mode\|bare\)\)*\s*$' && !a:range
-    call prompts#agent#launch('', {'mode': matchstr(a:args, '--\zs\a\+\ze-mode')}, [])
+    if a:oneoff
+      call prompts#agent#oneoff_last()
+    else
+      call prompts#agent#launch('', {'mode': matchstr(a:args, '--\zs\a\+\ze-mode')}, [])
+    endif
     return
   endif
-  call s:prompt(a:bang, s:from(a:range, a:line1, a:line2), a:args, function('s:ask'))
+  call s:prompt(s:from(a:range, a:line1, a:line2), a:args, function('s:ask', [a:oneoff]))
 endfunction
 
-function! s:ask(persona, request, prompt) abort
+function! s:ask(oneoff, persona, request, prompt) abort
   let l:prompt = a:prompt
+  if a:oneoff
+    " There is no session to ask the question in afterwards
+    if empty(trim(l:prompt)) || a:persona.name ==# 'default' && empty(a:request.query)
+      call prompts#error('a one-off needs a question or a persona')
+      return
+    endif
+    call prompts#agent#oneoff(l:prompt, a:persona.meta, a:request.dirs)
+    return
+  endif
   " Nothing rendered (`:Ai /default --bare`): the agent opens bare
   if empty(trim(l:prompt))
     call prompts#agent#launch('', a:persona.meta, a:request.dirs)
@@ -230,14 +242,14 @@ function! s:ask(persona, request, prompt) abort
   call prompts#agent#launch(l:prompt, a:persona.meta, a:request.dirs)
 endfunction
 
-function! prompts#draft(bang, range, line1, line2, args) abort
-  call s:open_draft(a:bang, s:from(a:range, a:line1, a:line2), empty(a:args) ? [''] : [a:args, ''])
+function! prompts#draft(oneoff, range, line1, line2, args) abort
+  call s:open_draft(a:oneoff, s:from(a:range, a:line1, a:line2), empty(a:args) ? [''] : [a:args, ''])
 endfunction
 
 " The draft holds the ask as :Ai takes it, and is read when it is sent
-function! s:open_draft(bang, from, lines) abort
+function! s:open_draft(oneoff, from, lines) abort
   let l:git_dir = FugitiveGitDir(a:from.bufnr)
-  call roumail_draft#open('ai-draft://ask', a:lines, function('s:send_draft', [a:bang, a:from]),
+  call roumail_draft#open('ai-draft://ask', a:lines, function('s:send_draft', [a:oneoff, a:from]),
         \ {'split': 'botright vnew', 'saved': 'Draft saved: closing sends it',
         \  'empty': 'Draft empty: closing sends nothing'})
   setlocal filetype=markdown
@@ -249,14 +261,14 @@ function! s:open_draft(bang, from, lines) abort
   let &l:statusline = '%f%=:w saves, closing sends, :q! drops '
 endfunction
 
-function! s:send_draft(bang, from, text) abort
+function! s:send_draft(oneoff, from, text) abort
   " Once the draft's window is closed, so the agent's tab isn't the window
   " :wq goes on to close
   " Only its first line is read for a persona, #sources, @files and flags,
   " so a pasted @decorator, #comment or --flag further down stays text
   let [l:first, l:rest] = matchlist(a:text, '^\([^\n]*\)\n\=\(\_.*\)$')[1:2]
-  call timer_start(0, {-> s:prompt(a:bang, a:from, l:first, function('s:ask'), l:rest)
-        \ || s:open_draft(a:bang, a:from, split(a:text, "\n", 1))})
+  call timer_start(0, {-> s:prompt(a:from, l:first, function('s:ask', [a:oneoff]), l:rest)
+        \ || s:open_draft(a:oneoff, a:from, split(a:text, "\n", 1))})
 endfunction
 
 function! prompts#complete(lead, cmdline, pos) abort
@@ -294,6 +306,13 @@ function! prompts#tokens() abort
     let l:tokens += (l:token =~# ':$' && !empty(l:args) ? [] : [l:token]) + l:args
   endfor
   return l:tokens + prompts#complete('-', '', 0)
+endfunction
+
+" For an insert-mode fzf.vim picker: several at once, with <Tab>
+function! prompts#fzf() abort
+  return {'source': prompts#tokens(), 'prefix': '\S*$',
+        \ 'options': ['--multi', '--prompt', 'Ai> '],
+        \ 'reducer': {lines -> join(lines)}}
 endfunction
 
 function! prompts#list(reload) abort

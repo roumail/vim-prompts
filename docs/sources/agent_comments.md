@@ -48,4 +48,4 @@ context: [changes, agent_comments]
 ```
 
 Outside a repository there is nowhere to put the file, and the ask is
-refused (`:Ai!` asks anyway, without it).
+refused.

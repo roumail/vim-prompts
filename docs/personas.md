@@ -112,7 +112,7 @@ sources (its own, those added, the files) has anything and there is no
 selection. Sources that only say how to work, `#rule` and `#agent_comments`,
 don't count: `/review` with rules is still refused on a branch with no
 changes, and a persona whose context is only rules is never refused. A source asked for with `#` that has nothing, or a missing `@file`,
-is always refused. `:Ai!` asks anyway.
+is always refused.
 
 ## Template
 

@@ -34,6 +34,10 @@ Ctrl-D, which closes the tab. Or press `Ctrl-\ Ctrl-n` for normal mode, then
 `gt` to another tab, `:q` to hide it, or `:bwipe!` to end it. `:Ai` alone goes
 back to the session it opened.
 
+A one-off (`:Ai!`) runs in the background instead, its answer going to a
+scratch buffer opened `botright`; `g:prompts_oneoff_mods` changes that
+(`'vertical botright'`, `'tab'`).
+
 ## Modes
 
 The agent starts in one of four modes:
@@ -84,14 +88,16 @@ told to read the file.
 ## Another CLI
 
 The built-in agents start as `claude [args] <prompt> [--add-dir dir...]` and
-`copilot [args] -i <prompt> [--add-dir dir...]`. Add one, or change these,
+`copilot [args] -i <prompt> [--add-dir dir...]`; a one-off (`:Ai!`) puts
+`-p` where `-i` goes, for both. Add one, or change these,
 with `g:prompts_agent_table`:
 
 ```vim
 let g:prompts_agent_table = {'mycli': {'cmd': ['mycli', '--tui'], 'prompt': ['--prompt'], 'dir': '--allow'}}
 ```
 
-`cmd` starts it, `prompt` goes before the prompt, `dir` before each
+`cmd` starts it, `prompt` goes before the prompt (`oneoff` instead, `['-p']`
+unless you say, for `:Ai!`), `dir` before each
 directory it may read outside the repository, and `modes` (optional) maps
 `ask`, `plan`, `agent` and `auto` to the arguments that start it in that
 [mode](#modes); a mode it doesn't have starts it as is. Then add `mycli` to

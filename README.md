@@ -90,7 +90,12 @@ Put together, an ask reads:
 ```
 
 A selection, if you made one, always goes. `:Ai` refuses when there's no
-context to send; `:Ai!` asks anyway. `<Tab>` completes everything.
+context to send. `<Tab>` completes everything.
+
+**If you only want an answer, not a session,** `:Ai!` asks once and puts
+the answer in a scratch buffer below, while you keep working:
+`:'<,'>Ai! what does this return on an empty list`. `:Ai!` alone goes back
+to it ([usage](docs/usage.md#ai)).
 
 **If your ask is longer than a command line,** `:AiDraft` opens it in a
 buffer to write: the same words `:Ai` takes on its first line, and your
