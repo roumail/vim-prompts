@@ -118,8 +118,8 @@ is shown.
 with [`#agent_comments`](sources/agent_comments.md), as a new quickfix list:
 the newest file without an argument, `<Tab>` for the others. Step through
 them with `:cnext`; `:colder` goes back to the list before (your `Review`
-comments, say). In its window, `a` replies on the comment under the cursor
-and `=` shows its thread ([replying](sources/agent_comments.md#replying)).
+comments, say). In its window, `:AiReply` replies on the comment under the
+cursor and `=` shows its thread ([replying](sources/agent_comments.md#replying)).
 
 ## :AiReply
 
@@ -133,7 +133,7 @@ session instead. Leaving the prompt with `<Esc>` keeps what you typed:
 
 ## :AiReplyDraft
 
-`:AiReplyDraft[!] [text]` (`a` in the list and in a thread) writes the
+`:AiReplyDraft[!] [text]` writes the
 reply in a draft above, starting with `text` if given, else with what you
 left at the `:AiReply` prompt. Its first line is read as `:Ai` reads its
 arguments, the rest taken as written, as in `:AiDraft`. `:w` saves it,

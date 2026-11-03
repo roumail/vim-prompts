@@ -47,12 +47,12 @@ To take one comment further without the rest, reply on it. In the
 | Key / command | What it does |
 | --- | --- |
 | `:AiReply [text]` | Send `text` on the comment; prompts unless it is given. Leaving the prompt with `<Esc>` keeps what you typed: `:AiReply` or `:AiReplyDraft` on the same comment goes on from it. |
-| `:AiReplyDraft [text]` (`a`) | Write the reply in a draft above (`g:prompts_reply_height`, default `g:review_comment_height`, else 10), starting with `text` if given, else with what you left at the `:AiReply` prompt. `:w` saves it, closing it sends it, `:q!` before any `:w` drops it. |
+| `:AiReplyDraft [text]` | Write the reply in a draft above (`g:prompts_reply_height`, default `g:review_comment_height`, else 10), starting with `text` if given, else with what you left at the `:AiReply` prompt. `:w` saves it, closing it sends it, `:q!` before any `:w` drops it. |
 | `:AiThread` (`=`) | Show the comment's thread. |
 
 Outside the list they work on its current comment, where `:cnext` took
-you, so you can read the code and reply from there. In a thread, `a` and
-the commands reply on its comment.
+you, so you can read the code and reply from there. In a thread, they reply
+on its comment.
 
 A reply is an ask: it takes `/persona`, `#source`, `@file` and the flags
 as `:Ai` does, and your rules go with it. What it sends first is the
@@ -74,9 +74,14 @@ notes the reply; the answer is in the session.
 To take a reply you're typing to a draft, change `AiReply` to
 `AiReplyDraft` on the command line and press Enter. To bind vim-review's
 keys, `<Plug>(prompts-reply)` leaves `:AiReply ` on the command line and
-`<Plug>(prompts-reply-draft)` is `:AiReplyDraft`:
+`<Plug>(prompts-reply-draft)` is `:AiReplyDraft`. In the list, where every
+quickfix window is `qf`, `prompts#comments#in_list()` tells the agent's
+comments from the others; a thread's buffer is `ai-thread://…`:
 
 ```vim
+autocmd FileType qf nmap <buffer><expr> <leader>cc
+      \ prompts#comments#in_list() ? '<Plug>(prompts-reply)' : '<Plug>(review-comment)'
+autocmd BufEnter ai-thread://* nmap <buffer> <leader>cc <Plug>(prompts-reply)
 nmap <leader>cr <Plug>(prompts-reply)
 ```
 

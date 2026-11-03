@@ -98,8 +98,8 @@ the answer in a scratch buffer below, while you keep working:
 to it ([usage](docs/usage.md#ai)).
 
 **If the agent left comments on your lines,** reply on one to go back and
-forth on it alone: `a` on it in the `:AiComments` list writes a reply, the
-agent answers as a one-off into that comment's thread, and `=` shows the
+forth on it alone: `:AiReplyDraft` on it in the `:AiComments` list writes a
+reply, the agent answers as a one-off into that comment's thread, and `=` shows the
 thread ([replying](docs/sources/agent_comments.md#replying)).
 
 **If your ask is longer than a command line,** `:AiDraft` opens it in a

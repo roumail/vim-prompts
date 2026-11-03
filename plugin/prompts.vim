@@ -69,12 +69,10 @@ execute 'xnoremap <Plug>(prompts-rule) :' . s:ns . 'Rule<Space>'
 execute 'nnoremap <Plug>(prompts-reply) :<C-u>' . s:ns . 'Reply<Space>'
 execute 'nnoremap <Plug>(prompts-reply-draft) <Cmd>' . s:ns . 'ReplyDraft<CR>'
 
-" In the window of :AiComments' list, a replies on the comment under the
-" cursor and = shows its thread; in other lists they are Vim's
+" In the window of :AiComments' list, = shows the thread of the comment under
+" the cursor; in other lists it is Vim's
 augroup prompts
   autocmd!
-  autocmd FileType qf nnoremap <buffer><silent><expr> a
-        \ prompts#comments#in_list() ? '<Cmd>call prompts#comments#reply_draft(0, "")<CR>' : 'a'
   autocmd FileType qf nnoremap <buffer><silent><expr> =
         \ prompts#comments#in_list() ? '<Cmd>call prompts#comments#thread()<CR>' : '='
 augroup END
