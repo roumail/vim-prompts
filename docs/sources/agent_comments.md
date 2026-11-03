@@ -40,6 +40,16 @@ A comment you are done with, `dd` it from the list
 leaves it out. `u` in the list puts it back, not done. `:AiComments!` shows
 the done ones too; what you `dd` or `u` there changes only those.
 
+## Keeping them
+
+Reviews are kept until you clear them, in the git dir of the work tree
+they were asked in, so removing a work tree removes its reviews.
+
+| Command | What it does |
+| --- | --- |
+| `:AiCommentsList` | The reviews here, newest first: when, how many comments, done and threads, and the files they are on. `<CR>` opens one as `:AiComments`, `dd` clears it, `q` closes the list. |
+| `:AiCommentsClear [file]` | Delete a review with its threads and what is done in it, once you confirm. Without `file`, the one in the agent's list; `<Tab>` lists them. A list showing it is emptied. |
+
 Your own comments stay where they are: vim-review's `Review` list is a
 list of its own, and `:colder` goes back to it. To make the agent's
 comments yours, `:AiCommentsLoad` loads the file into the `Review` list

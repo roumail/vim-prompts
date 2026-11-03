@@ -53,16 +53,12 @@ function! prompts#comments#review(file) abort
   endif
 endfunction
 
-function! prompts#comments#load(file, ...) abort
-  let l:all = get(a:, 1, 0)
-  let l:file = s:file(a:file)
-  if empty(l:file)
-    return
-  endif
-  let l:root = prompts#config#place(bufnr()).dir
+" The comments in file as quickfix items under root, and how many lines
+" weren't in the format
+function! s:parse(file, root) abort
   let l:items = []
   let l:skipped = 0
-  for l:line in readfile(l:file)
+  for l:line in readfile(a:file)
     if l:line[0] ==# "\t" && !empty(l:items)
       let l:items[-1].text .= "\n" . l:line[1:]
       continue
@@ -72,7 +68,7 @@ function! prompts#comments#load(file, ...) abort
       let l:skipped += !empty(trim(l:line))
       continue
     endif
-    let l:item = {'filename': l:root . '/' . l:m[1], 'lnum': str2nr(l:m[2]), 'text': l:m[4],
+    let l:item = {'filename': a:root . '/' . l:m[1], 'lnum': str2nr(l:m[2]), 'text': l:m[4],
           \ 'user_data': {'path': l:m[1], 'range': l:m[2] . (empty(l:m[3]) ? '' : '-' . l:m[3]),
           \ 'n': len(l:items) + 1}}
     if !empty(l:m[3])
@@ -80,6 +76,17 @@ function! prompts#comments#load(file, ...) abort
     endif
     call add(l:items, l:item)
   endfor
+  return [l:items, l:skipped]
+endfunction
+
+function! prompts#comments#load(file, ...) abort
+  let l:all = get(a:, 1, 0)
+  let l:file = s:file(a:file)
+  if empty(l:file)
+    return
+  endif
+  let l:root = prompts#config#place(bufnr()).dir
+  let [l:items, l:skipped] = s:parse(l:file, l:root)
   let l:done = s:done(l:file)
   let l:hidden = l:all ? 0 : len(filter(copy(l:items), 'has_key(l:done, v:val.user_data.n)'))
   if !l:all
@@ -406,4 +413,123 @@ function! s:answered(target, bufnr, at, status) abort
   redrawstatus!
   echo a:status ? 'The agent failed on ' . a:target.label
         \ : 'Answered on ' . a:target.label . ': = shows the thread'
+endfunction
+
+" :AiCommentsList: the reviews here, newest first, one a line: when, how many
+" comments, done and threads, and the files they are on. <CR> opens one as
+" :AiComments, dd clears it as :AiCommentsClear
+function! prompts#comments#list() abort
+  let l:dir = prompts#comments#dir(bufnr())
+  if empty(l:dir)
+    call prompts#error('no comments from the agent outside a repository')
+    return
+  endif
+  let l:bufnr = bufadd('ai-comments://' . fnamemodify(prompts#config#place(bufnr()).dir, ':t'))
+  if bufwinid(l:bufnr) > 0
+    call win_gotoid(bufwinid(l:bufnr))
+  else
+    execute 'botright sbuffer' l:bufnr
+    setlocal buftype=nofile bufhidden=wipe noswapfile nowrap nomodifiable
+    nnoremap <buffer><silent> <CR> <Cmd>call <SID>list_open()<CR>
+    nnoremap <buffer><silent> dd <Cmd>call <SID>list_clear()<CR>
+    nnoremap <buffer><silent> q <Cmd>close<CR>
+  endif
+  let b:prompts_comments_dir = l:dir
+  let &l:statusline = '%f%=<CR> opens  dd clears  q closes '
+  call s:list_draw()
+endfunction
+
+function! s:list_draw() abort
+  let l:files = s:files(b:prompts_comments_dir)
+  let b:prompts_comments_files = l:files
+  let l:lines = []
+  for l:name in l:files
+    let l:file = b:prompts_comments_dir . '/' . l:name
+    let l:items = s:parse(l:file, '')[0]
+    let l:threads = len(glob(fnamemodify(l:file, ':r') . '/*.md', 1, 1))
+    let l:paths = []
+    for l:item in l:items
+      if index(l:paths, l:item.user_data.path) < 0
+        call add(l:paths, l:item.user_data.path)
+      endif
+    endfor
+    call add(l:lines, printf('%-20s  %s  %2d comments  %2d done  %2d threads  %s',
+          \ fnamemodify(l:name, ':r'), strftime('%Y-%m-%d %H:%M', getftime(l:file)),
+          \ len(l:items), len(s:done(l:file)), l:threads,
+          \ join(map(l:paths, 'fnamemodify(v:val, ":t")'), ', ')))
+  endfor
+  let l:line = line('.')
+  setlocal modifiable
+  silent %delete _
+  call setline(1, empty(l:lines) ? ['(no reviews here: ask with #agent_comments)'] : l:lines)
+  setlocal nomodifiable nomodified
+  call cursor(min([l:line, line('$')]), 1)
+endfunction
+
+function! s:list_name() abort
+  return get(get(b:, 'prompts_comments_files', []), line('.') - 1, '')
+endfunction
+
+function! s:list_open() abort
+  let l:name = s:list_name()
+  if !empty(l:name)
+    let l:file = b:prompts_comments_dir . '/' . l:name
+    wincmd p
+    call prompts#comments#load(l:file)
+  endif
+endfunction
+
+function! s:list_clear() abort
+  let l:name = s:list_name()
+  if !empty(l:name)
+    call prompts#comments#clear(b:prompts_comments_dir . '/' . l:name)
+    call s:list_draw()
+  endif
+endfunction
+
+" :AiCommentsClear [file]: deletes a review, its threads and what is done in
+" it, once you say so. Without file, the one in the agent's list
+function! prompts#comments#clear(file) abort
+  if empty(a:file)
+    let l:list = s:list()
+    if empty(l:list)
+      call prompts#error('which review? :' . prompts#namespace() . 'CommentsClear <Tab>, or from :'
+            \ . prompts#namespace() . 'Comments')
+      return
+    endif
+    let l:file = l:list.prompts_comments
+  else
+    let l:file = s:file(a:file)
+    if empty(l:file)
+      return
+    endif
+  endif
+  let l:dir = fnamemodify(l:file, ':r')
+  let l:threads = filter(getbufinfo(), 'type(get(v:val.variables, "prompts_thread")) == v:t_dict'
+        \ . ' && stridx(v:val.variables.prompts_thread.thread, l:dir . "/") == 0')
+  if !empty(filter(copy(l:threads), 'get(v:val.variables, "prompts_answering", 0)'))
+    call prompts#error('the agent is still answering in a thread of ' . fnamemodify(l:file, ':t'))
+    return
+  endif
+  let l:count = len(s:parse(l:file, '')[0])
+  let l:nthreads = len(glob(l:dir . '/*.md', 1, 1))
+  if confirm('Delete ' . fnamemodify(l:file, ':t') . ': ' . l:count . ' comments, '
+        \ . l:nthreads . ' threads?', "&Yes\n&No", 2) != 1
+    return
+  endif
+  for l:info in l:threads
+    execute 'silent! bwipeout!' l:info.bufnr
+  endfor
+  call delete(l:dir, 'rf')
+  call delete(l:file)
+  " Its list, if shown, is of nothing now
+  for l:nr in range(1, getqflist({'nr': '$'}).nr)
+    let l:context = getqflist({'nr': l:nr, 'context': 0}).context
+    if type(l:context) == v:t_dict && get(l:context, 'prompts_comments', '') ==# l:file
+      call setqflist([], 'r', {'nr': l:nr, 'items': [], 'context': {},
+            \ 'title': 'Agent comments: ' . fnamemodify(l:file, ':t') . ' (cleared)'})
+    endif
+  endfor
+  redraw
+  echo 'Cleared ' . fnamemodify(l:file, ':t')
 endfunction

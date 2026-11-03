@@ -117,7 +117,9 @@ is shown.
 `:AiComments[!] [file]` opens the agent's comments on lines, written for an ask
 with [`#agent_comments`](sources/agent_comments.md), as a new quickfix list:
 the newest file without an argument, `<Tab>` for the others. Those you `dd`
-from the list are done and left out next time; `!` shows them too. Step through
+from the list are done and left out next time; `!` shows them too.
+`:AiCommentsList` shows the reviews kept here, `:AiCommentsClear` deletes
+one with its threads ([keeping them](sources/agent_comments.md#keeping-them)). Step through
 them with `:cnext`; `:colder` goes back to the list before (your `Review`
 comments, say). In its window, `:AiReply` replies on the comment under the
 cursor and `=` shows its thread ([replying](sources/agent_comments.md#replying)).
@@ -270,5 +272,5 @@ nmap <leader>cr <Plug>(prompts-reply)
 ## Command prefix
 
 ```vim
-let g:prompts_namespace = 'Ai'      " :Ai, :AiDraft, :AiPreview, :AiComments, :AiCommentsLoad, :AiReply, :AiReplyDraft, :AiThread, :AiPersonas, :AiRules, :AiRule, :AiUnset
+let g:prompts_namespace = 'Ai'      " :Ai, :AiDraft, :AiPreview, :AiComments, :AiCommentsLoad, :AiCommentsList, :AiCommentsClear, :AiReply, :AiReplyDraft, :AiThread, :AiPersonas, :AiRules, :AiRule, :AiUnset
 ```
