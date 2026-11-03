@@ -257,7 +257,8 @@ xmap <leader>ar <Plug>(prompts-rule)
 
 `<Plug>(prompts-reply)` leaves `:AiReply ` on the command line to finish,
 and `<Plug>(prompts-reply-draft)` is `:AiReplyDraft`, to bind the keys
-vim-review's `:Comment` has:
+vim-review's `:Comment` has. `<Plug>(prompts-reply-session)` and
+`<Plug>(prompts-reply-draft-session)` are the same with `!`, to a session:
 
 ```vim
 nmap <leader>cr <Plug>(prompts-reply)

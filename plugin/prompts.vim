@@ -65,9 +65,11 @@ execute 'nnoremap <Plug>(prompts-rule) :<C-u>' . s:ns . 'Rule<Space>'
 execute 'xnoremap <Plug>(prompts-rule) :' . s:ns . 'Rule<Space>'
 
 " They leave :AiReply on the command line to finish, as vim-review's
-" <Plug>(review-comment) does :Comment
+" <Plug>(review-comment) does :Comment; -session ones send to a session (!)
 execute 'nnoremap <Plug>(prompts-reply) :<C-u>' . s:ns . 'Reply<Space>'
 execute 'nnoremap <Plug>(prompts-reply-draft) <Cmd>' . s:ns . 'ReplyDraft<CR>'
+execute 'nnoremap <Plug>(prompts-reply-session) :<C-u>' . s:ns . 'Reply!<Space>'
+execute 'nnoremap <Plug>(prompts-reply-draft-session) <Cmd>' . s:ns . 'ReplyDraft!<CR>'
 
 " In the window of :AiComments' list, = shows the thread of the comment under
 " the cursor; in other lists it is Vim's

@@ -74,14 +74,19 @@ notes the reply; the answer is in the session.
 To take a reply you're typing to a draft, change `AiReply` to
 `AiReplyDraft` on the command line and press Enter. To bind vim-review's
 keys, `<Plug>(prompts-reply)` leaves `:AiReply ` on the command line and
-`<Plug>(prompts-reply-draft)` is `:AiReplyDraft`. In the list, where every
-quickfix window is `qf`, `prompts#comments#in_list()` tells the agent's
-comments from the others; a thread's buffer is `ai-thread://…`:
+`<Plug>(prompts-reply-draft)` is `:AiReplyDraft`;
+`<Plug>(prompts-reply-session)` and `<Plug>(prompts-reply-draft-session)`
+are the same with `!`, to a session. In the list, where every quickfix
+window is `qf`, `prompts#comments#in_list()` tells the agent's comments from
+the others; a thread's buffer is `ai-thread://…`:
 
 ```vim
 autocmd FileType qf nmap <buffer><expr> <leader>cc
       \ prompts#comments#in_list() ? '<Plug>(prompts-reply)' : '<Plug>(review-comment)'
+autocmd FileType qf nmap <buffer><expr> <leader>cC
+      \ prompts#comments#in_list() ? '<Plug>(prompts-reply-session)' : ''
 autocmd BufEnter ai-thread://* nmap <buffer> <leader>cc <Plug>(prompts-reply)
+autocmd BufEnter ai-thread://* nmap <buffer> <leader>cC <Plug>(prompts-reply-session)
 nmap <leader>cr <Plug>(prompts-reply)
 ```
 
