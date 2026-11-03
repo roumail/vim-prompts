@@ -116,17 +116,38 @@ function! prompts#agent#launch(prompt, meta, dirs) abort
   return 1
 endfunction
 
+" Where prompts are written. In a repository, its git dir: a linked work
+" tree's own, which git removes with the work tree, as the prompts are of
+" no use after it (vim-review's saves, which outlive work trees and branches,
+" go in the common one). Elsewhere, a state directory, not tempname(): Vim
+" deletes that on exit, and the agent may read a long prompt after Vim exits.
+function! s:prompts_dir() abort
+  let l:dir = FugitiveGitDir()
+  return !empty(l:dir) ? l:dir . '/vim-prompts/prompts'
+        \ : (empty($XDG_STATE_HOME) ? expand('~/.local/state') : $XDG_STATE_HOME)
+        \   . '/vim-prompts/prompts'
+endfunction
+
+" Keeps the newest g:prompts_keep (50) prompts in dir: their names start
+" with the time, so sorted they are oldest first
+function! s:prune(dir) abort
+  let l:keep = max([1, get(g:, 'prompts_keep', 50)])
+  for l:file in sort(glob(a:dir . '/*.md', 1, 1))[: -l:keep - 1]
+    call delete(l:file)
+  endfor
+endfunction
+
 " The agent's command line, its prompt read from a file
 function! s:shell(argv, prompt, after) abort
   let l:cmd = join(map(copy(a:argv), 'shellescape(v:val)'))
   if !empty(a:prompt)
     let s:asked += 1
-    let l:dir = FugitiveGitDir()
-    let l:file = empty(l:dir) ? tempname() . '.md'
-          \ : printf('%s/vim-prompts/prompts/%s-%d.md', l:dir, strftime('%Y%m%d-%H%M%S'), s:asked)
-    call mkdir(fnamemodify(l:file, ':h'), 'p')
+    let l:dir = s:prompts_dir()
+    let l:file = printf('%s/%s-%04d.md', l:dir, strftime('%Y%m%d-%H%M%S'), s:asked)
+    call mkdir(l:dir, 'p')
     " A leading - would be taken for an option of the agent
     call writefile(split((a:prompt =~# '^-' ? ' ' : '') . a:prompt, "\n", 1), l:file)
+    call s:prune(l:dir)
     " From a file, so its length doesn't matter to tmux
     let l:cmd .= strlen(a:prompt) <= get(g:, 'prompts_max_arg', 100000)
           \ ? ' "$(cat ' . shellescape(l:file) . ')"'

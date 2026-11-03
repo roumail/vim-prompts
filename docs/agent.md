@@ -85,6 +85,13 @@ passed as `"$(cat <file>)"`, so you can read what was sent. A prompt longer
 than `g:prompts_max_arg` characters (100000) isn't passed inline: the agent is
 told to read the file.
 
+The newest `g:prompts_keep` prompts (50) are kept and older ones deleted. In
+a linked work tree they are in its own git dir, so removing the work tree
+removes them. Outside a repository they go in
+`$XDG_STATE_HOME/vim-prompts/prompts/` (`~/.local/state/…`), which, unlike
+Vim's temporary files, is still there for an agent reading a long prompt
+after Vim exits.
+
 ## Another CLI
 
 The built-in agents start as `claude [args] <prompt> [--add-dir dir...]` and

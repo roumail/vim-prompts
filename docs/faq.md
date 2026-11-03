@@ -59,7 +59,8 @@ Copy it to `~/.vim/autoload/prompts/sources/` and edit the copy: see
 
 No: it gets their paths, and the commands to read them (`git diff`,
 `git show`, `gh`), and reads them itself. The prompt is saved in
-`.git/vim-prompts/prompts/`, so you can see exactly what was sent.
+`.git/vim-prompts/prompts/`, so you can see exactly what was sent; the
+newest 50 are kept ([the prompt it gets](agent.md#the-prompt-it-gets)).
 
 ## Where does the agent open, and how do I leave it?
 
