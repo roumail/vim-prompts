@@ -41,6 +41,16 @@ execute 'command! -nargs=? -complete=customlist,prompts#comments#complete '
 " The same comments in vim-review's Review list, as :CommentsLoad
 execute 'command! -nargs=? -complete=customlist,prompts#comments#complete '
       \ . s:ns . 'CommentsLoad call prompts#comments#review(<q-args>)'
+" A reply on the agent's comment under the cursor (or the current one of
+" :AiComments), answered as a one-off into the comment's thread; ! sends it
+" to a session instead
+execute 'command! -bang -nargs=* -complete=customlist,prompts#complete '
+      \ . s:ns . 'Reply call prompts#comments#reply(<bang>0, <q-args>)'
+" The same, in a draft: :w saves it, closing sends it
+execute 'command! -bang -nargs=* -complete=customlist,prompts#complete '
+      \ . s:ns . 'ReplyDraft call prompts#comments#reply_draft(<bang>0, <q-args>)'
+" That comment and what was said on it since
+execute 'command! ' . s:ns . 'Thread call prompts#comments#thread()'
 " Remove a value from the file that sets it
 execute 'command! -nargs=+ -complete=customlist,prompts#unset_complete '
       \ . s:ns . 'Unset call prompts#unset(<q-args>)'
@@ -53,3 +63,18 @@ execute 'nnoremap <Plug>(prompts-draft) :<C-u>' . s:ns . 'Draft<Space>'
 execute 'xnoremap <Plug>(prompts-draft) :' . s:ns . 'Draft<Space>'
 execute 'nnoremap <Plug>(prompts-rule) :<C-u>' . s:ns . 'Rule<Space>'
 execute 'xnoremap <Plug>(prompts-rule) :' . s:ns . 'Rule<Space>'
+
+" They leave :AiReply on the command line to finish, as vim-review's
+" <Plug>(review-comment) does :Comment
+execute 'nnoremap <Plug>(prompts-reply) :<C-u>' . s:ns . 'Reply<Space>'
+execute 'nnoremap <Plug>(prompts-reply-draft) <Cmd>' . s:ns . 'ReplyDraft<CR>'
+
+" In the window of :AiComments' list, a replies on the comment under the
+" cursor and = shows its thread; in other lists they are Vim's
+augroup prompts
+  autocmd!
+  autocmd FileType qf nnoremap <buffer><silent><expr> a
+        \ prompts#comments#in_list() ? '<Cmd>call prompts#comments#reply_draft(0, "")<CR>' : 'a'
+  autocmd FileType qf nnoremap <buffer><silent><expr> =
+        \ prompts#comments#in_list() ? '<Cmd>call prompts#comments#thread()<CR>' : '='
+augroup END

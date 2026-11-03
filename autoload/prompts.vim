@@ -259,6 +259,24 @@ function! s:ask(oneoff, persona, request, prompt) abort
   endif
 endfunction
 
+" An ask made from elsewhere, as a reply to the agent's comment is: from
+" line {line} of buffer {bufnr}, {before} going before its query, its text
+" taken as a draft's is. Then(persona, request, prompt) gets what :Ai would
+" send. 1 once it is under way, 0 when it stopped at an error
+function! prompts#ask_from(oneoff, bufnr, line, before, text, Then) abort
+  let l:from = extend(s:from(0, a:line, a:line), {'bufnr': a:bufnr, 'line': a:line,
+        \ 'before': a:before})
+  let [l:first, l:rest] = matchlist(a:text, '^\([^\n]*\)\n\=\(\_.*\)$')[1:2]
+  return s:prompt(l:from, l:first, function('s:sent_then', [a:oneoff, a:Then]), l:rest)
+endfunction
+
+function! s:sent_then(oneoff, Then, persona, request, prompt) abort
+  let [l:ok, l:prompt] = s:sent(a:oneoff, a:persona, a:request, a:prompt)
+  if l:ok
+    call a:Then(a:persona, a:request, l:prompt)
+  endif
+endfunction
+
 " What :Ai with the same arguments would send, in a buffer that sends nothing
 function! prompts#preview(oneoff, range, line1, line2, args) abort
   if s:opens_only(a:range, a:args)

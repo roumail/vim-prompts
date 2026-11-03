@@ -45,8 +45,10 @@ function! prompts#template#render(template, request) abort
     let l:values.selection = l:head . ":\n" . l:fence . getbufvar(a:request.bufnr, '&filetype') . "\n"
           \ . join(a:request.selection, "\n") . "\n" . l:fence
   endif
-  let l:values.query = (l:heading ? "Additional request from the user:\n" : '')
-        \ . a:request.query
+  " What an ask from elsewhere puts first (a reply: the comment it is on)
+  let l:before = get(a:request, 'before', '')
+  let l:values.query = (empty(l:before) ? '' : l:before . "\n\n")
+        \ . (l:heading ? "Additional request from the user:\n" : '') . a:request.query
   " One pass, so text from the context is never taken for a slot
   let l:prompt = substitute(l:prompt, '{\(' . join(keys(l:values), '\|') . '\)}',
         \ {m -> l:values[m[1]]}, 'g')

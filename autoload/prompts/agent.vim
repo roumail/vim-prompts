@@ -139,8 +139,11 @@ endfunction
 " The last one-off's buffer, for :Ai! alone
 let s:oneoff = -1
 
-" The agent answers once, in the background, into a scratch buffer
-function! prompts#agent#oneoff(prompt, meta, dirs) abort
+" The agent answers once, in the background, into a scratch buffer; with
+" {opts}, into opts.bufnr, and opts.done(status) is called once all of the
+" answer is in
+function! prompts#agent#oneoff(prompt, meta, dirs, ...) abort
+  let l:opts = get(a:, 1, {})
   let l:command = prompts#agent#command(a:meta, a:dirs, 1)
   if empty(l:command)
     return 0
@@ -148,23 +151,51 @@ function! prompts#agent#oneoff(prompt, meta, dirs) abort
   let [l:name, l:argv, l:after] = l:command
   let l:cmd = s:shell(l:argv, a:prompt, l:after)
   let l:tree = FugitiveWorkTree()
-  execute get(g:, 'prompts_oneoff_mods', 'botright') . ' new'
-  setlocal buftype=nofile bufhidden=hide noswapfile filetype=markdown
-  execute 'silent file' fnameescape('ai-oneoff://' . s:asked)
-  let b:prompts_oneoff = l:name . ': answering'
-  setlocal statusline=%f%=%{get(b:,'prompts_oneoff','')}\ 
-  let s:oneoff = bufnr()
+  if has_key(l:opts, 'bufnr')
+    let l:bufnr = l:opts.bufnr
+  else
+    execute get(g:, 'prompts_oneoff_mods', 'botright') . ' new'
+    setlocal buftype=nofile bufhidden=hide noswapfile filetype=markdown
+    execute 'silent file' fnameescape('ai-oneoff://' . s:asked)
+    let b:prompts_oneoff = l:name . ': answering'
+    setlocal statusline=%f%=%{get(b:,'prompts_oneoff','')}\ 
+    let s:oneoff = bufnr()
+    let l:bufnr = s:oneoff
+  endif
+  " Output can still come in after the job exits: done waits for both
+  let l:state = {'bufnr': l:bufnr, 'name': l:name, 'Done': get(l:opts, 'done', v:null),
+        \ 'status': v:null, 'closed': 0}
   call job_start([&shell, &shellcmdflag, l:cmd], {
         \ 'cwd': empty(l:tree) ? getcwd() : l:tree,
-        \ 'in_io': 'null', 'out_io': 'buffer', 'out_buf': s:oneoff, 'out_msg': 0,
-        \ 'err_io': 'out', 'exit_cb': function('s:oneoff_exit', [s:oneoff, l:name])})
-  wincmd p
+        \ 'in_io': 'null', 'out_io': 'buffer', 'out_buf': l:bufnr, 'out_msg': 0,
+        \ 'err_io': 'out', 'exit_cb': function('s:oneoff_exit', [l:state]),
+        \ 'close_cb': function('s:oneoff_close', [l:state])})
+  if !has_key(l:opts, 'bufnr')
+    wincmd p
+  endif
   return 1
 endfunction
 
-function! s:oneoff_exit(bufnr, name, job, status) abort
-  call setbufvar(a:bufnr, 'prompts_oneoff', a:name
-        \ . (a:status ? ': failed (' . a:status . ')' : ': done'))
+function! s:oneoff_exit(state, job, status) abort
+  let a:state.status = a:status
+  call s:oneoff_done(a:state)
+endfunction
+
+function! s:oneoff_close(state, channel) abort
+  let a:state.closed = 1
+  call s:oneoff_done(a:state)
+endfunction
+
+function! s:oneoff_done(state) abort
+  if a:state.status is v:null || !a:state.closed
+    return
+  endif
+  if a:state.Done isnot v:null
+    call a:state.Done(a:state.status)
+    return
+  endif
+  call setbufvar(a:state.bufnr, 'prompts_oneoff', a:state.name
+        \ . (a:state.status ? ': failed (' . a:state.status . ')' : ': done'))
   redrawstatus!
 endfunction
 

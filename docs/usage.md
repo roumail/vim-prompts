@@ -118,7 +118,31 @@ is shown.
 with [`#agent_comments`](sources/agent_comments.md), as a new quickfix list:
 the newest file without an argument, `<Tab>` for the others. Step through
 them with `:cnext`; `:colder` goes back to the list before (your `Review`
-comments, say).
+comments, say). In its window, `a` replies on the comment under the cursor
+and `=` shows its thread ([replying](sources/agent_comments.md#replying)).
+
+## :AiReply
+
+`:AiReply[!] [text]` replies on one of the agent's comments: the one under
+the cursor in the `:AiComments` list or in a thread, else the list's
+current one (where `:cnext` took you). It prompts unless `text` is given,
+and takes what `:Ai` takes (`/persona`, `#source`, `@file`, flags). The
+agent answers as a one-off into the comment's thread; with `!`, in a
+session instead. Leaving the prompt with `<Esc>` keeps what you typed:
+`:AiReply` or `:AiReplyDraft` on the same comment goes on from it.
+
+## :AiReplyDraft
+
+`:AiReplyDraft[!] [text]` (`a` in the list and in a thread) writes the
+reply in a draft above, starting with `text` if given, else with what you
+left at the `:AiReply` prompt. Its first line is read as `:Ai` reads its
+arguments, the rest taken as written, as in `:AiDraft`. `:w` saves it,
+closing it sends it, `:q!` before any `:w` drops it.
+
+## :AiThread
+
+`:AiThread` (`=` in the list) shows the comment's thread: the comment, then
+each reply and answer, kept in a file next to the comments'.
 
 ## :AiCommentsLoad
 
@@ -231,8 +255,16 @@ nmap <leader>ar <Plug>(prompts-rule)
 xmap <leader>ar <Plug>(prompts-rule)
 ```
 
+`<Plug>(prompts-reply)` leaves `:AiReply ` on the command line to finish,
+and `<Plug>(prompts-reply-draft)` is `:AiReplyDraft`, to bind the keys
+vim-review's `:Comment` has:
+
+```vim
+nmap <leader>cr <Plug>(prompts-reply)
+```
+
 ## Command prefix
 
 ```vim
-let g:prompts_namespace = 'Ai'      " :Ai, :AiDraft, :AiPreview, :AiComments, :AiCommentsLoad, :AiPersonas, :AiRules, :AiRule, :AiUnset
+let g:prompts_namespace = 'Ai'      " :Ai, :AiDraft, :AiPreview, :AiComments, :AiCommentsLoad, :AiReply, :AiReplyDraft, :AiThread, :AiPersonas, :AiRules, :AiRule, :AiUnset
 ```
