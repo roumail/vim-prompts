@@ -143,6 +143,7 @@ function! s:thread_buffer(target) abort
     call setbufvar(l:bufnr, '&bufhidden', 'hide')
     call setbufvar(l:bufnr, '&swapfile', 0)
     call setbufvar(l:bufnr, '&filetype', 'markdown')
+    call setbufvar(l:bufnr, '&modifiable', 0)
     call setbufvar(l:bufnr, 'prompts_thread', a:target)
   endif
   if !filereadable(a:target.thread)
@@ -152,10 +153,21 @@ function! s:thread_buffer(target) abort
   endif
   " The file is the thread; the buffer only shows it
   if !getbufvar(l:bufnr, 'prompts_answering', 0)
-    call deletebufline(l:bufnr, 1, '$')
-    call setbufline(l:bufnr, 1, readfile(a:target.thread))
+    call s:edit(l:bufnr, {-> deletebufline(l:bufnr, 1, '$')
+          \ + setbufline(l:bufnr, 1, readfile(a:target.thread))})
   endif
   return l:bufnr
+endfunction
+
+" A thread's buffer is read-only: what is in it is read back into its file,
+" so only vim-prompts changes it
+function! s:edit(bufnr, Change) abort
+  call setbufvar(a:bufnr, '&modifiable', 1)
+  try
+    call a:Change()
+  finally
+    call setbufvar(a:bufnr, '&modifiable', 0)
+  endtry
 endfunction
 
 " Shows the buffer above the current window, unless it is shown; with
@@ -316,7 +328,7 @@ function! s:sent(session, target, bufnr, persona, request, prompt) abort
     return
   endif
   call writefile(l:me, a:target.thread, 'a')
-  call appendbufline(a:bufnr, '$', l:me + ['', '## agent'])
+  call s:edit(a:bufnr, {-> appendbufline(a:bufnr, '$', l:me + ['', '## agent'])})
   " The answer's first line, wherever it is in the buffer
   let l:answer.line = len(getbufline(a:bufnr, 1, '$')) + 1
   call setbufvar(a:bufnr, 'prompts_answering', 1)
@@ -333,10 +345,10 @@ function! s:answered(target, bufnr, at, status) abort
     call remove(l:answer, -1)
   endwhile
   " Blank between the heading and the answer, as in the file
-  call appendbufline(a:bufnr, a:at.line - 1, '')
+  call s:edit(a:bufnr, {-> appendbufline(a:bufnr, a:at.line - 1, '')})
   if a:status
     call add(l:answer, '(the agent failed: ' . a:status . ')')
-    call appendbufline(a:bufnr, '$', l:answer[-1])
+    call s:edit(a:bufnr, {-> appendbufline(a:bufnr, '$', l:answer[-1])})
   endif
   call writefile(['', '## agent', ''] + l:answer, a:target.thread, 'a')
   redrawstatus!

@@ -142,7 +142,9 @@ closing it sends it, `:q!` before any `:w` drops it.
 ## :AiThread
 
 `:AiThread` (`=` in the list) shows the comment's thread: the comment, then
-each reply and answer, kept in a file next to the comments'.
+each reply and answer, kept in a file next to the comments'. The buffer is
+read-only, as the file is the thread: replies go in with `:AiReply` or
+`:AiReplyDraft`.
 
 ## :AiCommentsLoad
 

@@ -189,6 +189,7 @@ function! prompts#agent#oneoff(prompt, meta, dirs, ...) abort
   call job_start([&shell, &shellcmdflag, l:cmd], {
         \ 'cwd': empty(l:tree) ? getcwd() : l:tree,
         \ 'in_io': 'null', 'out_io': 'buffer', 'out_buf': l:bufnr, 'out_msg': 0,
+        \ 'out_modifiable': getbufvar(l:bufnr, '&modifiable'),
         \ 'err_io': 'out', 'exit_cb': function('s:oneoff_exit', [l:state]),
         \ 'close_cb': function('s:oneoff_close', [l:state])})
   if !has_key(l:opts, 'bufnr')
