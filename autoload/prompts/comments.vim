@@ -72,7 +72,8 @@ function! prompts#comments#load(file) abort
       continue
     endif
     let l:item = {'filename': l:root . '/' . l:m[1], 'lnum': str2nr(l:m[2]), 'text': l:m[4],
-          \ 'user_data': {'path': l:m[1], 'range': l:m[2] . (empty(l:m[3]) ? '' : '-' . l:m[3])}}
+          \ 'user_data': {'path': l:m[1], 'range': l:m[2] . (empty(l:m[3]) ? '' : '-' . l:m[3]),
+          \ 'n': len(l:items) + 1}}
     if !empty(l:m[3])
       let l:item.end_lnum = str2nr(l:m[3])
     endif
@@ -122,7 +123,9 @@ function! s:target() abort
     return {}
   endif
   let l:where = l:item.user_data
-  return {'thread': fnamemodify(l:list.prompts_comments, ':r') . '/' . l:n . '.md',
+  " Its thread is named for its place in the file, which stays when entries
+  " above it are deleted from the list
+  return {'thread': fnamemodify(l:list.prompts_comments, ':r') . '/' . get(l:where, 'n', l:n) . '.md',
         \ 'file': l:list.root . '/' . l:where.path,
         \ 'bufnr': l:item.bufnr, 'start': l:item.lnum, 'end': max([l:item.lnum, get(l:item, 'end_lnum', 0)]),
         \ 'label': l:where.path . ':' . l:where.range, 'text': l:item.text}
