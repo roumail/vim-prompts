@@ -329,7 +329,6 @@ function! s:open_draft(oneoff, from, lines) abort
   if !empty(l:git_dir)
     let b:git_dir = l:git_dir
   endif
-  normal! G$
   let &l:statusline = '%f%=:w saves, closing sends, :q! drops '
 endfunction
 

@@ -258,7 +258,6 @@ function! s:open_draft(session, target, lines) abort
   endif
   let &l:statusline = '%f%=' . (a:session ? 'to a session  ' : '')
         \ . ':w saves, closing sends, :q! drops '
-  startinsert!
 endfunction
 
 function! s:send_draft(session, target, text) abort
