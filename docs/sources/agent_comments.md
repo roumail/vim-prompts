@@ -33,6 +33,13 @@ matches the answer.
 first, or takes a path. Lines that aren't in the format are left out, and
 counted.
 
+A comment you are done with, `dd` it from the list
+([qf-tools](https://github.com/roumail/qf-tools)' `dd`, `3dd` or visual
+`d`): it stays done, recorded beside its thread in
+`<git dir>/vim-prompts/comments/<time>/done`, and the next `:AiComments`
+leaves it out. `u` in the list puts it back, not done. `:AiComments!` shows
+the done ones too; what you `dd` or `u` there changes only those.
+
 Your own comments stay where they are: vim-review's `Review` list is a
 list of its own, and `:colder` goes back to it. To make the agent's
 comments yours, `:AiCommentsLoad` loads the file into the `Review` list

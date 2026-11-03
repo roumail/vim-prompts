@@ -53,7 +53,8 @@ function! prompts#comments#review(file) abort
   endif
 endfunction
 
-function! prompts#comments#load(file) abort
+function! prompts#comments#load(file, ...) abort
+  let l:all = get(a:, 1, 0)
   let l:file = s:file(a:file)
   if empty(l:file)
     return
@@ -79,15 +80,66 @@ function! prompts#comments#load(file) abort
     endif
     call add(l:items, l:item)
   endfor
+  let l:done = s:done(l:file)
+  let l:hidden = l:all ? 0 : len(filter(copy(l:items), 'has_key(l:done, v:val.user_data.n)'))
+  if !l:all
+    call filter(l:items, '!has_key(l:done, v:val.user_data.n)')
+  endif
   " A list of its own: vim-review's Review list holds my comments, and
   " :colder goes back to it. Its context says it is, for :AiReply and the
-  " keys in its window
+  " keys in its window, and which comments it shows, to tell what dd removed
   call setqflist([], ' ', {'title': 'Agent comments: ' . fnamemodify(l:file, ':t'), 'items': l:items,
-        \ 'context': {'prompts_comments': l:file, 'root': l:root}})
+        \ 'context': {'prompts_comments': l:file, 'root': l:root, 'shown': s:shown(l:items)}})
   copen
   redraw
   echo 'Agent comments: ' . len(l:items)
+        \ . (l:hidden ? ', ' . l:hidden . ' done left out (:' . prompts#namespace() . 'Comments! shows them)' : '')
         \ . (l:skipped ? ', ' . l:skipped . ' line(s) not in the format, left out' : '')
+endfunction
+
+" The comments done in a file, by their place in it, kept beside their
+" threads
+function! s:done_file(file) abort
+  return fnamemodify(a:file, ':r') . '/done'
+endfunction
+
+function! s:done(file) abort
+  let l:done = {}
+  for l:n in filereadable(s:done_file(a:file)) ? readfile(s:done_file(a:file)) : []
+    let l:done[l:n] = 1
+  endfor
+  return l:done
+endfunction
+
+function! s:shown(items) abort
+  return map(filter(copy(a:items), 'type(get(v:val, "user_data")) == v:t_dict && has_key(v:val.user_data, "n")'),
+        \ 'v:val.user_data.n')
+endfunction
+
+" User QfToolsChanged: in the agent's list, what dd removed since the list
+" was last seen is done, and what u put back isn't. By difference, so a list
+" shown with ! takes back nothing it didn't change
+function! prompts#comments#sync_done() abort
+  if !prompts#comments#in_list()
+    return
+  endif
+  let l:list = s:list()
+  let l:before = get(l:list, 'shown', [])
+  let l:now = s:shown(getqflist({'items': 1}).items)
+  let l:done = s:done(l:list.prompts_comments)
+  for l:n in l:before
+    if index(l:now, l:n) < 0
+      let l:done[l:n] = 1
+    endif
+  endfor
+  for l:n in l:now
+    if index(l:before, l:n) < 0
+      silent! call remove(l:done, l:n)
+    endif
+  endfor
+  call mkdir(fnamemodify(s:done_file(l:list.prompts_comments), ':h'), 'p')
+  call writefile(sort(keys(l:done), 'N'), s:done_file(l:list.prompts_comments))
+  call setqflist([], 'r', {'context': extend(l:list, {'shown': l:now})})
 endfunction
 
 " The context of the current quickfix list when it is one of the agent's

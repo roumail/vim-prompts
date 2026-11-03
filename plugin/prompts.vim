@@ -36,8 +36,9 @@ execute 'command! ' . s:ns . 'Rules call prompts#rules()'
 execute 'command! -range -nargs=* -complete=customlist,prompts#rule_complete '
       \ . s:ns . 'Rule call prompts#rule(<range>, <line1>, <line2>, <q-args>)'
 " The agent's comments on lines (#agent_comments) in a quickfix list
-execute 'command! -nargs=? -complete=customlist,prompts#comments#complete '
-      \ . s:ns . 'Comments call prompts#comments#load(<q-args>)'
+" with !, those done (dd in the list) as well
+execute 'command! -bang -nargs=? -complete=customlist,prompts#comments#complete '
+      \ . s:ns . 'Comments call prompts#comments#load(<q-args>, <bang>0)'
 " The same comments in vim-review's Review list, as :CommentsLoad
 execute 'command! -nargs=? -complete=customlist,prompts#comments#complete '
       \ . s:ns . 'CommentsLoad call prompts#comments#review(<q-args>)'
@@ -77,4 +78,7 @@ augroup prompts
   autocmd!
   autocmd FileType qf nnoremap <buffer><silent><expr> =
         \ prompts#comments#in_list() ? '<Cmd>call prompts#comments#thread()<CR>' : '='
+  " qf-tools' dd / u in that list: the comments removed are done, those put
+  " back aren't
+  autocmd User QfToolsChanged call prompts#comments#sync_done()
 augroup END

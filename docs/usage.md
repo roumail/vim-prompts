@@ -114,9 +114,10 @@ is shown.
 
 ## :AiComments
 
-`:AiComments [file]` opens the agent's comments on lines, written for an ask
+`:AiComments[!] [file]` opens the agent's comments on lines, written for an ask
 with [`#agent_comments`](sources/agent_comments.md), as a new quickfix list:
-the newest file without an argument, `<Tab>` for the others. Step through
+the newest file without an argument, `<Tab>` for the others. Those you `dd`
+from the list are done and left out next time; `!` shows them too. Step through
 them with `:cnext`; `:colder` goes back to the list before (your `Review`
 comments, say). In its window, `:AiReply` replies on the comment under the
 cursor and `=` shows its thread ([replying](sources/agent_comments.md#replying)).
