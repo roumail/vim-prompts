@@ -48,13 +48,15 @@ The core gives you:
 - **Sources:** `@path`, `#file`, `#commits`, `#quickfix`, `#rule`, `#repo`,
   `#stackoverflow` and `#url`.
 
-Each plugin below adds a module on top of the core:
+Each row below adds a module on top of the core, and **Needs** is the whole
+set of plugins it takes besides the core:
 
-| Add | Module | Adds |
+| Needs | Module | Adds |
 | --- | --- | --- |
-| [fugitive-extras](https://github.com/roumail/fugitive-extras) | Your branch and your review | `#changes`, diffed against your default branch, and with it `/review`; `#diff_pairs`, which names `:BranchDiff`'s comparisons; `#comments`, your `:Comment`s; `:AiCommentsLoad`, which puts the agent's comments in fugitive-extras' Review list |
+| [fugitive-extras](https://github.com/roumail/fugitive-extras) | Your branch and your review | `#changes`, diffed against your default branch, and with it `/review`; `#diff_pairs`, which names `:BranchDiff`'s comparisons; `#comments`, your `:Comment`s |
 | [vim-review](https://github.com/roumail/vim-review) | The agent's comments | `#agent_comments`, read in vim-review's format: `:AiComments` steps through them, `:AiReply`, `:AiReplyDraft` and `:AiThread` go back and forth on one, and `:AiCommentsClear` clears them |
-| [vim-lists](https://github.com/roumail/vim-lists) | Reviews | `:AiCommentsList`, the agent's reviews here, to open or clear (with vim-review) |
+| vim-review + [vim-lists](https://github.com/roumail/vim-lists) | Reviews | `:AiCommentsList`, the agent's reviews here, to open or clear |
+| vim-review + fugitive-extras | The agent's comments as yours | `:AiCommentsLoad`, which puts the agent's comments in fugitive-extras' Review list, to change and post as your own |
 
 All of it:
 

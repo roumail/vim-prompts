@@ -45,7 +45,9 @@ function! prompts#comments#lines(file, start, end) abort
 endfunction
 
 function! prompts#comments#review(file) abort
-  if !prompts#requires(':' . prompts#namespace() . 'CommentsLoad', 'fugitive-extras', 'fugitive_extras')
+  let l:what = ':' . prompts#namespace() . 'CommentsLoad'
+  if !prompts#requires(l:what, 'fugitive-extras', 'fugitive_extras')
+        \ || !prompts#requires(l:what, 'vim-review', 'review')
     return
   endif
   let l:file = s:file(a:file)
@@ -414,7 +416,9 @@ endfunction
 " comments, done and threads, and the files they are on. <CR> opens one as
 " :AiComments, dd clears it as :AiCommentsClear
 function! prompts#comments#list() abort
-  if !prompts#requires(':' . prompts#namespace() . 'CommentsList', 'vim-lists', 'roumail_lists')
+  let l:what = ':' . prompts#namespace() . 'CommentsList'
+  if !prompts#requires(l:what, 'vim-lists', 'roumail_lists')
+        \ || !prompts#requires(l:what, 'vim-review', 'review')
     return
   endif
   let l:dir = prompts#comments#dir(bufnr())
