@@ -3,6 +3,21 @@ function! prompts#namespace() abort
   return toupper(l:ns[0]) . l:ns[1:]
 endfunction
 
+" Whether the plugin with the autoload file autoload/{name}.vim is installed:
+" the sources and commands that use one check for it first
+function! prompts#installed(name) abort
+  return !empty(globpath(&runtimepath, 'autoload/' . a:name . '.vim', 1))
+endfunction
+
+" The same, saying what needs the plugin when it isn't installed
+function! prompts#requires(what, plugin, name) abort
+  if prompts#installed(a:name)
+    return 1
+  endif
+  call prompts#error(a:what . ' needs ' . a:plugin . ', which is not installed')
+  return 0
+endfunction
+
 function! prompts#error(msg) abort
   echohl ErrorMsg
   echomsg 'vim-prompts: ' . a:msg

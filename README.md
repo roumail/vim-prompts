@@ -22,29 +22,48 @@ and you carry on the conversation there.
 
 ## Install
 
-Requires Vim 9.1+, the agent CLI (installed and logged in), and:
+Requires Vim 9.1+ and the agent CLI, installed and logged in. The core is
+vim-prompts and three plugins:
 
 - [vim-fugitive](https://github.com/tpope/vim-fugitive): finds the
   repository and runs git.
 - [vim-dispatch](https://github.com/tpope/vim-dispatch): starts the agent
   (`:Start`), in a Vim terminal or a tmux window.
-- [fugitive-extras](https://github.com/roumail/fugitive-extras): knows your default
-  branch, which `#changes` diffs against, the `:BranchDiff` comparisons
-  `#diff_pairs` names, and the review comments (`:Comment`) that `#comments`
-  sends.
-- [vim-review](https://github.com/roumail/vim-review): the format the agent
-  writes its comments in (`#agent_comments`).
-- [vim-draft](https://github.com/roumail/vim-draft): the buffer `:AiDraft`
-  writes in.
-- [vim-lists](https://github.com/roumail/vim-lists): the `:AiCommentsList`
-  list.
+- [vim-draft](https://github.com/roumail/vim-draft): where prompts and
+  settings are kept for each repository and work tree, and the buffer
+  `:AiDraft` writes in.
 
 ```vim
 Plug 'tpope/vim-fugitive'
 Plug 'tpope/vim-dispatch'
+Plug 'roumail/vim-draft'
+Plug 'roumail/vim-prompts'
+```
+
+The core gives you:
+
+- **Asking:** `:Ai`, `:Ai!`, `:AiDraft` and `:AiPreview`.
+- **Briefing:** the rules and personas, with `:AiRules`, `:AiRule`,
+  `:AiPersonas`, `:AiUnset` and `/default`.
+- **Sources:** `@path`, `#file`, `#commits`, `#quickfix`, `#rule`, `#repo`,
+  `#stackoverflow` and `#url`.
+
+Each plugin below adds a module on top of the core:
+
+| Add | Module | Adds |
+| --- | --- | --- |
+| [fugitive-extras](https://github.com/roumail/fugitive-extras) | Your branch and your review | `#changes`, diffed against your default branch, and with it `/review`; `#diff_pairs`, which names `:BranchDiff`'s comparisons; `#comments`, your `:Comment`s; `:AiCommentsLoad`, which puts the agent's comments in fugitive-extras' Review list |
+| [vim-review](https://github.com/roumail/vim-review) | The agent's comments | `#agent_comments`, read in vim-review's format: `:AiComments` steps through them, `:AiReply`, `:AiReplyDraft` and `:AiThread` go back and forth on one, and `:AiCommentsClear` clears them |
+| [vim-lists](https://github.com/roumail/vim-lists) | Reviews | `:AiCommentsList`, the agent's reviews here, to open or clear (with vim-review) |
+
+All of it:
+
+```vim
+Plug 'tpope/vim-fugitive'
+Plug 'tpope/vim-dispatch'
+Plug 'roumail/vim-draft'
 Plug 'roumail/fugitive-extras'
 Plug 'roumail/vim-review'
-Plug 'roumail/vim-draft'
 Plug 'roumail/vim-lists'
 Plug 'roumail/vim-prompts'
 ```
@@ -67,8 +86,8 @@ Only this first prompt is sent from Vim.
 that asks for you. Without one you get `/default`, which adds nothing to
 your query but your rules.
 
-**If you want it to look at your change,** `/review` brings in your branch,
-committed or not; `#changes:staged` narrows it to what's staged:
+**If you want it to look at your change** (with fugitive-extras), `/review`
+brings in your branch, committed or not; `#changes:staged` narrows it to what's staged:
 
 ```vim
 :Ai /review is the error handling consistent
@@ -97,7 +116,7 @@ the answer in a scratch buffer below, while you keep working:
 `:'<,'>Ai! what does this return on an empty list`. `:Ai!` alone goes back
 to it ([usage](docs/usage.md#ai)).
 
-**If the agent left comments on your lines,** reply on one to go back and
+**If the agent left comments on your lines** (with vim-review), reply on one to go back and
 forth on it alone: `:AiReplyDraft` on it in the `:AiComments` list writes a
 reply, the agent answers as a one-off into that comment's thread, and `=` shows the
 thread ([replying](docs/sources/agent_comments.md#replying)).

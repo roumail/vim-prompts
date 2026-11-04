@@ -1,6 +1,8 @@
 " #diff_pairs[:name]: docs/sources/diff_pairs.md
 function! prompts#sources#diff_pairs#info() abort
-  return {'needs': 'a diff (:DiffThis, :BranchDiff), or a comparison listed in :Compares',
+  " fugitive-extras keeps the comparisons
+  return {'needs': prompts#installed('fugitive_extras')
+        \   ? 'a diff (:DiffThis, :BranchDiff), or a comparison listed in :Compares' : 'fugitive-extras, which is not installed',
         \ 'arg': 'optional'}
 endfunction
 
@@ -10,6 +12,9 @@ function! s:dir(bufnr) abort
 endfunction
 
 function! prompts#sources#diff_pairs#complete(lead) abort
+  if !prompts#installed('fugitive_extras')
+    return []
+  endif
   return filter(map(fugitive_extras#compares#list(s:dir(bufnr())), 'v:val.name'),
         \ 'stridx(v:val, a:lead) == 0')
 endfunction
@@ -43,6 +48,9 @@ function! s:diff(compare) abort
 endfunction
 
 function! prompts#sources#diff_pairs#context(request, arg) abort
+  if !prompts#installed('fugitive_extras')
+    return ''
+  endif
   let l:compares = fugitive_extras#compares#list(s:dir(a:request.bufnr))
   let l:named = empty(a:arg)
         \ ? filter(copy(l:compares), 'index(v:val.tabs, tabpagenr()) >= 0')

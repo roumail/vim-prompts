@@ -45,6 +45,9 @@ function! prompts#comments#lines(file, start, end) abort
 endfunction
 
 function! prompts#comments#review(file) abort
+  if !prompts#requires(':' . prompts#namespace() . 'CommentsLoad', 'fugitive-extras', 'fugitive_extras')
+    return
+  endif
   let l:file = s:file(a:file)
   if !empty(l:file)
     call fugitive_extras#comments#load(l:file)
@@ -69,6 +72,9 @@ function! s:parse(file, root) abort
 endfunction
 
 function! prompts#comments#load(file, ...) abort
+  if !prompts#requires(':' . prompts#namespace() . 'Comments', 'vim-review', 'review')
+    return
+  endif
   let l:all = get(a:, 1, 0)
   let l:file = s:file(a:file)
   if empty(l:file)
@@ -408,6 +414,9 @@ endfunction
 " comments, done and threads, and the files they are on. <CR> opens one as
 " :AiComments, dd clears it as :AiCommentsClear
 function! prompts#comments#list() abort
+  if !prompts#requires(':' . prompts#namespace() . 'CommentsList', 'vim-lists', 'roumail_lists')
+    return
+  endif
   let l:dir = prompts#comments#dir(bufnr())
   if empty(l:dir)
     call prompts#error('no comments from the agent outside a repository')

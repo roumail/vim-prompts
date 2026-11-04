@@ -1,9 +1,14 @@
 " #comments: docs/sources/comments.md
 function! prompts#sources#comments#info() abort
-  return {'needs': 'review comments (:Comment)', 'arg': 'none'}
+  " fugitive-extras keeps the review comments
+  return {'needs': prompts#installed('fugitive_extras') ? 'review comments (:Comment)' : 'fugitive-extras, which is not installed',
+        \ 'arg': 'none'}
 endfunction
 
 function! prompts#sources#comments#context(request, arg) abort
+  if !prompts#installed('fugitive_extras')
+    return ''
+  endif
   let l:comments = fugitive_extras#comments#list()
   if empty(l:comments)
     return ''

@@ -1,6 +1,9 @@
 " #changes[:scope]: docs/sources/changes.md
 function! prompts#sources#changes#info() abort
-  return {'needs': 'changes (on this branch; #changes:staged; #changes:<branch>)', 'arg': 'optional'}
+  " fugitive-extras knows the default branch the branch is diffed against
+  return {'needs': prompts#installed('fugitive_extras')
+        \   ? 'changes (on this branch; #changes:staged; #changes:<branch>)' : 'fugitive-extras, which is not installed',
+        \ 'arg': 'optional'}
 endfunction
 
 function! s:git(bufnr, args) abort
@@ -9,6 +12,9 @@ function! s:git(bufnr, args) abort
 endfunction
 
 function! prompts#sources#changes#context(request, arg) abort
+  if !prompts#installed('fugitive_extras')
+    return ''
+  endif
   if a:arg ==# 'staged'
     let [l:args, l:what] = [['--cached'], 'Staged changes']
   else
