@@ -87,10 +87,11 @@ told to read the file.
 
 The newest `g:prompts_keep` prompts (50) are kept and older ones deleted. In
 a linked work tree they are in its own git dir, so removing the work tree
-removes them. Outside a repository they go in `vim-prompts/prompts/` in
-[vim-draft](https://github.com/roumail/vim-draft)'s save directory
-(`g:roumail_draft_save_dir`, `~/scratch`), which, unlike Vim's temporary files,
-is still there for an agent reading a long prompt after Vim exits.
+removes them. Outside a repository they go in `vim-prompts/prompts/` where
+[vim-draft](https://github.com/roumail/vim-draft) keeps plugins' files outside
+a repository (`g:roumail_draft_save_dir`, else the XDG state directory), which,
+unlike Vim's temporary files, is still there for an agent reading a long
+prompt after Vim exits.
 
 ## Another CLI
 

@@ -1,10 +1,8 @@
+" Where the agent's comments are kept, as vim-draft says: in the work tree's
+" own git dir. '' outside a repository, as their paths are the repository's
 function! prompts#comments#dir(bufnr) abort
-  let l:dir = FugitiveGitDir(a:bufnr)
-  if empty(l:dir)
-    " From the quickfix window, say
-    let l:dir = FugitiveExtractGitDir(getcwd())
-  endif
-  return empty(l:dir) ? '' : l:dir . '/vim-prompts/comments'
+  return prompts#config#place(a:bufnr).repo
+        \ ? roumail_draft#dir('vim-prompts/comments', {'bufnr': a:bufnr, 'worktree': 1}) : ''
 endfunction
 
 function! s:files(dir) abort
