@@ -46,12 +46,8 @@ Plug 'roumail/fugitive-extras'
 Plug 'roumail/vim-review'
 Plug 'roumail/vim-draft'
 Plug 'roumail/vim-lists'
-Plug 'roumail/vim-requires'  " optional: the startup warning
 Plug 'roumail/vim-prompts'
 ```
-
-With [vim-requires](https://github.com/roumail/vim-requires), Vim shows
-`vim-prompts: requires …` at startup when one isn't loaded.
 
 ## Use
 

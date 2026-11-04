@@ -3,19 +3,6 @@ if exists('g:loaded_prompts')
 endif
 let g:loaded_prompts = 1
 
-" roumail/vim-requires is optional
-try
-  call roumail_requires#check('vim-prompts', {
-        \ 'tpope/vim-fugitive': 'g:loaded_fugitive',
-        \ 'tpope/vim-dispatch': 'g:loaded_dispatch',
-        \ 'roumail/fugitive-extras': 'g:loaded_fugitive_extras',
-        \ 'roumail/vim-review': 'g:loaded_review',
-        \ 'roumail/vim-draft': 'g:loaded_roumail_draft',
-        \ 'roumail/vim-lists': 'g:loaded_roumail_lists',
-        \ })
-catch /^Vim\%((\a\+)\)\=:E117:/
-endtry
-
 let s:ns = prompts#namespace()
 " [/persona] [#source[:arg]...] [@path...] [--<mode>-mode] [--bare]
 " [query] [-- text]: ask the persona (default: `default`) with its context
