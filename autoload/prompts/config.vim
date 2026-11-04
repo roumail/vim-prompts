@@ -2,16 +2,6 @@
 
 let s:keys = ['personas', 'rules', 'task-rules', 'repository']
 
-function! prompts#config#place(bufnr) abort
-  for l:gitdir in [FugitiveGitDir(a:bufnr), FugitiveExtractGitDir(getcwd())]
-    let l:tree = empty(l:gitdir) ? '' : FugitiveWorkTree(l:gitdir)
-    if !empty(l:tree)
-      return {'dir': l:tree, 'repo': 1}
-    endif
-  endfor
-  return {'dir': getcwd(), 'repo': 0}
-endfunction
-
 function! prompts#config#home() abort
   return empty($XDG_CONFIG_HOME) ? expand('~/.config') : $XDG_CONFIG_HOME
 endfunction
@@ -27,7 +17,7 @@ function! prompts#config#show(path, place) abort
 endfunction
 
 function! prompts#config#get(bufnr) abort
-  let l:place = prompts#config#place(a:bufnr)
+  let l:place = roumail_draft#place(a:bufnr)
   let l:config = {'place': l:place, 'personas': [], 'rules': [], 'hidden': [],
         \ 'task-rules': [], 'repository': {}, 'entries': [], 'errors': []}
   let l:lines = systemlist('git -C ' . shellescape(l:place.dir)

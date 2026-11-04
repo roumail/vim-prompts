@@ -1,7 +1,7 @@
 " Where the agent's comments are kept, as vim-draft says: in the work tree's
 " own git dir. '' outside a repository, as their paths are the repository's
 function! prompts#comments#dir(bufnr) abort
-  return prompts#config#place(a:bufnr).repo
+  return roumail_draft#place(a:bufnr).repo
         \ ? roumail_draft#dir('vim-prompts/comments', {'bufnr': a:bufnr, 'worktree': 1}) : ''
 endfunction
 
@@ -74,7 +74,7 @@ function! prompts#comments#load(file, ...) abort
   if empty(l:file)
     return
   endif
-  let l:root = prompts#config#place(bufnr()).dir
+  let l:root = roumail_draft#place(bufnr()).dir
   let [l:items, l:skipped] = s:parse(l:file, l:root)
   let l:done = s:done(l:file)
   let l:hidden = l:all ? 0 : len(filter(copy(l:items), 'has_key(l:done, v:val.user_data.n)'))
@@ -413,7 +413,7 @@ function! prompts#comments#list() abort
     call prompts#error('no comments from the agent outside a repository')
     return
   endif
-  let l:bufnr = bufadd('ai-comments://' . fnamemodify(prompts#config#place(bufnr()).dir, ':t'))
+  let l:bufnr = bufadd('ai-comments://' . fnamemodify(roumail_draft#place(bufnr()).dir, ':t'))
   if bufwinid(l:bufnr) > 0
     call win_gotoid(bufwinid(l:bufnr))
   else
