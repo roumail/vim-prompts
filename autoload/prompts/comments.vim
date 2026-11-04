@@ -418,8 +418,8 @@ function! prompts#comments#list() abort
         \ 'heading': {reviews -> ['Agent reviews (' . len(reviews) . ')']},
         \ 'rows': function('s:list_rows'), 'id': {r -> r.name},
         \ 'match': {r -> r.name . ' ' . join(r.paths)},
-        \ 'keys': [{'key': '<CR>', 'hint': 'open', 'call': function('s:list_open')},
-        \          {'key': 'dd', 'hint': 'clear', 'call': function('s:list_clear')}]},
+        \ 'delete': {r -> prompts#comments#clear(r.file)},
+        \ 'keys': [{'key': '<CR>', 'hint': 'open', 'call': function('s:list_open')}]},
         \ {'prompts_comments_dir': l:dir})
 endfunction
 
@@ -456,14 +456,6 @@ function! s:list_open() abort
   if !empty(l:review)
     wincmd p
     call prompts#comments#load(l:review.file)
-  endif
-endfunction
-
-function! s:list_clear() abort
-  let l:review = roumail_lists#item()
-  if !empty(l:review)
-    call prompts#comments#clear(l:review.file)
-    call roumail_lists#refresh()
   endif
 endfunction
 
