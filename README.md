@@ -36,6 +36,8 @@ Requires Vim 9.1+, the agent CLI (installed and logged in), and:
   writes its comments in (`#agent_comments`).
 - [vim-draft](https://github.com/roumail/vim-draft): the buffer `:AiDraft`
   writes in.
+- [vim-lists](https://github.com/roumail/vim-lists): the `:AiCommentsList`
+  list.
 
 ```vim
 Plug 'tpope/vim-fugitive'
@@ -43,6 +45,7 @@ Plug 'tpope/vim-dispatch'
 Plug 'roumail/fugitive-extras'
 Plug 'roumail/vim-review'
 Plug 'roumail/vim-draft'
+Plug 'roumail/vim-lists'
 Plug 'roumail/vim-requires'  " optional: the startup warning
 Plug 'roumail/vim-prompts'
 ```

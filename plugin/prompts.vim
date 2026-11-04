@@ -11,6 +11,7 @@ try
         \ 'roumail/fugitive-extras': 'g:loaded_fugitive_extras',
         \ 'roumail/vim-review': 'g:loaded_review',
         \ 'roumail/vim-draft': 'g:loaded_roumail_draft',
+        \ 'roumail/vim-lists': 'g:loaded_roumail_lists',
         \ })
 catch /^Vim\%((\a\+)\)\=:E117:/
 endtry

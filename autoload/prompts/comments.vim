@@ -413,66 +413,57 @@ function! prompts#comments#list() abort
     call prompts#error('no comments from the agent outside a repository')
     return
   endif
-  let l:bufnr = bufadd('ai-comments://' . fnamemodify(roumail_draft#place(bufnr()).dir, ':t'))
-  if bufwinid(l:bufnr) > 0
-    call win_gotoid(bufwinid(l:bufnr))
-  else
-    execute 'botright sbuffer' l:bufnr
-    setlocal buftype=nofile bufhidden=wipe noswapfile nowrap nomodifiable
-    nnoremap <buffer><silent> <CR> <Cmd>call <SID>list_open()<CR>
-    nnoremap <buffer><silent> dd <Cmd>call <SID>list_clear()<CR>
-    nnoremap <buffer><silent> q <Cmd>close<CR>
-  endif
-  let b:prompts_comments_dir = l:dir
-  let &l:statusline = '%f%=<CR> opens  dd clears  q closes '
-  call s:list_draw()
+  call roumail_lists#open('ai-comments://' . fnamemodify(roumail_draft#place(bufnr()).dir, ':t'), {
+        \ 'fetch': function('s:list_fetch'),
+        \ 'heading': {reviews -> ['Agent reviews (' . len(reviews) . ')']},
+        \ 'rows': function('s:list_rows'), 'id': {r -> r.name},
+        \ 'match': {r -> r.name . ' ' . join(r.paths)},
+        \ 'keys': [{'key': '<CR>', 'hint': 'open', 'call': function('s:list_open')},
+        \          {'key': 'dd', 'hint': 'clear', 'call': function('s:list_clear')}]},
+        \ {'prompts_comments_dir': l:dir})
 endfunction
 
-function! s:list_draw() abort
-  let l:files = s:files(b:prompts_comments_dir)
-  let b:prompts_comments_files = l:files
-  let l:lines = []
-  for l:name in l:files
+function! s:list_fetch() abort
+  let l:reviews = []
+  for l:name in s:files(b:prompts_comments_dir)
     let l:file = b:prompts_comments_dir . '/' . l:name
     let l:items = s:parse(l:file, '')[0]
-    let l:threads = len(glob(fnamemodify(l:file, ':r') . '/*.md', 1, 1))
     let l:paths = []
     for l:item in l:items
       if index(l:paths, l:item.user_data.path) < 0
         call add(l:paths, l:item.user_data.path)
       endif
     endfor
-    call add(l:lines, printf('%-20s  %s  %2d comments  %2d done  %2d threads  %s',
-          \ fnamemodify(l:name, ':r'), strftime('%Y-%m-%d %H:%M', getftime(l:file)),
-          \ len(l:items), len(s:done(l:file)), l:threads,
-          \ join(map(l:paths, 'fnamemodify(v:val, ":t")'), ', ')))
+    call add(l:reviews, {'name': l:name, 'file': l:file, 'comments': len(l:items),
+          \ 'done': len(s:done(l:file)), 'paths': map(l:paths, 'fnamemodify(v:val, ":t")'),
+          \ 'threads': len(glob(fnamemodify(l:file, ':r') . '/*.md', 1, 1))})
   endfor
-  let l:line = line('.')
-  setlocal modifiable
-  silent %delete _
-  call setline(1, empty(l:lines) ? ['(no reviews here: ask with #agent_comments)'] : l:lines)
-  setlocal nomodifiable nomodified
-  call cursor(min([l:line, line('$')]), 1)
+  return l:reviews
 endfunction
 
-function! s:list_name() abort
-  return get(get(b:, 'prompts_comments_files', []), line('.') - 1, '')
+function! s:list_rows(reviews) abort
+  if empty(s:files(b:prompts_comments_dir))
+    return [{'lines': ['(no reviews here: ask with #agent_comments)']}]
+  endif
+  return map(copy(a:reviews), {_, r -> {'item': r, 'lines': [printf(
+        \ '%-20s  %s  %2d comments  %2d done  %2d threads  %s',
+        \ fnamemodify(r.name, ':r'), strftime('%Y-%m-%d %H:%M', getftime(r.file)),
+        \ r.comments, r.done, r.threads, join(r.paths, ', '))]}})
 endfunction
 
 function! s:list_open() abort
-  let l:name = s:list_name()
-  if !empty(l:name)
-    let l:file = b:prompts_comments_dir . '/' . l:name
+  let l:review = roumail_lists#item()
+  if !empty(l:review)
     wincmd p
-    call prompts#comments#load(l:file)
+    call prompts#comments#load(l:review.file)
   endif
 endfunction
 
 function! s:list_clear() abort
-  let l:name = s:list_name()
-  if !empty(l:name)
-    call prompts#comments#clear(b:prompts_comments_dir . '/' . l:name)
-    call s:list_draw()
+  let l:review = roumail_lists#item()
+  if !empty(l:review)
+    call prompts#comments#clear(l:review.file)
+    call roumail_lists#refresh()
   endif
 endfunction
 
