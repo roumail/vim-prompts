@@ -118,7 +118,7 @@ endfunction
 
 " Where prompts are written: vim-draft says, in a linked work tree's own git
 " dir, which git removes with the work tree, as the prompts are of no use
-" after it (vim-review's saves, which outlive work trees and
+" after it (fugitive-extras' comment saves, which outlive work trees and
 " branches, go in the common one). Outside a repository, vim-draft's save
 " directory, not tempname(): Vim deletes that on exit, and the agent may read
 " a long prompt after Vim exits.

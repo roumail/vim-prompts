@@ -4,11 +4,11 @@ function! prompts#sources#comments#info() abort
 endfunction
 
 function! prompts#sources#comments#context(request, arg) abort
-  let l:comments = review#list()
+  let l:comments = fugitive_extras#comments#list()
   if empty(l:comments)
     return ''
   endif
-  let l:root = review#root()
+  let l:root = FugitiveWorkTree()
   let l:blocks = []
   for l:c in l:comments
     call add(l:blocks, l:c.path . ':' . l:c.start . (l:c.end > l:c.start ? '-' . l:c.end : '')

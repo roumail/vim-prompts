@@ -13,7 +13,8 @@ back.
 The file is new for each ask, in the repository's git dir (each worktree's
 own), next to the prompts: `<git dir>/vim-prompts/comments/<time>.txt`. The
 agent is told the path and the format, which is
-[vim-review](https://github.com/roumail/vim-review)'s save format:
+[vim-review](https://github.com/roumail/vim-review)'s format, the one
+fugitive-extras saves your comments in:
 
 ```
 src/app.py:12: 1. [blocking] could you check the None case here?
@@ -50,7 +51,7 @@ they were asked in, so removing a work tree removes its reviews.
 | `:AiCommentsList` | The reviews here, newest first: when, how many comments, done and threads, and the files they are on. `<CR>` opens one as `:AiComments`, `dd` clears it, `q` closes the list. |
 | `:AiCommentsClear [file]` | Delete a review with its threads and what is done in it, once you confirm. Without `file`, the one in the agent's list; `<Tab>` lists them. A list showing it is emptied. |
 
-Your own comments stay where they are: vim-review's `Review` list is a
+Your own comments stay where they are: fugitive-extras' `Review` list is a
 list of its own, and `:colder` goes back to it. To make the agent's
 comments yours, `:AiCommentsLoad` loads the file into the `Review` list
 instead, replacing what it holds, as `:CommentsLoad` does; for one of
@@ -64,7 +65,7 @@ To take one comment further without the rest, reply on it. In the
 | Key / command | What it does |
 | --- | --- |
 | `:AiReply [text]` | Send `text` on the comment; prompts unless it is given. Leaving the prompt with `<Esc>` keeps what you typed: `:AiReply` or `:AiReplyDraft` on the same comment goes on from it. |
-| `:AiReplyDraft [text]` | Write the reply in a draft above (`g:prompts_reply_height`, default `g:review_comment_height`, else 10), starting with `text` if given, else with what you left at the `:AiReply` prompt. `:w` saves it, closing it sends it, `:q!` before any `:w` drops it. |
+| `:AiReplyDraft [text]` | Write the reply in a draft above (`g:prompts_reply_height`, default 10), starting with `text` if given, else with what you left at the `:AiReply` prompt. `:w` saves it, closing it sends it, `:q!` before any `:w` drops it. |
 | `:AiThread` (`=`) | Show the comment's thread. |
 
 Outside the list they work on its current comment, where `:cnext` took
@@ -89,8 +90,8 @@ instead, briefed the same way, for when the answer is "fix it". The thread
 notes the reply; the answer is in the session.
 
 To take a reply you're typing to a draft, change `AiReply` to
-`AiReplyDraft` on the command line and press Enter. To bind vim-review's
-keys, `<Plug>(prompts-reply)` leaves `:AiReply ` on the command line and
+`AiReplyDraft` on the command line and press Enter. To bind fugitive-extras'
+`:Comment` keys, `<Plug>(prompts-reply)` leaves `:AiReply ` on the command line and
 `<Plug>(prompts-reply-draft)` is `:AiReplyDraft`;
 `<Plug>(prompts-reply-session)` and `<Plug>(prompts-reply-draft-session)`
 are the same with `!`, to a session. In the list, where every quickfix
@@ -99,7 +100,7 @@ the others; a thread's buffer is `ai-thread://…`:
 
 ```vim
 autocmd FileType qf nmap <buffer><expr> <leader>cc
-      \ prompts#comments#in_list() ? '<Plug>(prompts-reply)' : '<Plug>(review-comment)'
+      \ prompts#comments#in_list() ? '<Plug>(prompts-reply)' : '<Plug>(fugitive-extras-comment)'
 autocmd FileType qf nmap <buffer><expr> <leader>cC
       \ prompts#comments#in_list() ? '<Plug>(prompts-reply-session)' : ''
 autocmd BufEnter ai-thread://* nmap <buffer> <leader>cc <Plug>(prompts-reply)

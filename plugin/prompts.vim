@@ -44,7 +44,7 @@ execute 'command! -nargs=? -complete=customlist,prompts#comments#complete '
       \ . s:ns . 'CommentsClear call prompts#comments#clear(<q-args>)'
 " The reviews here, to open or clear
 execute 'command! ' . s:ns . 'CommentsList call prompts#comments#list()'
-" The same comments in vim-review's Review list, as :CommentsLoad
+" The same comments in fugitive-extras' Review list, as :CommentsLoad
 execute 'command! -nargs=? -complete=customlist,prompts#comments#complete '
       \ . s:ns . 'CommentsLoad call prompts#comments#review(<q-args>)'
 " A reply on the agent's comment under the cursor (or the current one of
@@ -70,8 +70,8 @@ execute 'xnoremap <Plug>(prompts-draft) :' . s:ns . 'Draft<Space>'
 execute 'nnoremap <Plug>(prompts-rule) :<C-u>' . s:ns . 'Rule<Space>'
 execute 'xnoremap <Plug>(prompts-rule) :' . s:ns . 'Rule<Space>'
 
-" They leave :AiReply on the command line to finish, as vim-review's
-" <Plug>(review-comment) does :Comment; -session ones send to a session (!)
+" They leave :AiReply on the command line to finish, as fugitive-extras'
+" <Plug>(fugitive-extras-comment) does :Comment; -session ones send to a session (!)
 execute 'nnoremap <Plug>(prompts-reply) :<C-u>' . s:ns . 'Reply<Space>'
 execute 'nnoremap <Plug>(prompts-reply-draft) <Cmd>' . s:ns . 'ReplyDraft<CR>'
 execute 'nnoremap <Plug>(prompts-reply-session) :<C-u>' . s:ns . 'Reply!<Space>'

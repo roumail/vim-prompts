@@ -1,9 +1,9 @@
 # #comments
 
-Your review comments, from [vim-review](https://github.com/roumail/vim-review).
+Your review comments, from [fugitive-extras](https://github.com/roumail/fugitive-extras).
 Leave one on a line or a selection with `:Comment`; they collect in a
 quickfix list called Review (`:Comments` opens it), and `:CommentsSave` /
-`:CommentsLoad` keep them (per branch, with fugitive-extras).
+`:CommentsLoad` keep them, per branch.
 
 Each comment goes with the lines it is on, quoted from the file as it is now:
 
@@ -31,7 +31,7 @@ Say what you want done with them; the comments alone aren't a question:
 
 `/review #comments` reviews the change and answers each comment. Comments
 stay in the list after an ask, until you load others over them or clear
-them (`review#clear()`).
+them (`:CommentsClear`).
 
 For the agent's comments the other way, as a quickfix list of their own, see
 [`#agent_comments`](agent_comments.md).

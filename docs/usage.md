@@ -151,7 +151,7 @@ read-only, as the file is the thread: replies go in with `:AiReply` or
 
 ## :AiCommentsLoad
 
-`:AiCommentsLoad [file]` loads the same comments into vim-review's `Review`
+`:AiCommentsLoad [file]` loads the same comments into fugitive-extras' `Review`
 list, to make them yours, as `:CommentsLoad` does with a save: they replace
 what the list holds (`:CommentsSave` first to keep those). The same files
 as `:AiComments`, the newest without an argument.
@@ -262,7 +262,7 @@ xmap <leader>ar <Plug>(prompts-rule)
 
 `<Plug>(prompts-reply)` leaves `:AiReply ` on the command line to finish,
 and `<Plug>(prompts-reply-draft)` is `:AiReplyDraft`, to bind the keys
-vim-review's `:Comment` has. `<Plug>(prompts-reply-session)` and
+fugitive-extras' `:Comment` has. `<Plug>(prompts-reply-session)` and
 `<Plug>(prompts-reply-draft-session)` are the same with `!`, to a session:
 
 ```vim

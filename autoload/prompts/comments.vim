@@ -47,34 +47,25 @@ endfunction
 function! prompts#comments#review(file) abort
   let l:file = s:file(a:file)
   if !empty(l:file)
-    call review#load(l:file)
+    call fugitive_extras#comments#load(l:file)
   endif
 endfunction
 
 " The comments in file as quickfix items under root, and how many lines
 " weren't in the format
 function! s:parse(file, root) abort
+  let l:read = review#read(a:file)
   let l:items = []
-  let l:skipped = 0
-  for l:line in readfile(a:file)
-    if l:line[0] ==# "\t" && !empty(l:items)
-      let l:items[-1].text .= "\n" . l:line[1:]
-      continue
-    endif
-    let l:m = matchlist(l:line, '^\(.\{-}\):\(\d\+\)\%(-\(\d\+\)\)\=: \(.*\)$')
-    if empty(l:m)
-      let l:skipped += !empty(trim(l:line))
-      continue
-    endif
-    let l:item = {'filename': a:root . '/' . l:m[1], 'lnum': str2nr(l:m[2]), 'text': l:m[4],
-          \ 'user_data': {'path': l:m[1], 'range': l:m[2] . (empty(l:m[3]) ? '' : '-' . l:m[3]),
-          \ 'n': len(l:items) + 1}}
-    if !empty(l:m[3])
-      let l:item.end_lnum = str2nr(l:m[3])
+  for l:c in l:read.comments
+    let l:range = l:c.start . (l:c.end > l:c.start ? '-' . l:c.end : '')
+    let l:item = {'filename': a:root . '/' . l:c.path, 'lnum': l:c.start, 'text': l:c.body,
+          \ 'user_data': {'path': l:c.path, 'range': l:range, 'n': len(l:items) + 1}}
+    if l:c.end > l:c.start
+      let l:item.end_lnum = l:c.end
     endif
     call add(l:items, l:item)
   endfor
-  return [l:items, l:skipped]
+  return [l:items, l:read.skipped]
 endfunction
 
 function! prompts#comments#load(file, ...) abort
@@ -90,7 +81,7 @@ function! prompts#comments#load(file, ...) abort
   if !l:all
     call filter(l:items, '!has_key(l:done, v:val.user_data.n)')
   endif
-  " A list of its own: vim-review's Review list holds my comments, and
+  " A list of its own: fugitive-extras' Review list holds my comments, and
   " :colder goes back to it. Its context says it is, for :AiReply and the
   " keys in its window, and which comments it shows, to tell what dd removed
   call setqflist([], ' ', {'title': 'Agent comments: ' . fnamemodify(l:file, ':t'), 'items': l:items,
@@ -317,7 +308,7 @@ function! s:open_draft(session, target, lines) abort
   call roumail_draft#open('ai-reply://' . a:target.label, a:lines,
         \ function('s:send_draft', [a:session, a:target]),
         \ {'split': 'aboveleft '
-        \     . get(g:, 'prompts_reply_height', get(g:, 'review_comment_height', 10)) . 'new',
+        \     . get(g:, 'prompts_reply_height', 10) . 'new',
         \  'saved': 'Reply saved: closing sends it',
         \  'empty': 'Reply empty: closing sends nothing'})
   setlocal filetype=markdown

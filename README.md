@@ -29,10 +29,11 @@ Requires Vim 9.1+, the agent CLI (installed and logged in), and:
 - [vim-dispatch](https://github.com/tpope/vim-dispatch): starts the agent
   (`:Start`), in a Vim terminal or a tmux window.
 - [fugitive-extras](https://github.com/roumail/fugitive-extras): knows your default
-  branch, which `#changes` diffs against, and the `:BranchDiff` comparisons
-  `#diff_pairs` names.
-- [vim-review](https://github.com/roumail/vim-review): the review comments
-  (`:Comment`) that `#comments` sends.
+  branch, which `#changes` diffs against, the `:BranchDiff` comparisons
+  `#diff_pairs` names, and the review comments (`:Comment`) that `#comments`
+  sends.
+- [vim-review](https://github.com/roumail/vim-review): the format the agent
+  writes its comments in (`#agent_comments`).
 - [vim-draft](https://github.com/roumail/vim-draft): the buffer `:AiDraft`
   writes in.
 
