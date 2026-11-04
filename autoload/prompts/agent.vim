@@ -116,16 +116,14 @@ function! prompts#agent#launch(prompt, meta, dirs) abort
   return 1
 endfunction
 
-" Where prompts are written. In a repository, its git dir: a linked work
-" tree's own, which git removes with the work tree, as the prompts are of
-" no use after it (vim-review's saves, which outlive work trees and branches,
-" go in the common one). Elsewhere, a state directory, not tempname(): Vim
-" deletes that on exit, and the agent may read a long prompt after Vim exits.
+" Where prompts are written: vim-draft says, given the git dir of a linked
+" work tree's own, which git removes with the work tree, as the prompts are
+" of no use after it (vim-review's saves, which outlive work trees and
+" branches, go in the common one). Outside a repository, vim-draft's save
+" directory, not tempname(): Vim deletes that on exit, and the agent may read
+" a long prompt after Vim exits.
 function! s:prompts_dir() abort
-  let l:dir = FugitiveGitDir()
-  return !empty(l:dir) ? l:dir . '/vim-prompts/prompts'
-        \ : (empty($XDG_STATE_HOME) ? expand('~/.local/state') : $XDG_STATE_HOME)
-        \   . '/vim-prompts/prompts'
+  return roumail_draft#dir(FugitiveGitDir(), 'vim-prompts/prompts')
 endfunction
 
 " Keeps the newest g:prompts_keep (50) prompts in dir: their names start
