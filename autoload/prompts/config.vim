@@ -17,7 +17,7 @@ function! prompts#config#show(path, place) abort
 endfunction
 
 function! prompts#config#get(bufnr) abort
-  let l:place = roumail_draft#place(a:bufnr)
+  let l:place = roumail_place#get(a:bufnr)
   let l:config = {'place': l:place, 'personas': [], 'rules': [], 'hidden': [],
         \ 'task-rules': [], 'repository': {}, 'entries': [], 'errors': []}
   let l:lines = systemlist('git -C ' . shellescape(l:place.dir)

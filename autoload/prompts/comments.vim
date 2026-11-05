@@ -1,8 +1,8 @@
-" Where the agent's comments are kept, as vim-draft says: in the work tree's
+" Where the agent's comments are kept, as vim-place says: in the work tree's
 " own git dir. '' outside a repository, as their paths are the repository's
 function! prompts#comments#dir(bufnr) abort
-  return roumail_draft#place(a:bufnr).repo
-        \ ? roumail_draft#dir('vim-prompts/comments', {'bufnr': a:bufnr, 'worktree': 1}) : ''
+  return roumail_place#get(a:bufnr).repo
+        \ ? roumail_place#dir('vim-prompts/comments', {'bufnr': a:bufnr, 'worktree': 1}) : ''
 endfunction
 
 function! s:files(dir) abort
@@ -82,7 +82,7 @@ function! prompts#comments#load(file, ...) abort
   if empty(l:file)
     return
   endif
-  let l:root = roumail_draft#place(bufnr()).dir
+  let l:root = roumail_place#get(bufnr()).dir
   let [l:items, l:skipped] = s:parse(l:file, l:root)
   let l:done = s:done(l:file)
   let l:hidden = l:all ? 0 : len(filter(copy(l:items), 'has_key(l:done, v:val.user_data.n)'))
@@ -302,6 +302,9 @@ endfunction
 " :AiReplyDraft[!] (a): the reply in a draft, starting with text, else with
 " what was left at the :AiReply prompt on that comment
 function! prompts#comments#reply_draft(session, text) abort
+  if !prompts#requires(':' . prompts#namespace() . 'ReplyDraft', 'vim-draft', 'roumail_draft')
+    return
+  endif
   let l:target = s:target()
   if empty(l:target)
     return
@@ -426,7 +429,7 @@ function! prompts#comments#list() abort
     call prompts#error('no comments from the agent outside a repository')
     return
   endif
-  call roumail_lists#open('ai-comments://' . fnamemodify(roumail_draft#place(bufnr()).dir, ':t'), {
+  call roumail_lists#open('ai-comments://' . fnamemodify(roumail_place#get(bufnr()).dir, ':t'), {
         \ 'fetch': function('s:list_fetch'),
         \ 'heading': {reviews -> ['Agent reviews (' . len(reviews) . ')']},
         \ 'rows': function('s:list_rows'), 'id': {r -> r.name},

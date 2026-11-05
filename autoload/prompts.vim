@@ -330,6 +330,9 @@ function! s:preview(oneoff, persona, request, prompt) abort
 endfunction
 
 function! prompts#draft(oneoff, range, line1, line2, args) abort
+  if !prompts#requires(':' . prompts#namespace() . 'Draft', 'vim-draft', 'roumail_draft')
+    return
+  endif
   call s:open_draft(a:oneoff, s:from(a:range, a:line1, a:line2), empty(a:args) ? [''] : [a:args, ''])
 endfunction
 
