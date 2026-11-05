@@ -158,49 +158,49 @@ as `:AiComments`, the newest without an argument.
 
 ## :AiPersonas
 
-`:AiPersonas[!]` shows the personas where you are: for each, whether it is
-loaded or hidden by a later one of its name, where it comes from (bundled
-with vim-prompts, or the `vim-prompts.personas` setting and the
-[scope](config.md#scopes) and file that set it), the context it asks for
-(its `#rule:`s included), those it builds on, and what it needs that isn't
-there. `!` reloads the source files first. The rules and the repository's
-description are `:AiRules`.
+`:AiPersonas[!]` lists the personas where you are, a line each: where its
+file is, where it comes from (`bundled` with vim-prompts, or the
+[scope](config.md#scopes) and file that set `vim-prompts.personas`), the
+context it asks for (its `#rule:`s included), those it builds on, and what
+it needs that isn't there from where you opened the list. One hidden by a
+later persona of its name is dimmed under it. `!` reloads the source files
+first. The rules and the repository's description are `:AiRules`.
+
+```
+Personas (4)  <CR> open  / filter  r refresh  q close
+  /default  ~/.vim/plugged/vim-prompts/personas/default.md  bundled
+  /review   ~/.vim/plugged/vim-prompts/personas/review.md   bundled  #changes
+  /tests    ~/work/handbook/personas/tests.md                global ~/work/.gitconfig  #file #rule:testing  /tests needs a file
+  /tests    ~/dotfiles/prompts/personas/tests.md             global ~/.gitconfig  hidden by ~/work/handbook/personas/tests.md
+```
 
 ## :AiRules
 
-`:AiRules` shows the rules files where you are, in the order they are
+`:AiRules` lists the rules files where you are, in the order they are
 sent, the repository's description, then the rules you ask for by name,
-`#rule:<name>` ([rules for a task](config.md#rules-for-a-task)). For each,
-whether it is loaded or hidden, and where it comes from: the setting, its
-[scope](config.md#scopes) and the file that sets it. A rules file hides an
-earlier one of its file name, so a group's `git.md` replaces yours.
+`#rule:<name>` ([rules for a task](config.md#rules-for-a-task)): for each,
+its file and where it comes from, the [scope](config.md#scopes) and the
+file that sets it. A rules file hides an earlier one of its file name, so a
+group's `git.md` replaces yours: the hidden one is dimmed under it. A
+setting that is wrong (a file that isn't there, an unknown key) is under
+the title.
 
 ```
-comments.md
-  ~/dotfiles/prompts/comments.md
-  loaded
-  from vim-prompts.rules, global ~/.gitconfig
-git.md
-  ~/work/handbook/git.md
-  loaded
-  from vim-prompts.rules, global ~/work/.gitconfig
+Rules (6)  <CR> open  / filter  r refresh  q close
+rules
+  comments.md    ~/dotfiles/prompts/comments.md         global ~/.gitconfig
+  git.md         ~/work/handbook/git.md                 global ~/work/.gitconfig
+  git.md         ~/dotfiles/prompts/git.md              global ~/.gitconfig  hidden by ~/work/handbook/git.md
 repository
-  .vim-prompts/repository.md
-  loaded
-  from vim-prompts.repository, local ~/work/app/.git/config
-git.md
-  ~/dotfiles/prompts/git.md
-  hidden by ~/work/handbook/git.md
-  from vim-prompts.rules, global ~/.gitconfig
-#rule:testing
-  .vim-prompts/task-rules/testing.md
-  loaded
-  from vim-prompts.task-rules, local ~/work/app/.git/config
-#rule:testing
-  ~/work/handbook/task-rules/testing.md
-  hidden by .vim-prompts/task-rules/testing.md
-  from vim-prompts.task-rules, global ~/work/.gitconfig
+  repository     .vim-prompts/repository.md             local ~/work/app/.git/config
+task rules, sent when asked for
+  #rule:testing  .vim-prompts/task-rules/testing.md     local ~/work/app/.git/config
+  #rule:testing  ~/work/handbook/task-rules/testing.md  global ~/work/.gitconfig  hidden by .vim-prompts/task-rules/testing.md
 ```
+
+Both are [vim-lists](https://github.com/roumail/vim-lists) lists: `<CR>`
+opens the file under the cursor in the window you came from, `/` filters on
+the name and the file, `r` reads the settings again, and `q` closes.
 
 ## :AiRule
 

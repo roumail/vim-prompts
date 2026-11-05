@@ -23,7 +23,7 @@ and you carry on the conversation there.
 ## Install
 
 Requires Vim 9.1+ and the agent CLI, installed and logged in. The core is
-vim-prompts and three plugins:
+vim-prompts and four plugins:
 
 - [vim-fugitive](https://github.com/tpope/vim-fugitive): finds the
   repository and runs git.
@@ -31,11 +31,14 @@ vim-prompts and three plugins:
   (`:Start`), in a Vim terminal or a tmux window.
 - [vim-place](https://github.com/roumail/vim-place): where settings are
   read from and prompts are kept, for each repository and work tree.
+- [vim-lists](https://github.com/roumail/vim-lists): the lists at the
+  bottom, `:AiRules` and `:AiPersonas`.
 
 ```vim
 Plug 'tpope/vim-fugitive'
 Plug 'tpope/vim-dispatch'
 Plug 'roumail/vim-place'
+Plug 'roumail/vim-lists'
 Plug 'roumail/vim-prompts'
 ```
 
@@ -54,9 +57,8 @@ set of plugins it takes besides the core:
 | --- | --- | --- |
 | [vim-draft](https://github.com/roumail/vim-draft) | Drafts | `:AiDraft`, an ask written in a buffer |
 | [fugitive-extras](https://github.com/roumail/fugitive-extras) | Your branch and your review | `#changes`, diffed against your default branch, and with it `/review`; `#diff_pairs`, which names `:BranchDiff`'s comparisons; `#comments`, your `:Comment`s |
-| [vim-review](https://github.com/roumail/vim-review) | The agent's comments | `#agent_comments`, read in vim-review's format: `:AiComments` steps through them, `:AiReply` and `:AiThread` go back and forth on one, and `:AiCommentsClear` clears them |
+| [vim-review](https://github.com/roumail/vim-review) | The agent's comments | `#agent_comments`, read in vim-review's format: `:AiComments` steps through them, `:AiReply` and `:AiThread` go back and forth on one, `:AiCommentsList` lists the reviews here, to open or clear, and `:AiCommentsClear` clears them |
 | vim-review + vim-draft | Replies in a draft | `:AiReplyDraft` |
-| vim-review + [vim-lists](https://github.com/roumail/vim-lists) | Reviews | `:AiCommentsList`, the agent's reviews here, to open or clear |
 | vim-review + fugitive-extras | The agent's comments as yours | `:AiCommentsLoad`, which puts the agent's comments in fugitive-extras' Review list, to change and post as your own |
 
 All of it:
@@ -65,10 +67,10 @@ All of it:
 Plug 'tpope/vim-fugitive'
 Plug 'tpope/vim-dispatch'
 Plug 'roumail/vim-place'
+Plug 'roumail/vim-lists'
 Plug 'roumail/vim-draft'
 Plug 'roumail/fugitive-extras'
 Plug 'roumail/vim-review'
-Plug 'roumail/vim-lists'
 Plug 'roumail/vim-prompts'
 ```
 
@@ -148,7 +150,7 @@ repositories' (with `includeIf`), then one repository's, which wins:
 git config vim-prompts.repository .vim-prompts/repository.md
 ```
 
-Nothing is picked up for being in some directory, and `:AiRules` shows
+Nothing is picked up for being in some directory, and `:AiRules` lists
 which rules apply and where each is set ([configuration](docs/config.md)). A
 rules file hides an earlier one of its file name, so a group's `git.md`
 replaces yours.

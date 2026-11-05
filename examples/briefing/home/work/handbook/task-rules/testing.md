@@ -1,0 +1,1 @@
+- Tests run against the shared fixtures.

@@ -1,0 +1,3 @@
+[vim-prompts]
+	rules = ~/.config/vim-prompts/gone.md
+	library = ~/.config/vim-prompts/task-rules

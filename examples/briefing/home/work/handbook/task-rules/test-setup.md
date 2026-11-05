@@ -1,0 +1,1 @@
+- Start the database with make db before the tests.

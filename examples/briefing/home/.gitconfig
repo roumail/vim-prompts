@@ -1,0 +1,7 @@
+[vim-prompts]
+	rules = ~/.config/vim-prompts/git.md
+	rules = ~/.config/vim-prompts/comments.md
+	task-rules = ~/.config/vim-prompts/task-rules
+	personas = ~/.config/vim-prompts/personas
+[includeIf "gitdir:~/work/"]
+	path = ~/work/handbook/work.gitconfig

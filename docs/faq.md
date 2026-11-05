@@ -36,16 +36,6 @@ git config --show-scope --show-origin --get-regexp '^vim-prompts\.'
 git config --get-all vim-prompts.task-rules | while read -r d; do d=${d/#\~/$HOME}; test -d "$d" || echo "missing: $d"; done
 ```
 
-The commands also run headless, with your vimrc (`-es` skips it unless
-named) and their output sent to the terminal. An install older than commit
-`4f992b9` defines its commands only after `-c` has run, so there they are
-`E492: Not an editor command` and `exists(":AiRules")` is `0`: update the
-plugin (`git -C <plugin> cat-file -t 4f992b9` fails on an older clone).
-
-```sh
-vim -Nes -u ~/.vimrc -c 'redir! > /dev/stdout' -c AiRules -c 'redir END' -c 'qa!'
-```
-
 ## How do I remove something I set?
 
 `:AiUnset`, with `<Tab>`: see [removing a setting](config.md#removing-a-setting).

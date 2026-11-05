@@ -419,9 +419,7 @@ endfunction
 " comments, done and threads, and the files they are on. <CR> opens one as
 " :AiComments, dd clears it as :AiCommentsClear
 function! prompts#comments#list() abort
-  let l:what = ':' . prompts#namespace() . 'CommentsList'
-  if !prompts#requires(l:what, 'vim-lists', 'roumail_lists')
-        \ || !prompts#requires(l:what, 'vim-review', 'review')
+  if !prompts#requires(':' . prompts#namespace() . 'CommentsList', 'vim-review', 'review')
     return
   endif
   let l:dir = prompts#comments#dir(bufnr())

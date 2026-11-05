@@ -404,89 +404,117 @@ function! prompts#fzf() abort
         \ 'reducer': {lines -> join(lines)}}
 endfunction
 
+" :AiPersonas: what a persona needs is judged from where you were when it
+" opened, not from the list
 function! prompts#list(reload) abort
   if a:reload
     call prompts#source#load()
   endif
-  let l:config = prompts#config#get(bufnr())
-  call s:list_errors(l:config.errors + prompts#persona#errors(l:config))
+  call s:open_list('Personas', function('s:personas'),
+        \ {'prompts_from': s:from(0, line('.'), line('.'))})
+endfunction
+
+function! s:personas() abort
+  let l:config = prompts#config#get(b:prompts_bufnr)
+  let b:prompts_errors = map(l:config.errors + prompts#persona#errors(l:config), '"error: " . v:val')
+  let l:items = []
   for l:name in prompts#persona#names(l:config)
     let l:persona = prompts#persona#get(l:name, l:config)
     if empty(l:persona)
       continue
     endif
     let l:own = l:persona.meta.context
-    let l:missing = s:missing(l:persona, s:request(s:from(0, line('.'), line('.')), '', copy(l:own), l:config), [])
-    call s:entry('Identifier', '/' . l:name,
-          \ [fnamemodify(l:persona.file, ':~'), 'loaded', s:persona_source(l:persona)]
-          \ + (empty(l:own) ? [] : [join(map(copy(l:own), '"#" . v:val.name . (empty(v:val.arg) ? "" : ":" . v:val.arg)'))])
-          \ + map(copy(l:persona.bases), '"on {base} " . fnamemodify(v:val, ":~")')
-          \ + (empty(l:missing) ? [] : [l:missing]))
+    call add(l:items, s:item('', '/' . l:name, l:persona.file, fnamemodify(l:persona.file, ':~'),
+          \ join(filter([l:persona.source,
+          \   join(map(copy(l:own), '"#" . v:val.name . (empty(v:val.arg) ? "" : ":" . v:val.arg)')),
+          \   join(map(copy(l:persona.bases), '"on {base} " . fnamemodify(v:val, ":~")'), '  '),
+          \   s:missing(l:persona, s:request(b:prompts_from, '', copy(l:own), l:config), [])],
+          \ '!empty(v:val)'), '  ')))
     for l:hidden in prompts#persona#hidden(l:persona, l:config)
-      call s:entry('Comment', '/' . l:name,
-            \ [fnamemodify(l:hidden.file, ':~'), 'hidden by ' . fnamemodify(l:persona.file, ':~'),
-            \  s:persona_source(l:hidden)])
+      call add(l:items, s:item('', '/' . l:name, l:hidden.file, fnamemodify(l:hidden.file, ':~'),
+            \ l:hidden.source . '  hidden by ' . fnamemodify(l:persona.file, ':~')))
     endfor
   endfor
+  return l:items
 endfunction
 
-function! s:persona_source(persona) abort
-  return a:persona.source ==# 'bundled' ? 'from vim-prompts, bundled' : 'from vim-prompts.personas, ' . a:persona.source
-endfunction
-
+" :AiRules: in the order they are sent, each hidden one under the one that
+" hides it
 function! prompts#rules() abort
-  let l:config = prompts#config#get(bufnr())
-  call s:list_errors(l:config.errors)
+  call s:open_list('Rules', function('s:rules'), {})
+endfunction
+
+function! s:rules() abort
+  let l:config = prompts#config#get(b:prompts_bufnr)
+  let b:prompts_errors = map(copy(l:config.errors), '"error: " . v:val')
   let l:place = l:config.place
+  let l:items = []
   for l:rule in l:config.rules
-    call s:entry('Identifier', fnamemodify(l:rule.file, ':t'),
-          \ [prompts#config#show(l:rule.file, l:place), 'loaded', 'from vim-prompts.rules, ' . l:rule.origin])
+    let l:name = fnamemodify(l:rule.file, ':t')
+    call add(l:items, s:item('rules', l:name, l:rule.file, prompts#config#show(l:rule.file, l:place), l:rule.origin))
+    for l:hidden in filter(copy(l:config.hidden), {_, h -> fnamemodify(h.file, ':t') ==# l:name})
+      call add(l:items, s:item('rules', l:name, l:hidden.file, prompts#config#show(l:hidden.file, l:place),
+            \ l:hidden.origin . '  hidden by ' . prompts#config#show(l:rule.file, l:place)))
+    endfor
   endfor
   if !empty(l:config.repository)
-    call s:entry('Identifier', 'repository',
-          \ [prompts#config#show(l:config.repository.file, l:place), 'loaded',
-          \  'from vim-prompts.repository, ' . l:config.repository.origin])
+    call add(l:items, s:item('repository', 'repository', l:config.repository.file,
+          \ prompts#config#show(l:config.repository.file, l:place), l:config.repository.origin))
   endif
-  let l:names = prompts#config#rule_names(l:config)
-  for l:rule in l:config.hidden
-    let l:name = fnamemodify(l:rule.file, ':t')
-    call s:entry('Comment', l:name,
-          \ [prompts#config#show(l:rule.file, l:place), 'hidden by ' . prompts#config#show(l:names[l:name], l:place),
-          \  'from vim-prompts.rules, ' . l:rule.origin])
-  endfor
-  " Sent only when asked for
   let l:task_rules = prompts#config#task_rules(l:config)
   for l:name in sort(keys(l:task_rules))
     let l:rule = l:task_rules[l:name]
-    call s:entry('Identifier', '#rule:' . l:name,
-          \ [prompts#config#show(l:rule.file, l:place), 'loaded', 'from vim-prompts.task-rules, ' . l:rule.origin])
+    call add(l:items, s:item('task rules, sent when asked for', '#rule:' . l:name, l:rule.file,
+          \ prompts#config#show(l:rule.file, l:place), l:rule.origin))
     for l:hidden in l:rule.hides
-      call s:entry('Comment', '#rule:' . l:name,
-            \ [prompts#config#show(l:hidden.file, l:place), 'hidden by ' . prompts#config#show(l:rule.file, l:place),
-            \  'from vim-prompts.task-rules, ' . l:hidden.origin])
+      call add(l:items, s:item('task rules, sent when asked for', '#rule:' . l:name, l:hidden.file,
+            \ prompts#config#show(l:hidden.file, l:place),
+            \ l:hidden.origin . '  hidden by ' . prompts#config#show(l:rule.file, l:place)))
     endfor
   endfor
+  return l:items
 endfunction
 
-function! s:list_errors(errors) abort
-  echohl ErrorMsg
-  for l:error in a:errors
-    echo l:error
+function! s:item(group, name, file, path, about) abort
+  return {'group': a:group, 'name': a:name, 'file': a:file, 'path': a:path, 'about': a:about}
+endfunction
+
+function! s:open_list(title, Fetch, vars) abort
+  call roumail_lists#open('ai-' . tolower(a:title) . '://' . fnamemodify(roumail_place#get(bufnr()).dir, ':t'), {
+        \ 'fetch': a:Fetch,
+        \ 'heading': {items -> [a:title . ' (' . len(items) . ')'] + b:prompts_errors},
+        \ 'rows': function('s:list_rows'), 'id': {i -> i.group . i.file},
+        \ 'match': {i -> i.name . ' ' . i.path},
+        \ 'keys': [{'key': '<CR>', 'hint': 'open', 'call': function('s:list_open')}]},
+        \ extend({'prompts_bufnr': bufnr()}, a:vars))
+  syntax match Comment /^.*  hidden by .*$/
+  syntax match ErrorMsg /^error: .*$/
+endfunction
+
+" Under a group's row when the group changes, so a filter's best-first order
+" may show a group twice
+function! s:list_rows(items) abort
+  let l:name = max(map(copy(a:items), 'strdisplaywidth(v:val.name)'))
+  let l:path = max(map(copy(a:items), 'strdisplaywidth(v:val.path)'))
+  let l:rows = []
+  let l:group = ''
+  for l:item in a:items
+    if l:item.group !=# l:group
+      let l:group = l:item.group
+      call add(l:rows, {'lines': [l:group]})
+    endif
+    call add(l:rows, {'item': l:item, 'lines': [printf('  %-*S  %-*S  %s',
+          \ l:name, l:item.name, l:path, l:item.path, l:item.about)]})
   endfor
-  echohl None
+  return l:rows
 endfunction
 
-function! s:entry(group, name, lines) abort
-  " Each line on a line of its own: paths are too long for columns
-  execute 'echohl' a:group
-  echo a:name
-  if a:group !=# 'Comment'
-    echohl None
+function! s:list_open() abort
+  let l:item = roumail_lists#item()
+  if !empty(l:item)
+    wincmd p
+    execute 'edit' fnameescape(l:item.file)
   endif
-  for l:line in a:lines
-    echo '  ' . l:line
-  endfor
-  echohl None
 endfunction
 
 function! prompts#rule(range, line1, line2, args) abort

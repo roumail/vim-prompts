@@ -1,0 +1,4 @@
+[vim-prompts]
+	rules = ~/work/handbook/git.md
+	task-rules = ~/work/handbook/task-rules
+	personas = ~/work/handbook/personas
