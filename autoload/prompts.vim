@@ -397,11 +397,34 @@ function! prompts#tokens() abort
   return l:tokens + prompts#complete('-', '', 0)
 endfunction
 
-" For an insert-mode fzf.vim picker: several at once, with <Tab>
+" For an insert-mode fzf.vim picker: several at once, with <Tab>. The word
+" before the cursor completes as it would after :Ai (#rule: to its rules, @ to
+" files); a word that completes to nothing filters every token instead
 function! prompts#fzf() abort
-  return {'source': prompts#tokens(), 'prefix': '\S*$',
-        \ 'options': ['--multi', '--prompt', 'Ai> '],
+  return {'source': function('s:fzf_source'), 'prefix': '\S*$',
+        \ 'options': function('s:fzf_options'),
         \ 'reducer': {lines -> join(lines)}}
+endfunction
+
+function! s:fzf_matches(word) abort
+  " #commits: has its own picker
+  if empty(a:word) || a:word =~# '^#commits:'
+    return []
+  endif
+  let l:cmdline = 'Ai ' . getline('.')[: col('.') - 2]
+  return prompts#complete(a:word, l:cmdline, len(l:cmdline))
+endfunction
+
+function! s:fzf_source(word) abort
+  let l:matches = s:fzf_matches(a:word)
+  return empty(l:matches) ? prompts#tokens() : l:matches
+endfunction
+
+function! s:fzf_options(word) abort
+  " One match is inserted at once, as <Tab> does after :Ai
+  return ['--multi', '--prompt', 'Ai> ']
+        \ + (!empty(s:fzf_matches(a:word)) ? ['--select-1']
+        \  : !empty(a:word) ? ['--query', a:word] : [])
 endfunction
 
 " :AiPersonas: what a persona needs is judged from where you were when it

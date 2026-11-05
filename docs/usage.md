@@ -98,6 +98,12 @@ pick several with `<Tab>`, inserted with a space between:
 inoremap <expr> <C-x><C-a> fzf#vim#complete(prompts#fzf())
 ```
 
+The word before the cursor completes there as it does after `:Ai`: `#ru` to
+`#rule:`, `#rule:` to the rules, `@src/` to files, `--p` to `--plan-mode`,
+one match inserted at once. A word that completes to nothing, or none, gives
+every word, filtered by what you typed. `#commits:` is left to
+`prompts#sources#commits#fzf()`, its own picker.
+
 ## :AiPreview
 
 `:[range]AiPreview[!] ...` takes what `:Ai` takes and shows, in a buffer on
