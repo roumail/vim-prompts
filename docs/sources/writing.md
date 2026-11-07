@@ -33,7 +33,7 @@ endfunction
 ```
 
 `info()` may also return `'instruction': 1` for a source that says how the
-agent works rather than what on (`#rule`, `#agent_comments`): a persona isn't
+agent works rather than what on (rules, `#agent_comments`): a persona isn't
 asked just because one has text (see
 [when a persona is refused](../personas.md#frontmatter)).
 

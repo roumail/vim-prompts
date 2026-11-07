@@ -33,7 +33,7 @@ value from the file that sets it ([removing a setting](#removing-a-setting)).
 | --- | --- | --- |
 | `vim-prompts.personas` | A directory of [personas](personas.md). Every value counts; for two of a name, the later wins. | anywhere |
 | `vim-prompts.rules` | A file of rules for every ask: how you push, what never to do. Every value counts, in order. | anywhere |
-| `vim-prompts.task-rules` | A directory of rules files sent only when asked for by name, `#rule:<name>` for `<name>.md`: how tests are written, how migrations are. For two of a name, the later wins. | anywhere |
+| `vim-prompts.task-rules` | A directory of rules files sent only when asked for by name, `+<name>` for `<name>.md`: how tests are written, how migrations are. For two of a name, the later wins. | anywhere |
 | `vim-prompts.repository` | The file that describes this repository: what it is, its layout, its conventions, how to run its tests. Exactly one may apply. | its own config, or a file included for its folder alone |
 
 `rules` and `task-rules` are both rules, for the agent to follow; they
@@ -120,7 +120,7 @@ Values come in the order git reads the [scopes](#scopes): `system`,
   group's `git.md` replaces yours), and the rest all go in the prompt, the
   repository's file last, under "where two parts differ, follow the later
   one". `:AiRules` lists both.
-- **Task rules** stack like personas: `#rule:testing` is the last
+- **Task rules** stack like personas: `+testing` is the last
   `testing.md` of any of them, so a repository's own `testing.md` replaces
   the group's in that repository only. `:AiRules` lists each name and what
   it hides.
@@ -177,17 +177,17 @@ The prompts are a repository of their own, `~/projects/acme/prompts`:
 work.gitconfig                the group's settings, below
 rules/general.md              sent with every ask: never push, changelog entries
 rules/api-branches.md         sent with every ask in api only
-task-rules/testing.md         #rule:testing: how tests are written, everywhere
-task-rules/test-setup.md      #rule:test-setup: how they run, the fallback
-task-rules-api/test-setup.md  #rule:test-setup in api: its services, its venv
-task-rules-api/migrations.md  #rule:migrations, api only
+task-rules/testing.md         +testing: how tests are written, everywhere
+task-rules/test-setup.md      +test-setup: how they run, the fallback
+task-rules-api/test-setup.md  +test-setup in api: its services, its venv
+task-rules-api/migrations.md  +migrations, api only
 task-rules-etl/test-setup.md
-personas/tests.md             /tests: context [file, "rule:testing", "rule:test-setup"]
-personas/migrations.md        /migrations: context [file, "rule:migrations"]
+personas/tests.md             /tests: context [file, +testing, +test-setup]
+personas/migrations.md        /migrations: context [file, +migrations]
 repos/api.md, repos/etl.md    each repository's description
 ```
 
-The same names everywhere, `/tests` and `#rule:test-setup`, with what they
+The same names everywhere, `/tests` and `+test-setup`, with what they
 hold differing per repository: a repository's task rules come after the
 group's, so its `test-setup.md` hides the group's there and nowhere else.
 
@@ -250,10 +250,10 @@ rules
 repository
   repository           ~/projects/acme/prompts/repos/api.md                  global ~/projects/acme/prompts/repos/api.gitconfig
 task rules, sent when asked for
-  #rule:migrations     ~/projects/acme/prompts/task-rules-api/migrations.md  global ~/projects/acme/prompts/repos/api.gitconfig
-  #rule:test-setup     ~/projects/acme/prompts/task-rules-api/test-setup.md  global ~/projects/acme/prompts/repos/api.gitconfig
-  #rule:test-setup     ~/projects/acme/prompts/task-rules/test-setup.md      global ~/projects/acme/prompts/work.gitconfig  hidden by ~/projects/acme/prompts/task-rules-api/test-setup.md
-  #rule:testing        ~/projects/acme/prompts/task-rules/testing.md         global ~/projects/acme/prompts/work.gitconfig
+  +migrations          ~/projects/acme/prompts/task-rules-api/migrations.md  global ~/projects/acme/prompts/repos/api.gitconfig
+  +test-setup          ~/projects/acme/prompts/task-rules-api/test-setup.md  global ~/projects/acme/prompts/repos/api.gitconfig
+  +test-setup          ~/projects/acme/prompts/task-rules/test-setup.md      global ~/projects/acme/prompts/work.gitconfig  hidden by ~/projects/acme/prompts/task-rules-api/test-setup.md
+  +testing             ~/projects/acme/prompts/task-rules/testing.md         global ~/projects/acme/prompts/work.gitconfig
 ```
 
 and in `/tests` from there, the prompt is: the rules (yours, the group's,
@@ -352,8 +352,8 @@ named in git config, and are sent when an ask names them:
 ```
 
 ```vim
-:Ai #rule:testing add a test for the empty case
-:Ai #rule:<Tab>
+:Ai +testing add a test for the empty case
+:Ai +<Tab>
 ```
 
 `<Tab>` lists the names that apply where you are, so the same name works in
@@ -368,12 +368,12 @@ A persona for the task takes the rule itself, so it is never forgotten:
 
 ```markdown
 ---
-context: [file, "rule:testing"]
+context: [file, +testing]
 ---
 ```
 
 A persona's rule that isn't found anywhere is left out; one you ask for with
-`#rule:` that isn't found refuses the ask.
+`+name` that isn't found refuses the ask.
 
 Rules for the task go with the other rules, last, as the most specific of
 them, so the persona's own instructions and your query, which come after

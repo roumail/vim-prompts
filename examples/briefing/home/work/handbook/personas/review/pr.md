@@ -1,5 +1,5 @@
 ---
-context: ["rule:testing"]
+context: [+testing]
 ---
 {base}
 

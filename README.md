@@ -32,7 +32,7 @@ vim-prompts and four plugins:
 - [vim-place](https://github.com/roumail/vim-place): where settings are
   read from and prompts are kept, for each repository and work tree.
 - [vim-lists](https://github.com/roumail/vim-lists): the lists at the
-  bottom, `:AiRules` and `:AiPersonas`.
+  bottom, `:AiRules`, `:AiPersonas` and `:AiSources`.
 
 ```vim
 Plug 'tpope/vim-fugitive'
@@ -47,8 +47,10 @@ The core gives you:
 - **Asking:** `:Ai`, `:Ai!` and `:AiPreview`.
 - **Briefing:** the rules and personas, with `:AiRules`, `:AiRule`,
   `:AiPersonas`, `:AiUnset` and `/default`.
-- **Sources:** `@path`, `#file`, `#commits`, `#quickfix`, `#rule`, `#repo`,
-  `#stackoverflow` and `#url`.
+- **Sources:** `@path`, `#file`, `#commits`, `#quickfix`, `#repo`,
+  `#stackoverflow` and `#url`, and rules for the task by name, `+testing`;
+  `:AiSources` lists them all, what to work on apart from how (`+name`,
+  `#agent_comments`).
 
 Each row below adds a module on top of the core, and **Needs** is the whole
 set of plugins it takes besides the core:
@@ -164,7 +166,7 @@ replaces yours.
 one for this repository, kept outside it ([usage](docs/usage.md#airule));
 `:AiUnset` removes a setting.
 Rules for one kind of task go in a `vim-prompts.task-rules` directory and are
-sent when asked for, `:Ai #rule:testing ...` (`<Tab>` lists them), a
+sent when asked for, `:Ai +testing ...` (`<Tab>` lists them), a
 repository's `testing.md` replacing the group's
 ([rules for a task](docs/config.md#rules-for-a-task)).
 `--bare` leaves the rules and the description out of one ask:

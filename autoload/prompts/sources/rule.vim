@@ -1,6 +1,6 @@
-" #rule:name: docs/sources/rule.md
+" +name, a rule for the task: docs/sources/rule.md
 function! prompts#sources#rule#info() abort
-  return {'needs': 'a rules file in vim-prompts.task-rules: #rule:<Tab>', 'arg': 'required',
+  return {'needs': 'a rules file in vim-prompts.task-rules: +<Tab>', 'arg': 'required',
         \ 'instruction': 1}
 endfunction
 

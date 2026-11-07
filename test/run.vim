@@ -163,12 +163,12 @@ function! s:persona(name, lines) abort
 endfunction
 
 function! s:test_missing_persona_rule_refuses() abort
-  let l:file = s:persona('strict', ['---', 'context: [file, "rule:nope"]', '---', 'Check it.'])
+  let l:file = s:persona('strict', ['---', 'context: [file, +nope]', '---', 'Check it.'])
   try
     let l:r = s:preview('/strict')
     call assert_equal('', l:r.prompt)
-    call assert_equal(['/strict: #rule:nope has nothing: needs a rules file in'
-          \ . ' vim-prompts.task-rules: #rule:<Tab>'], l:r.errors)
+    call assert_equal(['/strict: +nope has nothing: needs a rules file in'
+          \ . ' vim-prompts.task-rules: +<Tab>'], l:r.errors)
     " --force is for nothing to work on, not for a missing rule
     call assert_equal(l:r.errors, s:preview('/strict --force').errors)
   finally
@@ -177,14 +177,14 @@ function! s:test_missing_persona_rule_refuses() abort
 endfunction
 
 function! s:test_optional_persona_rule() abort
-  let l:file = s:persona('lenient', ['---', 'context: [file, "rule:nope?", "rule:testing?"]', '---', 'Check it.'])
+  let l:file = s:persona('lenient', ['---', 'context: [file, +nope?, "+testing?"]', '---', 'Check it.'])
   try
     let l:r = s:preview('/lenient')
     call assert_equal([], l:r.errors)
     " Sent where there is one
     call assert_match('Tests run against the shared fixtures', l:r.prompt)
     call writefile(['---', 'context: [file?]', '---', 'x'], l:file)
-    call assert_match('only a rule may be missing (rule:name?), not file?',
+    call assert_match('only a rule may be missing (+name?), not file?',
           \ get(s:preview('/lenient').errors, 0, ''))
   finally
     call delete(l:file)
@@ -192,16 +192,16 @@ function! s:test_optional_persona_rule() abort
 endfunction
 
 function! s:test_persona_rule_is_sent() abort
-  " The handbook's /tests names rule:testing, which the handbook has
+  " The handbook's /tests names +testing, which the handbook has
   let l:r = s:preview('/tests')
   call assert_equal([], l:r.errors)
   call assert_match('Tests run against the shared fixtures', l:r.prompt)
 endfunction
 
 function! s:test_bad_alternatives() abort
-  let l:file = s:persona('bad', ['---', 'context: [["rule:testing", file]]', '---', 'x'])
+  let l:file = s:persona('bad', ['---', 'context: [[+testing, file]]', '---', 'x'])
   try
-    call assert_match('is always sent, not one of \[alternatives\]',
+    call assert_match('+testing is always sent, not one of \[alternatives\]',
           \ get(s:preview('/bad').errors, 0, ''))
     call writefile(['---', 'context: [[[file]]]', '---', 'x'], l:file)
     call assert_match('one level of \[alternatives\]', get(s:preview('/bad').errors, 0, ''))
@@ -248,12 +248,12 @@ function! s:test_personas_list() abort
   call assert_equal(1, len(l:pr))
   " The handbook's, on the bundled one, on yours, on the bundled /review
   call assert_match('handbook/personas/review/pr\.md .*#agent_comments \[#diff_pairs #changes\]'
-        \ . ' #rule:testing  on {base} \S*/personas/review/pr\.md  on {base} \~/\.config/'
+        \ . ' +testing  on {base} \S*/personas/review/pr\.md  on {base} \~/\.config/'
         \ . 'vim-prompts/personas/review\.md  on {base} \S*/personas/review\.md$', get(l:pr, 0, ''))
-  let l:file = s:persona('strict', ['---', 'context: ["rule:nope", "rule:gone?"]', '---', 'x'])
+  let l:file = s:persona('strict', ['---', 'context: [+nope, +gone?]', '---', 'x'])
   try
     AiPersonas!
-    call assert_match('/strict .*#rule:nope #rule:gone?  /strict: #rule:nope has nothing',
+    call assert_match('/strict .*+nope +gone?  /strict: +nope has nothing',
           \ get(filter(getline(1, '$'), 'v:val =~# "^  /strict "'), 0, ''))
   finally
     call delete(l:file)
@@ -346,6 +346,66 @@ function! s:test_oneoff_saves_its_comments() abort
   finally
     call remove(g:prompts_agent_table, 'answers')
     let g:prompts_agent = 'fake'
+  endtry
+endfunction
+
+function! s:test_rule_is_plus() abort
+  let l:r = s:preview('/review +testing', '%')
+  call assert_equal([], l:r.errors)
+  call assert_match('Tests run against the shared fixtures', l:r.prompt)
+  " Not as a source
+  call assert_equal(['a rule is +name, not #rule: +testing; text after -- is taken as is'],
+        \ s:preview('/review #rule:testing', '%').errors)
+  call assert_equal(['+nope has nothing: needs a rules file in vim-prompts.task-rules: +<Tab>'],
+        \ s:preview('/review +nope', '%').errors)
+  " + before anything but a letter is text
+  call assert_match('+1 on this', s:preview('+1 on this', '%').prompt)
+  " Completion: + to the rules, # without them
+  call assert_equal(['+test-setup', '+testing'], prompts#complete('+te', 'Ai +te', 6))
+  call assert_equal([], filter(prompts#complete('#', 'Ai #', 4), 'v:val =~# "rule"'))
+  call assert_true(index(prompts#tokens(), '+testing') >= 0)
+endfunction
+
+function! s:test_sources_list() abort
+  AiSources
+  let l:lines = getline(1, '$')
+  if !empty($SHOW)
+    call extend(s:out, l:lines)
+  endif
+  call assert_match('^Sources (12)', l:lines[0])
+  " What to work on, then how
+  let l:what = index(l:lines, 'what to work on')
+  let l:how = index(l:lines, 'how to work on it')
+  call assert_true(l:what > 0 && l:how > l:what, string(l:lines))
+  let l:after = l:lines[l:how + 1 :]
+  call assert_equal(2, len(l:after))
+  call assert_match('^  #agent_comments ', get(l:after, 0, ''))
+  call assert_match('^  +name .*+testing .*(:AiRules)$', get(l:after, 1, ''))
+  " Judged from app.py on a branch with a change
+  call assert_match('^  #changes\[:arg\] .*  has something here$',
+        \ get(filter(copy(l:lines), 'v:val =~# "^  #changes"'), 0, ''))
+  call assert_match('^  #quickfix .*  nothing here: needs a quickfix list',
+        \ get(filter(copy(l:lines), 'v:val =~# "^  #quickfix"'), 0, ''))
+  call assert_match('^  @path ', get(filter(copy(l:lines), 'v:val =~# "^  @path"'), 0, ''))
+  call assert_match('^  #url:arg .*  a link: ', get(filter(copy(l:lines), 'v:val =~# "^  #url"'), 0, ''))
+  " A copy on 'runtimepath' before the bundled one hides it (its functions
+  " only from the next Vim: the bundled file is loaded already)
+  let l:dir = s:tmp . '/mine'
+  call mkdir(l:dir . '/autoload/prompts/sources', 'p')
+  call writefile(readfile(s:root . '/autoload/prompts/sources/quickfix.vim'),
+        \ l:dir . '/autoload/prompts/sources/quickfix.vim')
+  execute 'set runtimepath^=' . fnameescape(l:dir)
+  try
+    normal r
+    let l:qf = filter(getline(1, '$'), 'v:val =~# "^  #quickfix"')
+    call assert_equal(2, len(l:qf))
+    call assert_match('^  #quickfix \+\S*/mine/autoload/prompts/sources/quickfix\.vim ', get(l:qf, 0, ''))
+    call assert_match('/vim-prompts/autoload/prompts/sources/quickfix\.vim \+hidden by \S*/mine/',
+          \ get(l:qf, 1, ''))
+  finally
+    execute 'set runtimepath-=' . fnameescape(l:dir)
+    call delete(l:dir, 'rf')
+    call prompts#source#load()
   endtry
 endfunction
 

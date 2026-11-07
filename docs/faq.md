@@ -4,7 +4,7 @@
 
 There was nothing to work on, or a rule missing, and the message says
 what: for example `/review` with nothing selected, `/review:pr` on a
-branch with no changes, a persona's `rule:test-setup` on a machine without
+branch with no changes, a persona's `+test-setup` on a machine without
 it, or `#comments` with no comments. `--force` sends a persona with nothing
 to work on. See
 [when a persona can be asked](personas.md#frontmatter).
@@ -24,7 +24,7 @@ of the shared files rather than add to it, give yours the same file name;
 
 ## How do I send rules only for some asks?
 
-Put them in a `vim-prompts.task-rules` directory and ask for them by name, `#rule:testing`, or have
+Put them in a `vim-prompts.task-rules` directory and ask for them by name, `+testing`, or have
 the persona for the task take them: see
 [rules for a task](config.md#rules-for-a-task).
 

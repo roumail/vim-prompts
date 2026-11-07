@@ -1,12 +1,19 @@
 " Context sources and the helpers they use: docs/sources/writing.md
 
 let s:sources = {}
+" Each source's files, the one used first: the first on 'runtimepath'
+let s:files = {}
 
 function! prompts#source#load() abort
   let s:sources = {}
+  let s:files = {}
   for l:file in globpath(&runtimepath, 'autoload/prompts/sources/*.vim', 1, 1)
     let l:name = fnamemodify(l:file, ':t:r')
-    if l:name =~# '^\h\w*$' && !has_key(s:sources, l:name)
+    if l:name !~# '^\h\w*$'
+      continue
+    endif
+    let s:files[l:name] = get(s:files, l:name, []) + [l:file]
+    if !has_key(s:sources, l:name)
       try
         let s:sources[l:name] = call('prompts#sources#' . l:name . '#info', [])
       catch
@@ -24,16 +31,31 @@ function! prompts#source#exists(name) abort
   return type(a:name) == v:t_string && has_key(s:sources, a:name)
 endfunction
 
+function! prompts#source#files(name) abort
+  return get(s:files, a:name, [])
+endfunction
+
 function! prompts#source#info(name) abort
   return s:sources[a:name]
 endfunction
 
+" The sources written with # (files are @path, rules +name)
+function! prompts#source#hashed() abort
+  return filter(prompts#source#names(), 'v:val !~# "^\\%(files\\|rule\\)$"')
+endfunction
+
+" A rule, +name: the rule source
+function! prompts#source#rule(name) abort
+  return empty(a:name) ? {'error': '+ needs a rule: +<Tab>'} : {'name': 'rule', 'arg': a:name}
+endfunction
+
 function! prompts#source#parse(text) abort
   let l:m = matchlist(a:text, '^\(\h\w*\)\%(:\(.*\)\)\=$')
-  if empty(l:m) || !prompts#source#exists(l:m[1])
+  if !empty(l:m) && l:m[1] ==# 'rule'
+    return {'error': 'a rule is +name, not #rule:' . (empty(l:m[2]) ? '' : ' +' . l:m[2])}
+  elseif empty(l:m) || !prompts#source#exists(l:m[1])
     return {'error': 'no context source #' . a:text . ' (#'
-          \ . join(filter(prompts#source#names(), 'v:val !=# "files"'), ', #')
-          \ . '; files are @path)'}
+          \ . join(prompts#source#hashed(), ', #') . '; files are @path, rules +name)'}
   endif
   let l:arg = l:m[2]
   let l:takes = s:sources[l:m[1]].arg

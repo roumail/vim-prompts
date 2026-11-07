@@ -1,5 +1,5 @@
 ---
-context: [file, "rule:testing"]
+context: [file, +testing]
 ---
 Write tests for this file.
 

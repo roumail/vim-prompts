@@ -132,15 +132,16 @@ function! s:resolve(stack, i) abort
         if type(l:text) != v:t_string
           throw 'context: one level of [alternatives], of sources'
         endif
-        " "rule:name?": a rule this persona goes without where there is none
-        let l:source = prompts#source#parse(substitute(l:text, '?$', '', ''))
+        " +name?: a rule this persona goes without where there is none
+        let l:bare = substitute(l:text, '?$', '', '')
+        let l:source = l:bare =~# '^+' ? prompts#source#rule(l:bare[1:]) : prompts#source#parse(l:bare)
         if has_key(l:source, 'error')
           throw 'context: ' . l:source.error
         elseif type(l:item) == v:t_list && get(prompts#source#info(l:source.name), 'instruction', 0)
-          throw 'context: #' . l:source.name . ' is always sent, not one of [alternatives]'
+          throw 'context: ' . l:bare . ' is always sent, not one of [alternatives]'
         elseif l:text =~# '?$'
           if l:source.name !=# 'rule' || type(l:item) == v:t_list
-            throw 'context: only a rule may be missing (rule:name?), not ' . l:text
+            throw 'context: only a rule may be missing (+name?), not ' . l:text
           endif
           let l:source.optional = 1
         endif

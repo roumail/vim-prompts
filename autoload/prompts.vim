@@ -70,7 +70,8 @@ endfunction
 
 function! s:show(source) abort
   return has_key(a:source, 'any') ? '[' . join(map(copy(a:source.any), 's:show(v:val)')) . ']'
-        \ : '#' . a:source.name . (empty(a:source.arg) ? '' : ':' . a:source.arg)
+        \ : (a:source.name ==# 'rule' ? '+' . a:source.arg
+        \   : '#' . a:source.name . (empty(a:source.arg) ? '' : ':' . a:source.arg))
         \   . (get(a:source, 'optional', 0) ? '?' : '')
 endfunction
 
@@ -84,8 +85,8 @@ function! s:missing(persona, request, given, force) abort
     endif
   endfor
   " The persona's instructions (a rule, where to write) are part of it: one
-  " that has nothing is a mistake to fix, as a #rule: you typed is, unless
-  " the persona says it may be missing (rule:name?)
+  " that has nothing is a mistake to fix, as a +rule you typed is, unless
+  " the persona says it may be missing (+name?)
   for l:source in filter(copy(a:persona.meta.context),
         \ 's:instruction(v:val) && !get(v:val, "optional", 0)')
     if empty(prompts#source#context(l:source, a:request))
@@ -185,6 +186,9 @@ function! s:prompt(from, args, Then, ...) abort
         return 0
       endif
       call add(l:parsed.given, l:source)
+    elseif l:word =~# '^+\a'
+      let l:source = prompts#source#rule(l:word[1:])
+      call add(l:parsed.given, l:source)
     elseif l:word =~# '^@'
       let l:path = l:word[1:]
       let l:dir = expand(escape(l:path, '*?[]'))
@@ -252,7 +256,7 @@ function! s:prompt(from, args, Then, ...) abort
   " Before any source is read: #agent_comments asks differently in a one-off
   let l:request.oneoff = s:oneoff(a:from, l:persona)
   let l:sources = l:request.sources
-  " #rule's text goes last in {rules}, so the persona and the query still
+  " A +rule's text goes last in {rules}, so the persona and the query still
   " come after it; a persona with {rule} places it itself
   if stridx(join(l:persona.template, "\n"), '{rule}') < 0
     let l:request.rules = prompts#config#text(l:config,
@@ -428,7 +432,7 @@ function! s:open_draft(from, lines) abort
         \ {'split': 'botright vnew', 'saved': 'Draft saved: closing sends it',
         \  'empty': 'Draft empty: closing sends nothing'})
   setlocal filetype=markdown
-  " Its repository, for what completes in it (#rule:, #diff_pairs:, /personas)
+  " Its repository, for what completes in it (+rules, #diff_pairs:, /personas)
   if !empty(l:git_dir)
     let b:git_dir = l:git_dir
   endif
@@ -456,15 +460,17 @@ function! prompts#complete(lead, cmdline, pos) abort
           \ : []
   elseif a:lead =~# '^#'
     " A source whose argument is optional twice when it completes one: #changes
-    " alone, and #changes: to go on to its arguments, as #rule: does
+    " alone, and #changes: to go on to its arguments, as #commits: does
     let l:names = []
-    for l:name in filter(prompts#source#names(), 'v:val !=# "files"')
+    for l:name in prompts#source#hashed()
       let l:arg = prompts#source#info(l:name).arg
       let l:names += l:arg ==# 'required' ? ['#' . l:name . ':']
             \ : l:arg ==# 'optional' && exists('*prompts#sources#' . l:name . '#complete')
             \ ? ['#' . l:name, '#' . l:name . ':'] : ['#' . l:name]
     endfor
     return filter(l:names, 'stridx(v:val, a:lead) == 0')
+  elseif a:lead =~# '^+'
+    return map(prompts#sources#rule#complete(a:lead[1:]), '"+" . v:val')
   elseif a:lead =~# '^@'
     return map(getcompletion(a:lead[1:], 'file'), '"@" . v:val')
   elseif a:lead =~# '^-'
@@ -493,11 +499,11 @@ function! prompts#tokens() abort
           \ : prompts#complete(l:token, '', 0)
     let l:tokens += (l:token =~# ':$' && !empty(l:args) ? [] : [l:token]) + l:args
   endfor
-  return l:tokens + prompts#complete('-', '', 0)
+  return l:tokens + prompts#complete('+', '', 0) + prompts#complete('-', '', 0)
 endfunction
 
 " For an insert-mode fzf.vim picker: several at once, with <Tab>. The word
-" before the cursor completes as it would after :Ai (#rule: to its rules, @ to
+" before the cursor completes as it would after :Ai (+ to the rules, @ to
 " files); a word that completes to nothing filters every token instead
 function! prompts#fzf() abort
   return {'source': function('s:fzf_source'), 'prefix': '\S*$',
@@ -586,15 +592,61 @@ function! s:rules() abort
   let l:task_rules = prompts#config#task_rules(l:config)
   for l:name in sort(keys(l:task_rules))
     let l:rule = l:task_rules[l:name]
-    call add(l:items, s:item('task rules, sent when asked for', '#rule:' . l:name, l:rule.file,
+    call add(l:items, s:item('task rules, sent when asked for', '+' . l:name, l:rule.file,
           \ prompts#config#show(l:rule.file, l:place), l:rule.origin))
     for l:hidden in l:rule.hides
-      call add(l:items, s:item('task rules, sent when asked for', '#rule:' . l:name, l:hidden.file,
+      call add(l:items, s:item('task rules, sent when asked for', '+' . l:name, l:hidden.file,
             \ prompts#config#show(l:hidden.file, l:place),
             \ l:hidden.origin . '  hidden by ' . prompts#config#show(l:rule.file, l:place)))
     endfor
   endfor
   return l:items
+endfunction
+
+" :AiSources: what to work on, then how to work on it (+rules, #agent_comments),
+" each with whether it has something where you were when it opened; a
+" source's copy further down 'runtimepath' under the one that hides it
+function! prompts#sources() abort
+  call s:open_list('Sources', function('s:sources_list'),
+        \ {'prompts_from': s:from(0, line('.'), line('.'))})
+endfunction
+
+function! s:sources_list() abort
+  call prompts#source#load()
+  let l:config = prompts#config#get(b:prompts_bufnr)
+  let b:prompts_errors = map(copy(l:config.errors), '"error: " . v:val')
+  let l:request = s:request(b:prompts_from, '', [], l:config)
+  let l:groups = {'material': [], 'instruction': []}
+  for l:name in prompts#source#names()
+    let l:info = prompts#source#info(l:name)
+    let l:instruction = get(l:info, 'instruction', 0)
+    let l:group = l:instruction ? 'how to work on it' : 'what to work on'
+    let l:shown = l:name ==# 'files' ? '@path' : l:name ==# 'rule' ? '+name'
+          \ : '#' . l:name . get({'none': '', 'optional': '[:arg]', 'required': ':arg'}, l:info.arg, '')
+    if l:name ==# 'rule'
+      let l:names = sort(keys(prompts#config#task_rules(l:config)))
+      let l:about = empty(l:names) ? 'none here: ' . l:info.needs
+            \ : join(map(l:names, '"+" . v:val')) . '  (:' . prompts#namespace() . 'Rules)'
+    elseif l:instruction || l:info.arg ==# 'required'
+      " Nothing to judge without its argument; #agent_comments names a new file
+      let l:about = l:info.needs
+    else
+      try
+        let l:text = prompts#source#context({'name': l:name, 'arg': ''}, l:request)
+      catch
+        let l:text = ''
+      endtry
+      let l:about = empty(l:text) ? 'nothing here: needs ' . l:info.needs : 'has something here'
+    endif
+    let l:files = prompts#source#files(l:name)
+    let l:items = [s:item(l:group, l:shown, l:files[0], fnamemodify(l:files[0], ':~'), l:about)]
+    for l:hidden in l:files[1:]
+      call add(l:items, s:item(l:group, l:shown, l:hidden, fnamemodify(l:hidden, ':~'),
+            \ 'hidden by ' . fnamemodify(l:files[0], ':~')))
+    endfor
+    let l:groups[l:instruction ? 'instruction' : 'material'] += l:items
+  endfor
+  return l:groups.material + l:groups.instruction
 endfunction
 
 function! s:item(group, name, file, path, about) abort

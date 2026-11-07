@@ -31,7 +31,7 @@ the [sources and files](sources/) you add, and a range or visual selection.
   and `g:prompts_mode`. `:Ai --plan-mode` alone opens it bare that way.
 - **`--bare`** (anywhere before `--`): leaves the [rules](personas.md#rules)
   and the repository's description out, so only the persona, what you name
-  (`#rule:` included) and your query go. `:Ai --bare question` sends the question alone.
+  (`+name` included) and your query go. `:Ai --bare question` sends the question alone.
 - **`--force`** (anywhere before `--`): sends a persona with nothing to work
   on, which is refused otherwise: `:Ai /review --force look around
   src/retry.py`. A missing rule is still refused.
@@ -63,7 +63,7 @@ their indentation kept, so a pasted `@decorator`, `# comment` or `--flag`
 is only text.
 
 ```
-/review #rule:testing #changes
+/review +testing #changes
 Is the retry safe here? This part:
 
     for attempt in range(3):
@@ -99,7 +99,7 @@ opens, so you can move around before sending it. When the ask can't be sent
 again with your text and the error.
 
 In the draft, `prompts#tokens()` lists every word it can take, but files:
-the personas, the sources with their arguments (`#rule:testing`,
+the personas, the sources with their arguments (`+testing`,
 `#diff_pairs:<name>`) and the flags, as `<Tab>` completes them after `:Ai`. Hand
 it to an insert-mode picker. For fzf.vim's, `prompts#fzf()` has them ready to
 pick several with `<Tab>`, inserted with a space between:
@@ -108,8 +108,8 @@ pick several with `<Tab>`, inserted with a space between:
 inoremap <expr> <C-x><C-a> fzf#vim#complete(prompts#fzf())
 ```
 
-The word before the cursor completes there as it does after `:Ai`: `#ru` to
-`#rule:`, `#rule:` to the rules, `@src/` to files, `--p` to `--plan-mode`,
+The word before the cursor completes there as it does after `:Ai`: `#ch` to
+`#changes` and `#changes:`, `+` to the rules, `@src/` to files, `--p` to `--plan-mode`,
 one match inserted at once. A word that completes to nothing, or none, gives
 every word, filtered by what you typed. `#commits:` is left to
 `prompts#sources#commits#fzf()`, its own picker.
@@ -177,7 +177,7 @@ as `:AiComments`, the newest without an argument.
 `:AiPersonas[!]` lists the personas where you are, a line each: where its
 file is, where it comes from (`bundled` with vim-prompts, or the
 [scope](config.md#scopes) and file that set `vim-prompts.personas`), the
-context it asks for (its `#rule:`s included), those it builds on, and what
+context it asks for (its `+name` rules included), those it builds on, and what
 it needs that isn't there from where you opened the list. One hidden by a
 later persona of its name is dimmed under it. `!` reloads the source files
 first. The rules and the repository's description are `:AiRules`.
@@ -187,15 +187,41 @@ Personas (5)  <CR> open  / filter  r refresh  q close
   /default    ~/.vim/plugged/vim-prompts/personas/default.md    bundled
   /review     ~/.vim/plugged/vim-prompts/personas/review.md     bundled  #agent_comments  /review needs something to work on: …
   /review:pr  ~/.vim/plugged/vim-prompts/personas/review/pr.md  bundled  #agent_comments [#diff_pairs #changes]  on {base} ~/.vim/plugged/vim-prompts/personas/review.md
-  /tests      ~/work/handbook/personas/tests.md                 global ~/work/.gitconfig  #file #rule:testing  /tests needs a file
+  /tests      ~/work/handbook/personas/tests.md                 global ~/work/.gitconfig  #file +testing  /tests needs a file
   /tests      ~/dotfiles/prompts/personas/tests.md              global ~/.gitconfig  hidden by ~/work/handbook/personas/tests.md
+```
+
+## :AiSources
+
+`:AiSources` lists the [sources](sources/), a line each, in two groups:
+what to work on (`#file`, `#changes`, `@path`, …) and how to work on it,
+the instructions (`+name`, `#agent_comments`), which don't count as
+something to work on. For each: how it is written (`#changes[:arg]` takes an
+argument or not, `#url:arg` needs one), its file, and whether it has
+something from where you opened the list, or what it needs. A source that
+needs an argument says what it takes; `+name` lists the rules there are,
+which `:AiRules` shows with their files. A copy of a source earlier on
+`'runtimepath'` ([changing a source](sources/writing.md#changing-a-source))
+hides the bundled one, which is dimmed under it. `r` loads the source files
+again, so a new one shows.
+
+```
+Sources (12)  <CR> open  / filter  r refresh  q close
+what to work on
+  #changes[:arg]     ~/.vim/plugged/vim-prompts/autoload/prompts/sources/changes.vim   has something here
+  #quickfix          ~/.vim/plugged/vim-prompts/autoload/prompts/sources/quickfix.vim  nothing here: needs a quickfix list (:Grep, :vimgrep, :make)
+  #url:arg           ~/.vim/plugged/vim-prompts/autoload/prompts/sources/url.vim       a link: #url:https://...
+  …
+how to work on it
+  #agent_comments    ~/.vim/plugged/vim-prompts/autoload/prompts/sources/agent_comments.vim  a directory to write the file in
+  +name              ~/.vim/plugged/vim-prompts/autoload/prompts/sources/rule.vim      +testing +style  (:AiRules)
 ```
 
 ## :AiRules
 
 `:AiRules` lists the rules files where you are, in the order they are
 sent, the repository's description, then the rules you ask for by name,
-`#rule:<name>` ([rules for a task](config.md#rules-for-a-task)): for each,
+`+<name>` ([rules for a task](config.md#rules-for-a-task)): for each,
 its file and where it comes from, the [scope](config.md#scopes) and the
 file that sets it. A rules file hides an earlier one of its file name, so a
 group's `git.md` replaces yours: the hidden one is dimmed under it. A
@@ -211,8 +237,8 @@ rules
 repository
   repository     .vim-prompts/repository.md             local ~/work/app/.git/config
 task rules, sent when asked for
-  #rule:testing  .vim-prompts/task-rules/testing.md     local ~/work/app/.git/config
-  #rule:testing  ~/work/handbook/task-rules/testing.md  global ~/work/.gitconfig  hidden by .vim-prompts/task-rules/testing.md
+  +testing       .vim-prompts/task-rules/testing.md     local ~/work/app/.git/config
+  +testing       ~/work/handbook/task-rules/testing.md  global ~/work/.gitconfig  hidden by .vim-prompts/task-rules/testing.md
 ```
 
 Both are [vim-lists](https://github.com/roumail/vim-lists) lists: `<CR>`
@@ -289,5 +315,5 @@ nmap <leader>cr <Plug>(prompts-reply)
 ## Command prefix
 
 ```vim
-let g:prompts_namespace = 'Ai'      " :Ai, :AiDraft, :AiPreview, :AiComments, :AiCommentsLoad, :AiCommentsList, :AiCommentsClear, :AiReply, :AiReplyDraft, :AiThread, :AiPersonas, :AiRules, :AiRule, :AiUnset
+let g:prompts_namespace = 'Ai'      " :Ai, :AiDraft, :AiPreview, :AiComments, :AiCommentsLoad, :AiCommentsList, :AiCommentsClear, :AiReply, :AiReplyDraft, :AiThread, :AiPersonas, :AiRules, :AiRule, :AiSources, :AiUnset
 ```

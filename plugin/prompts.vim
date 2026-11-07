@@ -18,8 +18,10 @@ execute 'command! -bang -range -nargs=* -complete=customlist,prompts#complete '
 " The personas that apply here and what each asks for; ! reloads the sources
 execute 'command! -bang ' . s:ns . 'Personas call prompts#list(<bang>0)'
 " The rules files that apply here, where each is set, those hidden, and
-" those to ask for with #rule
+" those to ask for with +name
 execute 'command! ' . s:ns . 'Rules call prompts#rules()'
+" The context sources: what each needs, and whether it has something here
+execute 'command! ' . s:ns . 'Sources call prompts#sources()'
 " Open a rules file that applies here, or a new one for a scope
 execute 'command! -range -nargs=* -complete=customlist,prompts#rule_complete '
       \ . s:ns . 'Rule call prompts#rule(<range>, <line1>, <line2>, <q-args>)'
