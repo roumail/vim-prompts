@@ -6,6 +6,15 @@ function! prompts#sources#changes#info() abort
         \ 'arg': 'optional'}
 endfunction
 
+" staged, then the branches, most recent first, as :BranchDiff completes them
+function! prompts#sources#changes#complete(lead) abort
+  if !prompts#installed('fugitive_extras')
+    return []
+  endif
+  return filter(['staged'], 'stridx(v:val, a:lead) == 0')
+        \ + fugitive_extras#complete_branch(a:lead, '', 0)
+endfunction
+
 function! s:git(bufnr, args) abort
   let l:result = FugitiveExecute(a:args, a:bufnr)
   return l:result.exit_status ? v:null : filter(copy(l:result.stdout), '!empty(v:val)')

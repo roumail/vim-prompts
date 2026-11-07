@@ -8,7 +8,10 @@ The files a change touches, worked out from git: nothing to open first.
 | `#changes:staged` | What you're about to commit: the index against `HEAD`. |
 | `#changes:<branch>` | Another branch's commits since it forked, without checking it out (`#changes:origin/feature`). |
 
-These are the same scopes as fugitive-extras' `:BranchDiff`. The agent gets the
+`#changes:<Tab>` completes `staged` and the branches, most recent first.
+
+These are the same scopes as fugitive-extras' `:BranchDiff!` (your branch's
+work tree) and `:BranchDiff <branch>`. The agent gets the
 files with their status, and the `git diff` that shows each, so it reads the
 same change you'd see:
 

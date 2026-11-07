@@ -370,9 +370,16 @@ function! prompts#complete(lead, cmdline, pos) abort
           \   {_, a -> '#' . l:name . ':' . a})
           \ : []
   elseif a:lead =~# '^#'
-    return filter(map(filter(prompts#source#names(), 'v:val !=# "files"'), {_, n -> '#' . n
-          \ . (prompts#source#info(n).arg ==# 'required' ? ':' : '')}),
-          \ 'stridx(v:val, a:lead) == 0')
+    " A source whose argument is optional twice when it completes one: #changes
+    " alone, and #changes: to go on to its arguments, as #rule: does
+    let l:names = []
+    for l:name in filter(prompts#source#names(), 'v:val !=# "files"')
+      let l:arg = prompts#source#info(l:name).arg
+      let l:names += l:arg ==# 'required' ? ['#' . l:name . ':']
+            \ : l:arg ==# 'optional' && exists('*prompts#sources#' . l:name . '#complete')
+            \ ? ['#' . l:name, '#' . l:name . ':'] : ['#' . l:name]
+    endfor
+    return filter(l:names, 'stridx(v:val, a:lead) == 0')
   elseif a:lead =~# '^@'
     return map(getcompletion(a:lead[1:], 'file'), '"@" . v:val')
   elseif a:lead =~# '^-'
@@ -390,8 +397,9 @@ function! prompts#tokens() abort
   let l:tokens = prompts#complete('/', 'Ai /', 4)
   for l:token in prompts#complete('#', '', 0)
     " Not every recent hash: #commits has its own picker
-    let l:args = l:token ==# '#commits:' ? []
-          \ : prompts#complete(substitute(l:token, ':\=$', ':', ''), '', 0)
+    " Arguments once, for name: (an optional one's bare name has none)
+    let l:args = l:token ==# '#commits:' || l:token !~# ':$' ? []
+          \ : prompts#complete(l:token, '', 0)
     let l:tokens += (l:token =~# ':$' && !empty(l:args) ? [] : [l:token]) + l:args
   endfor
   return l:tokens + prompts#complete('-', '', 0)
