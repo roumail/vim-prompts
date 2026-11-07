@@ -1,7 +1,7 @@
 " Personas: docs/personas.md
 
 let s:bundled = expand('<sfile>:p:h:h:h') . '/personas'
-let s:keys = ['context', 'agent', 'args', 'mode']
+let s:keys = ['context', 'agent', 'args', 'mode', 'input']
 let s:name = '^\a[[:alnum:]_-]*$'
 
 function! s:parse_value(text) abort
@@ -51,13 +51,25 @@ function! s:parse_value(text) abort
         \ l:s[len(l:word):]]
 endfunction
 
+" A persona's name, or a variant's (name:variant), from its file: <dir>/name.md,
+" <dir>/name/variant.md; '' when it isn't one
+function! s:file_name(dir, file) abort
+  let l:parts = split(a:file[len(a:dir) + 1 : -4], '/')
+  return len(l:parts) <= 2 && empty(filter(copy(l:parts), 'v:val !~# s:name'))
+        \ ? join(l:parts, ':') : ''
+endfunction
+
+function! s:files(dir) abort
+  return sort(glob(a:dir . '/*.md', 1, 1) + glob(a:dir . '/*/*.md', 1, 1))
+endfunction
+
 function! s:stacks(config) abort
   let l:stacks = {}
   for [l:source, l:dir] in [['bundled', s:bundled]]
         \ + map(copy(a:config.personas), '[v:val.origin, v:val.dir]')
-    for l:file in sort(glob(l:dir . '/*.md', 1, 1))
-      let l:name = fnamemodify(l:file, ':t:r')
-      if l:name =~# s:name
+    for l:file in s:files(l:dir)
+      let l:name = s:file_name(l:dir, l:file)
+      if !empty(l:name)
         let l:stacks[l:name] = get(l:stacks, l:name, [])
               \ + [{'name': l:name, 'file': l:file, 'source': l:source}]
       endif
@@ -69,8 +81,8 @@ endfunction
 function! prompts#persona#errors(config) abort
   let l:errors = []
   for l:dir in map(copy(a:config.personas), 'v:val.dir')
-    for l:file in glob(l:dir . '/*.md', 1, 1)
-      if fnamemodify(l:file, ':t:r') !~# s:name
+    for l:file in s:files(l:dir)
+      if empty(s:file_name(l:dir, l:file))
         call add(l:errors, fnamemodify(l:file, ':~') . ': name must be letters, digits, - and _')
       endif
     endfor
@@ -106,15 +118,36 @@ function! s:resolve(stack, i) abort
     endfor
     if index(['', 'ask', 'plan', 'agent', 'auto'], get(l:meta, 'mode', '')) < 0
       throw 'mode: ask, plan, agent or auto'
+    elseif index(['', 'required', 'optional'], get(l:meta, 'input', '')) < 0
+      throw 'input: required or optional'
     endif
     let l:context = get(l:meta, 'context', [])
     let l:meta.context = []
     for l:item in type(l:context) == v:t_list ? l:context : [l:context]
-      let l:source = prompts#source#parse(l:item)
-      if has_key(l:source, 'error')
-        throw 'context: ' . l:source.error
+      " [a, b]: the first of them that has something
+      let l:any = []
+      for l:text in type(l:item) == v:t_list ? l:item : [l:item]
+        if type(l:text) != v:t_string
+          throw 'context: one level of [alternatives], of sources'
+        endif
+        " "rule:name?": a rule this persona goes without where there is none
+        let l:source = prompts#source#parse(substitute(l:text, '?$', '', ''))
+        if has_key(l:source, 'error')
+          throw 'context: ' . l:source.error
+        elseif type(l:item) == v:t_list && get(prompts#source#info(l:source.name), 'instruction', 0)
+          throw 'context: #' . l:source.name . ' is always sent, not one of [alternatives]'
+        elseif l:text =~# '?$'
+          if l:source.name !=# 'rule' || type(l:item) == v:t_list
+            throw 'context: only a rule may be missing (rule:name?), not ' . l:text
+          endif
+          let l:source.optional = 1
+        endif
+        call add(l:any, l:source)
+      endfor
+      if empty(l:any)
+        throw 'context: [] names no source'
       endif
-      call add(l:meta.context, l:source)
+      call add(l:meta.context, type(l:item) == v:t_list ? {'any': l:any} : l:any[0])
     endfor
     let l:template = l:lines[l:end + 1 :]
   endif
@@ -124,7 +157,7 @@ function! s:resolve(stack, i) abort
   if stridx(l:text, '{base}') < 0
     return l:p
   elseif a:i == 0
-    throw '{base}, but no /' . l:p.name . ' below it'
+    throw '{base}, but no /' . matchstr(l:p.name, '^[^:]*') . ' below it'
   endif
   let l:base = s:resolve(a:stack, a:i - 1)
   " The persona on top places {query}, and any slot it names itself: each
@@ -151,8 +184,13 @@ function! prompts#persona#hidden(persona, config) abort
 endfunction
 
 function! prompts#persona#get(name, config) abort
-  " Read again on each ask, so edits apply at once
-  let l:stack = get(s:stacks(a:config), a:name, [])
+  " Read again on each ask, so edits apply at once. A variant's files are
+  " above its persona's, for its {base}
+  let l:stacks = s:stacks(a:config)
+  let l:stack = get(l:stacks, a:name, [])
+  if !empty(l:stack) && a:name =~# ':'
+    let l:stack = get(l:stacks, matchstr(a:name, '^[^:]*'), []) + l:stack
+  endif
   if empty(l:stack)
     call prompts#error('no persona /' . a:name . ' (:' . prompts#namespace() . 'Personas)')
     return {}

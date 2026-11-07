@@ -30,7 +30,8 @@ once. `:AiPersonas` lists where every persona comes from.
 | Persona | Context | Does |
 | --- | --- | --- |
 | `/default` | | Your query, the selection, and what you add. Used without a `/persona`. |
-| `/review` | `#changes` | Reviews your branch's changes, and answers your comments if you add `#comments`. Ask mode. |
+| `/review` | `#agent_comments` | Reviews what you give it (a selection, `@files`, `#changes`, …), and answers your comments if you add `#comments`; refused with nothing to review (`input: required`). Its comments come back as a list for `:AiComments`. Ask mode. |
+| `/review:pr` | `[#diff_pairs, #changes]` | [A variant](#variants) of `/review`: the diffs you have open, else your branch's changes. |
 
 ## Where personas go
 
@@ -85,6 +86,37 @@ In this repository, tests go only through the Flask test client.
 
 `:AiPersonas` lists the files each persona builds on.
 
+## Variants
+
+A variant is a persona's version for one kind of ask, `/review:pr`, kept in
+a directory named for the persona: `<dir>/review/pr.md`. Its files go above
+the persona's, so with `{base}` it builds on `/review` as it is where you
+ask (the bundled one, or yours on it) and says only what differs. The
+bundled `/review:pr` is all frontmatter:
+
+```markdown
+---
+context: [[diff_pairs, changes]]
+---
+{base}
+```
+
+So your `/review`, with your rules and the shape of answer you want, is
+your `/review:pr` too, and a variant of your own adds to the bundled one as
+a persona does, say a rule only pull requests need:
+
+```markdown
+---
+context: ["rule:testing"]
+---
+{base}
+```
+
+Variants stack across directories as personas do, and without `{base}` one
+replaces everything below it, the persona included. `/review<Tab>`
+completes `/review` and `/review:`, and `/review:<Tab>` its variants.
+`:AiPersonas` lists each variant after its persona.
+
 ## Skills
 
 A persona says how to ask and with what; a skill says how the agent does
@@ -102,17 +134,28 @@ an error, so a typo doesn't pass silently.
 
 | Key | Value | Default |
 | --- | --- | --- |
-| `context` | The [sources](sources/) the persona always takes, as `name` or `"name:arg"` (`["repo:tpope/vim-dispatch"]`). The user adds more. | `[]` |
+| `context` | The [sources](sources/) the persona always takes, as `name` or `"name:arg"` (`["repo:tpope/vim-dispatch"]`). `[a, b]` is the first of them that has something (`[[diff_pairs, changes]]`). `"rule:name?"` is a rule it goes without where there is none. The user adds more, and one added whose argument says which of it (`#changes:staged`) takes the place of the persona's of that name. | `[]` |
+| `input` | `required`: refused with nothing to work on, even without a `context` of its own ([refused](#frontmatter)). | `optional` |
 | `agent` | `claude` or `copilot`: the agent to prefer, when installed ([which agent runs](agent.md#which-agent-runs)). | the user's |
 | `mode` | `ask`, `plan`, `agent` or `auto`: the [mode](agent.md#modes) the agent starts in. `--<mode>-mode` in the ask wins. | `g:prompts_mode` |
 | `args` | Extra CLI arguments: a list, or a map from agent to list (`{claude: [...], copilot: [...]}`); an agent not in the map gets none. | `[]` |
 
-A persona with `context` is refused, saying what is missing, when none of its
-sources (its own, those added, the files) has anything and there is no
-selection. Sources that only say how to work, `#rule` and `#agent_comments`,
-don't count: `/review` with rules is still refused on a branch with no
-changes, and a persona whose context is only rules is never refused. A source asked for with `#` that has nothing, or a missing `@file`,
-is always refused.
+An ask is refused, saying why, when:
+
+- **There is nothing to work on.** None of the persona's sources, those
+  added or the `@` files has anything, and there is no selection. This
+  applies to a persona with `context`, and to one with `input: required`
+  even without a `context` of its own. Your query doesn't count, so
+  `:Ai /review is this right` with nothing selected is refused rather than
+  sent to an agent with nothing to review. Sources that only say how to
+  work, `#rule` and `#agent_comments`, don't count either. `--force` sends
+  it anyway.
+- **A rule the persona names isn't there.** Each `rule:` in `context` must
+  be in a task-rules directory where you ask: one that isn't is a typo, or a
+  directory not set up on this machine, and should be fixed rather than
+  missed. `"rule:name?"` marks a rule the persona goes without where there
+  is none. `--force` doesn't send it.
+- **A source you typed has nothing**, or an `@file` is missing.
 
 ## Template
 
@@ -147,6 +190,7 @@ told the later wins where they differ. See [configuration](config.md).
 
 Rules for one kind of task come from `vim-prompts.task-rules`, by name, as a source:
 `context: [file, "rule:testing"]` in the persona, or `#rule:testing` in the
-ask ([rules for a task](config.md#rules-for-a-task)). They go last in
+ask ([rules for a task](config.md#rules-for-a-task)); either way the ask is
+refused where there is none, unless the persona's is `"rule:testing?"`. They go last in
 `{rules}`, so what the persona says after `{rules}` wins over them; a
 template with `{rule}` places them there instead, outside `{rules}`.

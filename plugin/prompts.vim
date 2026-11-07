@@ -4,7 +4,7 @@ endif
 let g:loaded_prompts = 1
 
 let s:ns = prompts#namespace()
-" [/persona] [#source[:arg]...] [@path...] [--<mode>-mode] [--bare]
+" [/persona[:variant]] [#source[:arg]...] [@path...] [--<mode>-mode] [--bare] [--force]
 " [query] [-- text]: ask the persona (default: `default`) with its context
 " and the sources asked for; with nothing, open the agent
 execute 'command! -bang -range -nargs=* -complete=customlist,prompts#complete '

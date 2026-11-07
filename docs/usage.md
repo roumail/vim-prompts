@@ -3,13 +3,16 @@
 ## :Ai
 
 ```
-:[range]Ai[!] [/persona] [#source...] [@file...] [--<mode>-mode] [--bare] [query] [-- text]
+:[range]Ai[!] [/persona[:variant]] [#source...] [@file...] [--<mode>-mode] [--bare] [--force] [query] [-- text]
 ```
 
 Asks the [persona](personas.md) (`/default` without one) with its context,
 the [sources and files](sources/) you add, and a range or visual selection.
 
-- **No context to send:** refused, saying what is missing.
+- **Nothing to work on, or a rule missing:** refused, saying what is
+  missing ([when](personas.md#frontmatter)).
+- **`/persona:variant`**: a persona's [variant](personas.md#variants),
+  `/review:pr`.
 - **Nothing at all** (`:Ai`): opens the agent, or goes back to the session
   `:Ai` opened before.
 - **`!`, a one-off** (`:'<,'>Ai! what does this do`): instead of a session,
@@ -25,6 +28,9 @@ the [sources and files](sources/) you add, and a range or visual selection.
 - **`--bare`** (anywhere before `--`): leaves the [rules](personas.md#rules)
   and the repository's description out, so only the persona, what you name
   (`#rule:` included) and your query go. `:Ai --bare question` sends the question alone.
+- **`--force`** (anywhere before `--`): sends a persona with nothing to work
+  on, which is refused otherwise: `:Ai /review --force look around
+  src/retry.py`. A missing rule is still refused.
 - **Context but no query** (`:Ai @`, `:'<,'>Ai #comments`): sends the context
   and the agent waits for your question, which you type in the session.
 
@@ -38,7 +44,7 @@ isn't sent as text. After `--`, everything is your query as typed, so
 `#include`, `@decorator` or `--flags` need nothing special:
 
 ```vim
-:Ai /review -- why is #include here?
+:'<,'>Ai /review -- why is #include here?
 ```
 
 ## :AiDraft
@@ -64,7 +70,7 @@ Pasting a whole document under the first line, a handoff for one, needs
 nothing special:
 
 ```
-/review
+/review:pr
 Is the retry safe here?
 
 @celery.task(bind=True)
@@ -173,11 +179,12 @@ later persona of its name is dimmed under it. `!` reloads the source files
 first. The rules and the repository's description are `:AiRules`.
 
 ```
-Personas (4)  <CR> open  / filter  r refresh  q close
-  /default  ~/.vim/plugged/vim-prompts/personas/default.md  bundled
-  /review   ~/.vim/plugged/vim-prompts/personas/review.md   bundled  #changes
-  /tests    ~/work/handbook/personas/tests.md                global ~/work/.gitconfig  #file #rule:testing  /tests needs a file
-  /tests    ~/dotfiles/prompts/personas/tests.md             global ~/.gitconfig  hidden by ~/work/handbook/personas/tests.md
+Personas (5)  <CR> open  / filter  r refresh  q close
+  /default    ~/.vim/plugged/vim-prompts/personas/default.md    bundled
+  /review     ~/.vim/plugged/vim-prompts/personas/review.md     bundled  #agent_comments  /review needs something to work on: …
+  /review:pr  ~/.vim/plugged/vim-prompts/personas/review/pr.md  bundled  #agent_comments [#diff_pairs #changes]  on {base} ~/.vim/plugged/vim-prompts/personas/review.md
+  /tests      ~/work/handbook/personas/tests.md                 global ~/work/.gitconfig  #file #rule:testing  /tests needs a file
+  /tests      ~/dotfiles/prompts/personas/tests.md              global ~/.gitconfig  hidden by ~/work/handbook/personas/tests.md
 ```
 
 ## :AiRules

@@ -2,9 +2,11 @@
 
 ## Why was my ask refused?
 
-There was no context to send, and the message says what is missing: for
-example `/review` on a branch with no changes, or
-`#comments` with no comments. See
+There was nothing to work on, or a rule missing, and the message says
+what: for example `/review` with nothing selected, `/review:pr` on a
+branch with no changes, a persona's `rule:test-setup` on a machine without
+it, or `#comments` with no comments. `--force` sends a persona with nothing
+to work on. See
 [when a persona can be asked](personas.md#frontmatter).
 
 ## How do I change what `/review` does?

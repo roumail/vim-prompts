@@ -23,6 +23,7 @@ Rules for this task (~/work/prompts/task-rules/testing.md):
 ...
 ```
 
-A persona takes one with `context: [file, "rule:testing"]`; there it is
-left out where no task-rules directory has it, while `#rule:` in the ask
-refuses the ask.
+A persona takes one with `context: [file, "rule:testing"]`. Where no
+task-rules directory has it, the ask is refused, as with `#rule:` in the
+ask, unless the persona marks it as one to go without:
+`"rule:testing?"`.

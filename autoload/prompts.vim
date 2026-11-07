@@ -24,6 +24,9 @@ function! prompts#error(msg) abort
   echohl None
 endfunction
 
+" /persona, or /persona:variant, first in an ask
+let s:persona_word = '^/\a[[:alnum:]_-]*\%(:\a[[:alnum:]_-]*\)\=$'
+
 function! s:config(bufnr) abort
   let l:config = prompts#config#get(a:bufnr)
   call map(copy(l:config.errors), 'prompts#error(v:val)')
@@ -56,28 +59,98 @@ function! s:selection(line1, line2) abort
   return {'selection': getline(a:line1, a:line2), 'charwise': 0}
 endfunction
 
-function! s:missing(persona, request, given) abort
+function! s:instruction(source) abort
+  return !has_key(a:source, 'any') && get(prompts#source#info(a:source.name), 'instruction', 0)
+endfunction
+
+function! s:needs(source) abort
+  return join(map(copy(get(a:source, 'any', [a:source])),
+        \ 'prompts#source#info(v:val.name).needs'), ', or ')
+endfunction
+
+function! s:show(source) abort
+  return has_key(a:source, 'any') ? '[' . join(map(copy(a:source.any), 's:show(v:val)')) . ']'
+        \ : '#' . a:source.name . (empty(a:source.arg) ? '' : ':' . a:source.arg)
+        \   . (get(a:source, 'optional', 0) ? '?' : '')
+endfunction
+
+" Why an ask can't go, '' when it can. {force}: a persona with nothing to
+" work on goes anyway
+function! s:missing(persona, request, given, force) abort
   for l:source in a:given
     if empty(prompts#source#context(l:source, a:request))
-      return '#' . l:source.name . ' has nothing: needs '
+      return s:show(l:source) . ' has nothing: needs '
             \ . prompts#source#info(l:source.name).needs
     endif
   endfor
-  " Instructions (how to work: a rule, where to write) aren't something to
-  " work on, so they don't count
-  let l:own = filter(copy(a:persona.meta.context),
-        \ '!get(prompts#source#info(v:val.name), "instruction", 0)')
-  if empty(l:own) || !empty(a:request.selection)
+  " The persona's instructions (a rule, where to write) are part of it: one
+  " that has nothing is a mistake to fix, as a #rule: you typed is, unless
+  " the persona says it may be missing (rule:name?)
+  for l:source in filter(copy(a:persona.meta.context),
+        \ 's:instruction(v:val) && !get(v:val, "optional", 0)')
+    if empty(prompts#source#context(l:source, a:request))
+      return '/' . a:persona.name . ': ' . s:show(l:source) . ' has nothing: needs '
+            \ . prompts#source#info(l:source.name).needs
+    endif
+  endfor
+  " Instructions aren't something to work on, so they don't count
+  let l:own = filter(copy(a:persona.meta.context), '!s:instruction(v:val)')
+  if a:force || !empty(a:request.selection)
+        \ || empty(l:own) && get(a:persona.meta, 'input', '') !=# 'required'
     return ''
   endif
   for l:source in a:request.sources
-    if !get(prompts#source#info(l:source.name), 'instruction', 0)
-          \ && !empty(prompts#source#context(l:source, a:request))
+    if !s:instruction(l:source) && !empty(prompts#source#context(l:source, a:request))
       return ''
     endif
   endfor
   return '/' . a:persona.name . ' needs '
-        \ . join(map(copy(l:own), 'prompts#source#info(v:val.name).needs'), ', or ')
+        \ . (empty(l:own) ? 'something to work on: a selection, an @file or a #source'
+        \   : join(map(copy(l:own), 's:needs(v:val)'), ', or '))
+        \ . '; --force sends it without'
+endfunction
+
+" The persona's sources, then those typed. A typed one whose argument says
+" which of it (#changes:staged) takes the place of the persona's of its
+" name, or of the [alternatives] it is in
+function! s:sources(own, given) abort
+  let l:sources = deepcopy(a:own)
+  let l:replaced = {}
+  for l:source in a:given
+    let l:at = -1
+    if prompts#source#info(l:source.name).arg ==# 'optional'
+      for l:i in range(len(a:own))
+        if !has_key(l:replaced, l:i) && index(map(copy(get(a:own[l:i], 'any', [a:own[l:i]])),
+              \ 'v:val.name'), l:source.name) >= 0
+          let l:at = l:i
+          break
+        endif
+      endfor
+    endif
+    if l:at >= 0
+      let l:sources[l:at] = l:source
+      let l:replaced[l:at] = 1
+    elseif index(l:sources, l:source) < 0
+      call add(l:sources, l:source)
+    endif
+  endfor
+  return l:sources
+endfunction
+
+" Each of the persona's [alternatives] becomes the first of them that has
+" something, or goes
+function! s:choose(request) abort
+  let l:sources = []
+  for l:source in a:request.sources
+    if has_key(l:source, 'any')
+      let l:sources += filter(copy(l:source.any),
+            \ '!empty(prompts#source#context(v:val, a:request))')[:0]
+    else
+      call add(l:sources, l:source)
+    endif
+  endfor
+  let a:request.sources = l:sources
+  return a:request
 endfunction
 
 " 1 once the ask is under way, 0 when it stopped at an error. A draft's
@@ -96,9 +169,9 @@ function! s:prompt(from, args, Then, ...) abort
     call add(l:words, [l:word, l:s, l:pos])
   endwhile
   let l:parsed = {'persona': 'default', 'given': [], 'files': [], 'pick': [], 'mode': '',
-        \ 'bare': 0, 'query': ''}
+        \ 'bare': 0, 'force': 0, 'query': ''}
   let l:taken = []
-  if get(get(l:words, 0, []), 0, '') =~# '^/\a[[:alnum:]_-]*$'
+  if get(get(l:words, 0, []), 0, '') =~# s:persona_word
     let l:parsed.persona = l:words[0][0][1:]
     call add(l:taken, remove(l:words, 0))
   endif
@@ -133,6 +206,8 @@ function! s:prompt(from, args, Then, ...) abort
       let l:parsed.mode = matchstr(l:word, '\a\+', 2)
     elseif l:word ==# '--bare'
       let l:parsed.bare = 1
+    elseif l:word ==# '--force'
+      let l:parsed.force = 1
     else
       call remove(l:taken, -1)
     endif
@@ -172,13 +247,9 @@ function! s:prompt(from, args, Then, ...) abort
   if !empty(l:parsed.mode)
     let l:persona.meta.mode = l:parsed.mode
   endif
-  let l:sources = copy(l:persona.meta.context)
-  for l:source in l:parsed.given
-    if index(l:sources, l:source) < 0
-      call add(l:sources, l:source)
-    endif
-  endfor
-  let l:request = s:request(a:from, l:parsed.query, l:sources, l:config)
+  let l:request = s:choose(s:request(a:from, l:parsed.query,
+        \ s:sources(l:persona.meta.context, l:parsed.given), l:config))
+  let l:sources = l:request.sources
   " #rule's text goes last in {rules}, so the persona and the query still
   " come after it; a persona with {rule} places it itself
   if stridx(join(l:persona.template, "\n"), '{rule}') < 0
@@ -211,7 +282,7 @@ function! s:finish(persona, request, parsed, files, Then) abort
     endfor
     call uniq(sort(a:request.dirs))
   endif
-  let l:missing = s:missing(a:persona, a:request, a:parsed.given)
+  let l:missing = s:missing(a:persona, a:request, a:parsed.given, a:parsed.force)
   if !empty(l:missing)
     call prompts#error(l:missing)
     return 0
@@ -223,7 +294,7 @@ endfunction
 " Arguments with which :Ai sends nothing: it opens the agent, or the last
 " one-off
 function! s:opens_only(range, args) abort
-  return !a:range && a:args =~# '^\%(\s*--\%(\%(ask\|plan\|agent\|auto\)-mode\|bare\)\)*\s*$'
+  return !a:range && a:args =~# '^\%(\s*--\%(\%(ask\|plan\|agent\|auto\)-mode\|bare\|force\)\)*\s*$'
 endfunction
 
 " With !, a one-off: the agent answers once, into a buffer
@@ -383,10 +454,16 @@ function! prompts#complete(lead, cmdline, pos) abort
   elseif a:lead =~# '^@'
     return map(getcompletion(a:lead[1:], 'file'), '"@" . v:val')
   elseif a:lead =~# '^-'
-    return filter(['--agent-mode', '--ask-mode', '--auto-mode', '--bare', '--plan-mode'], 'stridx(v:val, a:lead) == 0')
+    return filter(['--agent-mode', '--ask-mode', '--auto-mode', '--bare', '--force', '--plan-mode'], 'stridx(v:val, a:lead) == 0')
   elseif a:lead =~# '^/' && a:cmdline[: a:pos - 1] =~# '^\S*\s\+\S*$'
-    return filter(map(prompts#persona#names(prompts#config#get(bufnr())), '"/" . v:val'),
-          \ 'stridx(v:val, a:lead) == 0')
+    " A persona with variants twice, as #changes completes: /review, and
+    " /review: to go on to /review:pr
+    let l:names = prompts#persona#names(prompts#config#get(bufnr()))
+    if a:lead !~# ':'
+      let l:names = uniq(sort(map(l:names, 'substitute(v:val, ":.*", ":", "")')
+            \ + filter(copy(l:names), 'v:val !~# ":"')))
+    endif
+    return filter(map(l:names, '"/" . v:val'), 'stridx(v:val, a:lead) == 0')
   endif
   return []
 endfunction
@@ -394,7 +471,7 @@ endfunction
 " Every word an ask can take but @files, as it completes: for an insert-mode
 " picker in a draft
 function! prompts#tokens() abort
-  let l:tokens = prompts#complete('/', 'Ai /', 4)
+  let l:tokens = map(prompts#persona#names(prompts#config#get(bufnr())), '"/" . v:val')
   for l:token in prompts#complete('#', '', 0)
     " Not every recent hash: #commits has its own picker
     " Arguments once, for name: (an optional one's bare name has none)
@@ -457,9 +534,9 @@ function! s:personas() abort
     let l:own = l:persona.meta.context
     call add(l:items, s:item('', '/' . l:name, l:persona.file, fnamemodify(l:persona.file, ':~'),
           \ join(filter([l:persona.source,
-          \   join(map(copy(l:own), '"#" . v:val.name . (empty(v:val.arg) ? "" : ":" . v:val.arg)')),
+          \   join(map(copy(l:own), 's:show(v:val)')),
           \   join(map(copy(l:persona.bases), '"on {base} " . fnamemodify(v:val, ":~")'), '  '),
-          \   s:missing(l:persona, s:request(b:prompts_from, '', copy(l:own), l:config), [])],
+          \   s:missing(l:persona, s:choose(s:request(b:prompts_from, '', deepcopy(l:own), l:config)), [], 0)],
           \ '!empty(v:val)'), '  ')))
     for l:hidden in prompts#persona#hidden(l:persona, l:config)
       call add(l:items, s:item('', '/' . l:name, l:hidden.file, fnamemodify(l:hidden.file, ':~'),

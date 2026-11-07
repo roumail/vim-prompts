@@ -1,8 +1,8 @@
 " Where the agent's comments are kept, as vim-place says: in the work tree's
-" own git dir. '' outside a repository, as their paths are the repository's
+" own git dir; outside a repository, with the current directory's files, their
+" paths relative to it
 function! prompts#comments#dir(bufnr) abort
-  return roumail_place#get(a:bufnr).repo
-        \ ? roumail_place#dir('vim-prompts/comments', {'bufnr': a:bufnr, 'worktree': 1}) : ''
+  return roumail_place#dir('vim-prompts/comments', {'bufnr': a:bufnr, 'worktree': 1})
 endfunction
 
 function! s:files(dir) abort
@@ -423,10 +423,6 @@ function! prompts#comments#list() abort
     return
   endif
   let l:dir = prompts#comments#dir(bufnr())
-  if empty(l:dir)
-    call prompts#error('no comments from the agent outside a repository')
-    return
-  endif
   call roumail_lists#open('ai-comments://' . fnamemodify(roumail_place#get(bufnr()).dir, ':t'), {
         \ 'fetch': function('s:list_fetch'),
         \ 'heading': {reviews -> ['Agent reviews (' . len(reviews) . ')']},

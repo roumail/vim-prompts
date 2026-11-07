@@ -25,11 +25,11 @@ Say what you want done with them; the comments alone aren't a question:
 
 ```vim
 :Ai #comments which of these are worth fixing before merging
-:Ai /review #comments
+:Ai /review:pr #comments
 :Ai #comments address each one, and answer the questions
 ```
 
-`/review #comments` reviews the change and answers each comment. Comments
+`/review:pr #comments` reviews the change and answers each comment. Comments
 stay in the list after an ask, until you load others over them or clear
 them (`:CommentsClear`).
 

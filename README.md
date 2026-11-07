@@ -56,7 +56,7 @@ set of plugins it takes besides the core:
 | Needs | Module | Adds |
 | --- | --- | --- |
 | [vim-draft](https://github.com/roumail/vim-draft) | Drafts | `:AiDraft`, an ask written in a buffer |
-| [fugitive-extras](https://github.com/roumail/fugitive-extras) | Your branch and your review | `#changes`, diffed against your default branch, and with it `/review`; `#diff_pairs`, which names `:BranchDiff`'s comparisons; `#comments`, your `:Comment`s |
+| [fugitive-extras](https://github.com/roumail/fugitive-extras) | Your branch and your review | `#changes`, diffed against your default branch, and with it `/review:pr`; `#diff_pairs`, which names `:BranchDiff`'s comparisons; `#comments`, your `:Comment`s |
 | [vim-review](https://github.com/roumail/vim-review) | The agent's comments | `#agent_comments`, read in vim-review's format: `:AiComments` steps through them, `:AiReply` and `:AiThread` go back and forth on one, `:AiCommentsList` lists the reviews here, to open or clear, and `:AiCommentsClear` clears them |
 | vim-review + vim-draft | Replies in a draft | `:AiReplyDraft` |
 | vim-review + fugitive-extras | The agent's comments as yours | `:AiCommentsLoad`, which puts the agent's comments in fugitive-extras' Review list, to change and post as your own |
@@ -92,12 +92,15 @@ Only this first prompt is sent from Vim.
 that asks for you. Without one you get `/default`, which adds nothing to
 your query but your rules.
 
-**If you want it to look at your change** (with fugitive-extras), `/review`
-brings in your branch, committed or not; `#changes:staged` narrows it to what's staged:
+**If you want it to look at your change** (with fugitive-extras), `/review:pr`
+brings in the diffs you have open, else your branch, committed or not;
+`#changes:staged` narrows it to what's staged. `/review` reviews what you
+give it, a selection or `@files`:
 
 ```vim
-:Ai /review is the error handling consistent
-:Ai /review #changes:staged
+:Ai /review:pr is the error handling consistent
+:Ai /review:pr #changes:staged
+:'<,'>Ai /review
 ```
 
 **If it needs more than that,** add files with `@` and other context with `#`
@@ -174,6 +177,18 @@ A persona of a repository can build on its group's with `{base}`
 - [Configuration](docs/config.md): rules, personas and the repository's
   description, for you, a group of repositories and one repository
 - [Personas](docs/personas.md): the built-in ones, overriding them, building
-  on them, writing your own, skills
+  on them, variants (`/review:pr`), writing your own, skills
 - [The agent](docs/agent.md): which CLI runs, where it opens, adding another
 - [FAQ](docs/faq.md)
+
+## Tests
+
+```sh
+vim -Nu NONE -i NONE -Es -S test/run.vim
+```
+
+They run on [examples/briefing](examples/briefing/)'s fixtures, in a
+temporary `HOME`. The plugins vim-prompts needs (vim-fugitive, vim-dispatch,
+vim-place, vim-lists, fugitive-extras) come from `$PLUGINS`, default the
+directory this checkout is in, else vim-plug's copies. `TEST=<pattern>` runs
+the tests whose names match.

@@ -15,10 +15,14 @@ What it sets, in `$HOME/work/app`:
 | Where | Sets | Shows |
 | --- | --- | --- |
 | `home/.gitconfig` (global) | rules `git.md`, `comments.md`; task rules `testing`; personas `review`, `explain` | yours |
-| `home/work/handbook/work.gitconfig` (global, `includeIf gitdir:~/work/`) | rules `git.md`; task rules `testing`, `test-setup`; personas `tests`, `explain` | the group's `git.md`, `#rule:testing` and `/explain` hide yours |
+| `home/work/handbook/work.gitconfig` (global, `includeIf gitdir:~/work/`) | rules `git.md`; task rules `testing`, `test-setup`; personas `tests`, `explain`, `review:pr` | the group's `git.md`, `#rule:testing` and `/explain` hide yours |
 | `app.gitconfig` (local) | repository `.vim-prompts/repository.md` | the description, by its path in the repository |
 
 - `/review` builds on the bundled one with `{base}`: it lists it, and hides nothing.
+- `/review:pr` is the handbook's variant (`personas/review/pr.md`), adding
+  `#rule:testing` to the bundled one, which builds on your `/review`.
+
+`test/run.vim` runs on these fixtures.
 - `/tests` asks for `#file`, so from a buffer without a file it says what it needs.
 
 `broken.gitconfig`, added to a repository's config, gives the errors: a rules

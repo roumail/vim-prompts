@@ -23,6 +23,6 @@ Read a side that is not the work tree with `git show <object>`.
 ```
 
 ```vim
-:Ai /review #diff_pairs:feature   " the files of :BranchDiff I kept open
-:Ai /review #diff_pairs           " the diffs I have open
+:Ai /review:pr                    " the diffs I have open, else my branch
+:Ai /review:pr #diff_pairs:feature   " the files of :BranchDiff I kept open
 ```

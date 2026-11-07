@@ -11,7 +11,12 @@ back.
 ```
 
 The file is new for each ask, in the repository's git dir (each worktree's
-own), next to the prompts: `<git dir>/vim-prompts/comments/<time>.txt`. The
+own), next to the prompts: `<git dir>/vim-prompts/comments/<time>.txt`.
+Outside a repository it goes where
+[vim-place](https://github.com/roumail/vim-place) keeps the current
+directory's files (`g:roumail_place_dir`, else the XDG state directory),
+and the agent is let write there (`--add-dir`); `:AiComments` finds it from
+that directory. The
 agent is told the path and the format, which is
 [vim-review](https://github.com/roumail/vim-review)'s format, the one
 fugitive-extras saves your comments in:
@@ -23,7 +28,7 @@ src/app.py:20-24: 2. [question] is this loop needed?
 ```
 
 `path:line: text` or `path:start-end: text`, paths from the work tree's
-root, further lines of a comment tab-indented. Number and kind come first
+root (outside a repository, from the current directory), further lines of a comment tab-indented. Number and kind come first
 when the persona's answer has them (as `/review`'s does), so the list
 matches the answer.
 
@@ -108,13 +113,11 @@ autocmd BufEnter ai-thread://* nmap <buffer> <leader>cC <Plug>(prompts-reply-ses
 nmap <leader>cr <Plug>(prompts-reply)
 ```
 
-A persona can take it, so its answers always come with the file:
+A persona can take it, so its answers always come with the file, as
+`/review` does:
 
 ```markdown
 ---
 context: [changes, agent_comments]
 ---
 ```
-
-Outside a repository there is nowhere to put the file, and the ask is
-refused.

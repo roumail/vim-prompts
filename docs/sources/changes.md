@@ -23,6 +23,7 @@ Changes on this branch since it forked from origin/main at e309eb0, committed or
 Read each with `git diff e309eb0 -- <path>`; a `?` file is new and untracked, read it as it is.
 ```
 
-`/review` takes it, so `:Ai /review` reviews your branch, and
-`:Ai /review #changes:staged` what you're about to commit. To review only some
-files, name them instead: `:Ai /review @src/app.py`.
+`/review:pr` takes it when no diffs are open, so `:Ai /review:pr` reviews
+your branch, and `:Ai /review:pr #changes:staged` what you're about to
+commit, in place of the branch. To review only some files, name them
+instead: `:Ai /review @src/app.py`.
