@@ -1,9 +1,9 @@
-" #file: docs/sources/file.md
-function! prompts#sources#file#info() abort
-  return {'needs': 'a file', 'arg': 'none'}
+" #here, the file and line you ask from: docs/sources/here.md
+function! prompts#sources#here#info() abort
+  return {'needs': 'a file to ask from, not a listing or a scratch buffer', 'arg': 'none'}
 endfunction
 
-function! prompts#sources#file#context(request, arg) abort
+function! prompts#sources#here#context(request, arg) abort
   if !prompts#source#is_file(a:request.bufnr)
     return ''
   endif

@@ -67,7 +67,7 @@ A persona that hides one of its name replaces it, unless its template has
 
 ```markdown
 ---
-context: [file]
+context: [here]
 ---
 {base}
 
@@ -134,7 +134,7 @@ an error, so a typo doesn't pass silently.
 
 | Key | Value | Default |
 | --- | --- | --- |
-| `context` | The [sources](sources/) the persona always takes, as `name` or `"name:arg"` (`["repo:tpope/vim-dispatch"]`). `[a, b]` is the first of them that has something (`[[diff_pairs, changes]]`). `+name` is a rule for the task (`[file, +testing]`), and `+name?` one it goes without where there is none. The user adds more, and one added whose argument says which of it (`#changes:staged`) takes the place of the persona's of that name. | `[]` |
+| `context` | The [sources](sources/) the persona always takes, as `name` or `"name:arg"` (`["repo:tpope/vim-dispatch"]`). `[a, b]` is the first of them that has something (`[[diff_pairs, changes]]`). `+name` is a rule for the task (`[here, +testing]`), and `+name?` one it goes without where there is none. The user adds more, and one added whose argument says which of it (`#changes:staged`) takes the place of the persona's of that name. | `[]` |
 | `input` | `required`: refused with nothing to work on, even without a `context` of its own ([refused](#frontmatter)). | `optional` |
 | `agent` | `claude` or `copilot`: the agent to prefer, when installed ([which agent runs](agent.md#which-agent-runs)). | the user's |
 | `mode` | `ask`, `plan`, `agent` or `auto`: the [mode](agent.md#modes) the agent starts in. `--<mode>-mode` in the ask wins. | `g:prompts_mode` |
@@ -190,7 +190,7 @@ told the later wins where they differ. See [configuration](config.md).
 `--bare` leaves them out of one ask.
 
 Rules for one kind of task come from `vim-prompts.task-rules`, by name, as a source:
-`context: [file, +testing]` in the persona, or `+testing` in the
+`context: [here, +testing]` in the persona, or `+testing` in the
 ask ([rules for a task](config.md#rules-for-a-task)); either way the ask is
 refused where there is none, unless the persona's is `+testing?`. They go last in
 `{rules}`, so what the persona says after `{rules}` wins over them; a

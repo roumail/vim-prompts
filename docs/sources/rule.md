@@ -24,7 +24,7 @@ Rules for this task (~/work/prompts/task-rules/testing.md):
 ...
 ```
 
-A persona takes one with `context: [file, +testing]`. Where no
+A persona takes one with `context: [here, +testing]`. Where no
 task-rules directory has it, the ask is refused, as with `+name` in the
 ask, unless the persona marks it as one to go without:
 `+testing?`.

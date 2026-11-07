@@ -23,7 +23,7 @@ What it sets, in `$HOME/work/app`:
   `+testing` to the bundled one, which builds on your `/review`.
 
 `test/run.vim` runs on these fixtures.
-- `/tests` asks for `#file`, so from a buffer without a file it says what it needs.
+- `/tests` asks for `#here`, so from a buffer without a file it says what it needs.
 
 `broken.gitconfig`, added to a repository's config, gives the errors: a rules
 file that isn't there, and an unknown key (`library`).

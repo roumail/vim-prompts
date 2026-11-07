@@ -53,6 +53,8 @@ function! prompts#source#parse(text) abort
   let l:m = matchlist(a:text, '^\(\h\w*\)\%(:\(.*\)\)\=$')
   if !empty(l:m) && l:m[1] ==# 'rule'
     return {'error': 'a rule is +name, not #rule:' . (empty(l:m[2]) ? '' : ' +' . l:m[2])}
+  elseif !empty(l:m) && l:m[1] ==# 'file' && !prompts#source#exists('file')
+    return {'error': 'the file and line you ask from is #here, not #file; files are @path'}
   elseif empty(l:m) || !prompts#source#exists(l:m[1])
     return {'error': 'no context source #' . a:text . ' (#'
           \ . join(prompts#source#hashed(), ', #') . '; files are @path, rules +name)'}

@@ -7,7 +7,7 @@ for is sent, whatever else is open.
 
 | | For |
 | --- | --- |
-| [`#file`](file.md) | the file and line you're on |
+| [`#here`](here.md) | the file and line you're on |
 | [`#changes`](changes.md) | the files your branch changes, committed or not |
 | [`#commits`](commits.md) | commits by hash: `#commits:a1b2c3d,e4f5a6b` |
 | [`#diff_pairs`](diff_pairs.md) | the diffs you have open in Vim, or one `:BranchDiff`'s |

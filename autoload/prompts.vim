@@ -445,8 +445,16 @@ function! s:send_draft(from, text) abort
   " Only its first line is read for a persona, #sources, @files and flags,
   " so a pasted @decorator, #comment or --flag further down stays text
   let [l:first, l:rest] = matchlist(a:text, '^\([^\n]*\)\n\=\(\_.*\)$')[1:2]
-  call timer_start(0, {-> s:prompt(a:from, l:first, function('s:ask'), l:rest)
-        \ || s:open_draft(a:from, split(a:text, "\n", 1))})
+  call timer_start(0, {-> s:send_from(a:from, l:first, l:rest, a:text)})
+endfunction
+
+" Without a selection, a draft asks from where you are once it is closed,
+" as :Ai would there: a listing you opened it from and left is not the file
+function! s:send_from(from, first, rest, text) abort
+  let l:from = a:from.range ? a:from
+        \ : extend(s:from(0, line('.'), line('.')), {'bang': a:from.bang})
+  return s:prompt(l:from, a:first, function('s:ask'), a:rest)
+        \ || s:open_draft(l:from, split(a:text, "\n", 1))
 endfunction
 
 function! prompts#complete(lead, cmdline, pos) abort

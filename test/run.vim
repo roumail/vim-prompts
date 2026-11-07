@@ -14,7 +14,7 @@ function! s:plugin(name) abort
   return isdirectory(l:dir) ? l:dir : expand('~/.vim/plugged/') . a:name
 endfunction
 let s:paths = [s:root] + map(['vim-fugitive', 'vim-dispatch', 'vim-place', 'vim-lists',
-      \ 'fugitive-extras', 'vim-review'], 's:plugin(v:val)')
+      \ 'fugitive-extras', 'vim-review', 'vim-draft'], 's:plugin(v:val)')
 for s:path in reverse(copy(s:paths))
   execute 'set runtimepath^=' . fnameescape(s:path)
 endfor
@@ -163,7 +163,7 @@ function! s:persona(name, lines) abort
 endfunction
 
 function! s:test_missing_persona_rule_refuses() abort
-  let l:file = s:persona('strict', ['---', 'context: [file, +nope]', '---', 'Check it.'])
+  let l:file = s:persona('strict', ['---', 'context: [here, +nope]', '---', 'Check it.'])
   try
     let l:r = s:preview('/strict')
     call assert_equal('', l:r.prompt)
@@ -177,14 +177,14 @@ function! s:test_missing_persona_rule_refuses() abort
 endfunction
 
 function! s:test_optional_persona_rule() abort
-  let l:file = s:persona('lenient', ['---', 'context: [file, +nope?, "+testing?"]', '---', 'Check it.'])
+  let l:file = s:persona('lenient', ['---', 'context: [here, +nope?, "+testing?"]', '---', 'Check it.'])
   try
     let l:r = s:preview('/lenient')
     call assert_equal([], l:r.errors)
     " Sent where there is one
     call assert_match('Tests run against the shared fixtures', l:r.prompt)
-    call writefile(['---', 'context: [file?]', '---', 'x'], l:file)
-    call assert_match('only a rule may be missing (+name?), not file?',
+    call writefile(['---', 'context: [here?]', '---', 'x'], l:file)
+    call assert_match('only a rule may be missing (+name?), not here?',
           \ get(s:preview('/lenient').errors, 0, ''))
   finally
     call delete(l:file)
@@ -199,11 +199,11 @@ function! s:test_persona_rule_is_sent() abort
 endfunction
 
 function! s:test_bad_alternatives() abort
-  let l:file = s:persona('bad', ['---', 'context: [[+testing, file]]', '---', 'x'])
+  let l:file = s:persona('bad', ['---', 'context: [[+testing, here]]', '---', 'x'])
   try
     call assert_match('+testing is always sent, not one of \[alternatives\]',
           \ get(s:preview('/bad').errors, 0, ''))
-    call writefile(['---', 'context: [[[file]]]', '---', 'x'], l:file)
+    call writefile(['---', 'context: [[[here]]]', '---', 'x'], l:file)
     call assert_match('one level of \[alternatives\]', get(s:preview('/bad').errors, 0, ''))
     call writefile(['---', 'input: maybe', '---', 'x'], l:file)
     call assert_match('input: required or optional', get(s:preview('/bad').errors, 0, ''))
@@ -364,6 +364,33 @@ function! s:test_rule_is_plus() abort
   call assert_equal(['+test-setup', '+testing'], prompts#complete('+te', 'Ai +te', 6))
   call assert_equal([], filter(prompts#complete('#', 'Ai #', 4), 'v:val =~# "rule"'))
   call assert_true(index(prompts#tokens(), '+testing') >= 0)
+endfunction
+
+function! s:test_here_not_file() abort
+  call assert_match('Current file: `app.py`, line \d', s:preview('#here x').prompt)
+  call assert_equal(['the file and line you ask from is #here, not #file; files are @path;'
+        \ . ' text after -- is taken as is'], s:preview('#file x').errors)
+  " Not from a listing
+  enew
+  setlocal buftype=nofile
+  call assert_equal(['#here has nothing: needs a file to ask from, not a listing or a scratch buffer'],
+        \ s:preview('#here x').errors)
+endfunction
+
+function! s:test_draft_asks_from_where_it_is_sent() abort
+  " Opened from a listing, sent once you have opened a file in its window
+  enew
+  setlocal buftype=nofile
+  AiDraft! #here what is this
+  call assert_equal('ai-draft://ask', bufname())
+  wincmd p
+  execute 'edit' fnameescape(s:app . '/app.py')
+  wincmd p
+  messages clear
+  wq
+  sleep 50m
+  call assert_equal([], filter(split(execute('messages'), "\n"), 'v:val =~# "^vim-prompts: "'))
+  call assert_true(bufnr('ai-oneoff://*') > 0, 'the one-off went')
 endfunction
 
 function! s:test_sources_list() abort

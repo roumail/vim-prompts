@@ -47,7 +47,7 @@ The core gives you:
 - **Asking:** `:Ai`, `:Ai!` and `:AiPreview`.
 - **Briefing:** the rules and personas, with `:AiRules`, `:AiRule`,
   `:AiPersonas`, `:AiUnset` and `/default`.
-- **Sources:** `@path`, `#file`, `#commits`, `#quickfix`, `#repo`,
+- **Sources:** `@path`, `#here`, `#commits`, `#quickfix`, `#repo`,
   `#stackoverflow` and `#url`, and rules for the task by name, `+testing`;
   `:AiSources` lists them all, what to work on apart from how (`+name`,
   `#agent_comments`).

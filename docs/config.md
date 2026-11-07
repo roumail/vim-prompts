@@ -182,8 +182,8 @@ task-rules/test-setup.md      +test-setup: how they run, the fallback
 task-rules-api/test-setup.md  +test-setup in api: its services, its venv
 task-rules-api/migrations.md  +migrations, api only
 task-rules-etl/test-setup.md
-personas/tests.md             /tests: context [file, +testing, +test-setup]
-personas/migrations.md        /migrations: context [file, +migrations]
+personas/tests.md             /tests: context [here, +testing, +test-setup]
+personas/migrations.md        /migrations: context [here, +migrations]
 repos/api.md, repos/etl.md    each repository's description
 ```
 
@@ -368,7 +368,7 @@ A persona for the task takes the rule itself, so it is never forgotten:
 
 ```markdown
 ---
-context: [file, +testing]
+context: [here, +testing]
 ---
 ```
 

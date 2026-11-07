@@ -55,6 +55,9 @@ isn't sent as text. After `--`, everything is your query as typed, so
 
 `:[range]AiDraft[!] ...` opens a buffer holding the ask, for when it is
 longer than a command line; `!` goes the other way from the persona, as with `:Ai!`.
+It asks from where you are when you close it, as `:Ai` would there: open it
+from a listing, open a file in that window, and the file is what `#here`
+sends. A selection you opened it with is kept.
 Its first line is what you would type after `:Ai`, read when you send it as
 `:Ai` reads its arguments when you press Enter: a persona first, then `#sources`, `@files` and flags anywhere, and
 the rest is your query. After `--`, as with `:Ai`, everything is taken as
@@ -187,14 +190,14 @@ Personas (5)  <CR> open  / filter  r refresh  q close
   /default    ~/.vim/plugged/vim-prompts/personas/default.md    bundled
   /review     ~/.vim/plugged/vim-prompts/personas/review.md     bundled  #agent_comments  /review needs something to work on: …
   /review:pr  ~/.vim/plugged/vim-prompts/personas/review/pr.md  bundled  #agent_comments [#diff_pairs #changes]  on {base} ~/.vim/plugged/vim-prompts/personas/review.md
-  /tests      ~/work/handbook/personas/tests.md                 global ~/work/.gitconfig  #file +testing  /tests needs a file
+  /tests      ~/work/handbook/personas/tests.md                 global ~/work/.gitconfig  #here +testing  /tests needs a file to ask from, not a listing or a scratch buffer
   /tests      ~/dotfiles/prompts/personas/tests.md              global ~/.gitconfig  hidden by ~/work/handbook/personas/tests.md
 ```
 
 ## :AiSources
 
 `:AiSources` lists the [sources](sources/), a line each, in two groups:
-what to work on (`#file`, `#changes`, `@path`, …) and how to work on it,
+what to work on (`#here`, `#changes`, `@path`, …) and how to work on it,
 the instructions (`+name`, `#agent_comments`), which don't count as
 something to work on. For each: how it is written (`#changes[:arg]` takes an
 argument or not, `#url:arg` needs one), its file, and whether it has
