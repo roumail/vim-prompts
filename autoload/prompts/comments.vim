@@ -383,7 +383,8 @@ function! s:sent(session, target, bufnr, persona, request, prompt) abort
   " read once this function returns
   let l:answer = {}
   if !prompts#agent#oneoff(a:prompt, a:persona.meta, a:request.dirs,
-        \ {'bufnr': a:bufnr, 'done': function('s:answered', [a:target, a:bufnr, l:answer])})
+        \ {'bufnr': a:bufnr, 'done': function('s:answered', [a:target, a:bufnr, l:answer]),
+        \  'comments': get(a:request, 'comments', '')})
     return
   endif
   call writefile(l:me, a:target.thread, 'a')

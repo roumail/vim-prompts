@@ -113,6 +113,17 @@ autocmd BufEnter ai-thread://* nmap <buffer> <leader>cC <Plug>(prompts-reply-ses
 nmap <leader>cr <Plug>(prompts-reply)
 ```
 
+## In a one-off
+
+A one-off (`:Ai!`, or a persona with `answer: oneoff` such as `/review`)
+can't be let write a file, as there is no one to ask. So the agent puts its
+comments in a block at the end of its answer instead, opened with
+` ```vim-prompts-comments `, in the same format. Once the answer is in,
+vim-prompts writes the block to the file, puts a line saying where in its
+place, and the statusline says how many there were:
+`claude: done, 3 comments for :AiComments`. A reply on a comment that is a
+one-off does the same.
+
 A persona can take it, so its answers always come with the file, as
 `/review` does:
 

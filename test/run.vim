@@ -14,7 +14,7 @@ function! s:plugin(name) abort
   return isdirectory(l:dir) ? l:dir : expand('~/.vim/plugged/') . a:name
 endfunction
 let s:paths = [s:root] + map(['vim-fugitive', 'vim-dispatch', 'vim-place', 'vim-lists',
-      \ 'fugitive-extras'], 's:plugin(v:val)')
+      \ 'fugitive-extras', 'vim-review'], 's:plugin(v:val)')
 for s:path in reverse(copy(s:paths))
   execute 'set runtimepath^=' . fnameescape(s:path)
 endfor
@@ -103,8 +103,8 @@ function! s:test_review_has_no_changes() abort
   call assert_match('Selected lines, app.py:1-2', l:r.prompt)
   call assert_notmatch('Changes on this branch', l:r.prompt)
   call assert_notmatch('Check that each change comes with a test', l:r.prompt)
-  " Its comments go to a file
-  call assert_match('vim-prompts/comments/', l:r.prompt)
+  " Its comments come in its answer
+  call assert_match('```vim-prompts-comments', l:r.prompt)
 endfunction
 
 function! s:test_review_needs_something() abort
@@ -207,6 +207,8 @@ function! s:test_bad_alternatives() abort
     call assert_match('one level of \[alternatives\]', get(s:preview('/bad').errors, 0, ''))
     call writefile(['---', 'input: maybe', '---', 'x'], l:file)
     call assert_match('input: required or optional', get(s:preview('/bad').errors, 0, ''))
+    call writefile(['---', 'answer: later', '---', 'x'], l:file)
+    call assert_match('answer: oneoff or session', get(s:preview('/bad').errors, 0, ''))
   finally
     call delete(l:file)
   endtry
@@ -284,6 +286,67 @@ function! s:test_agent_comments_in_a_repository() abort
   let l:r = s:preview('#agent_comments', '%')
   call assert_match('to `' . s:app . '/.git/vim-prompts/comments/', l:r.prompt)
   call assert_notmatch('--add-dir', l:r.line)
+endfunction
+
+function! s:test_review_is_a_oneoff() abort
+  " /review answers into a buffer, its comments in the answer
+  let l:r = s:preview('/review', '%')
+  call assert_equal([], l:r.errors)
+  call assert_match(' -p <prompt>', l:r.line)
+  call assert_match('```vim-prompts-comments', l:r.prompt)
+  call assert_notmatch('write each comment', l:r.prompt)
+  " A variant too, building on it
+  call assert_match(' -p <prompt>', s:preview('/review:pr').line)
+endfunction
+
+function! s:test_bang_is_the_other_way() abort
+  messages clear
+  silent! bwipeout ai-preview://
+  %AiPreview! /review
+  call assert_notmatch(' -p ', &l:statusline)
+  call assert_match('write each comment .* to `' . s:app . '/.git/vim-prompts/comments/',
+        \ join(getline(1, '$'), "\n"))
+  wincmd p
+  " Without answer:, a session, and ! a one-off
+  call assert_notmatch(' -p ', s:preview('#agent_comments', '%').line)
+  %AiPreview! #agent_comments is this right
+  call assert_match(' -p <prompt>', &l:statusline)
+  call assert_match('```vim-prompts-comments', join(getline(1, '$'), "\n"))
+endfunction
+
+function! s:test_oneoff_saves_its_comments() abort
+  let l:answer = 'It subtracts.\n```vim-prompts-comments\napp.py:2: 1. [blocking] minus\n'
+        \ . '\tshould be plus\napp.py:1-2: 2. [nit] name it\n```\n'
+  let g:prompts_agent_table.answers = {'cmd': ['sh', '-c', 'printf ''' . l:answer . '''', 'sh'],
+        \ 'oneoff': [], 'prompt': [], 'modes': {'ask': []}}
+  let g:prompts_agent = 'answers'
+  try
+    %Ai /review
+    let l:bufnr = bufnr('ai-oneoff://*')
+    call assert_true(l:bufnr > 0)
+    for l:i in range(100)
+      if getbufvar(l:bufnr, 'prompts_oneoff') !~# 'answering'
+        break
+      endif
+      sleep 20m
+    endfor
+    call assert_equal('answers: done, 2 comments for :AiComments', getbufvar(l:bufnr, 'prompts_oneoff'))
+    let l:lines = getbufline(l:bufnr, 1, '$')
+    call assert_equal(1, len(filter(copy(l:lines), 'v:val =~# "^It subtracts"')))
+    call assert_equal([], filter(copy(l:lines), 'v:val =~# "```"'))
+    let l:note = filter(copy(l:lines), 'v:val =~# "^(2 comments saved to "')
+    call assert_equal(1, len(l:note))
+    let l:file = expand(matchstr(get(l:note, 0, ''), 'saved to \zs\S\+\ze:'))
+    call assert_equal(['app.py:2: 1. [blocking] minus', "\tshould be plus",
+          \ 'app.py:1-2: 2. [nit] name it'], readfile(l:file))
+    AiComments
+    call assert_equal([], filter(split(execute('messages'), "\n"), 'v:val =~# "^vim-prompts: "'))
+    call assert_equal(2, len(getqflist()))
+    call assert_equal(2, get(getqflist(), 0, {'lnum': 0}).lnum)
+  finally
+    call remove(g:prompts_agent_table, 'answers')
+    let g:prompts_agent = 'fake'
+  endtry
 endfunction
 
 let s:prefix = expand('<SID>') . 'test_'

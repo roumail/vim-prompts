@@ -2,6 +2,7 @@
 context: [agent_comments]
 mode: ask
 input: required
+answer: oneoff
 ---
 {rules}
 

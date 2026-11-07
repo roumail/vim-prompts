@@ -249,6 +249,8 @@ function! s:prompt(from, args, Then, ...) abort
   endif
   let l:request = s:choose(s:request(a:from, l:parsed.query,
         \ s:sources(l:persona.meta.context, l:parsed.given), l:config))
+  " Before any source is read: #agent_comments asks differently in a one-off
+  let l:request.oneoff = s:oneoff(a:from, l:persona)
   let l:sources = l:request.sources
   " #rule's text goes last in {rules}, so the persona and the query still
   " come after it; a persona with {rule} places it itself
@@ -291,23 +293,32 @@ function! s:finish(persona, request, parsed, files, Then) abort
   return 1
 endfunction
 
+" Whether an ask goes as a one-off: a reply says; from :Ai, the persona's
+" answer: (a session, unless it says oneoff), and ! the other way
+function! s:oneoff(from, persona) abort
+  return has_key(a:from, 'oneoff') ? a:from.oneoff
+        \ : get(a:from, 'bang', 0) != (get(a:persona.meta, 'answer', '') ==# 'oneoff')
+endfunction
+
 " Arguments with which :Ai sends nothing: it opens the agent, or the last
 " one-off
 function! s:opens_only(range, args) abort
   return !a:range && a:args =~# '^\%(\s*--\%(\%(ask\|plan\|agent\|auto\)-mode\|bare\|force\)\)*\s*$'
 endfunction
 
-" With !, a one-off: the agent answers once, into a buffer
-function! prompts#ask(oneoff, range, line1, line2, args) abort
+" With !, the other way from the persona's answer: a one-off, where the agent
+" answers once into a buffer, rather than a session, or the other way round
+function! prompts#ask(bang, range, line1, line2, args) abort
   if s:opens_only(a:range, a:args)
-    if a:oneoff
+    if a:bang
       call prompts#agent#oneoff_last()
     else
       call prompts#agent#launch('', {'mode': matchstr(a:args, '--\zs\a\+\ze-mode')}, [])
     endif
     return
   endif
-  call s:prompt(s:from(a:range, a:line1, a:line2), a:args, function('s:ask', [a:oneoff]))
+  call s:prompt(extend(s:from(a:range, a:line1, a:line2), {'bang': a:bang}), a:args,
+        \ function('s:ask'))
 endfunction
 
 " What an ask sends, as [1, text]: '' opens the agent bare; [0, ''] when it
@@ -333,13 +344,14 @@ function! s:sent(oneoff, persona, request, prompt) abort
   return [1, a:prompt]
 endfunction
 
-function! s:ask(oneoff, persona, request, prompt) abort
-  let [l:ok, l:prompt] = s:sent(a:oneoff, a:persona, a:request, a:prompt)
+function! s:ask(persona, request, prompt) abort
+  let [l:ok, l:prompt] = s:sent(a:request.oneoff, a:persona, a:request, a:prompt)
   if !l:ok
     return
   endif
-  if a:oneoff
-    call prompts#agent#oneoff(l:prompt, a:persona.meta, a:request.dirs)
+  if a:request.oneoff
+    call prompts#agent#oneoff(l:prompt, a:persona.meta, a:request.dirs,
+          \ {'comments': get(a:request, 'comments', '')})
   else
     call prompts#agent#launch(l:prompt, a:persona.meta, a:request.dirs)
   endif
@@ -351,7 +363,7 @@ endfunction
 " send. 1 once it is under way, 0 when it stopped at an error
 function! prompts#ask_from(oneoff, bufnr, line, before, text, Then) abort
   let l:from = extend(s:from(0, a:line, a:line), {'bufnr': a:bufnr, 'line': a:line,
-        \ 'before': a:before})
+        \ 'before': a:before, 'oneoff': a:oneoff})
   let [l:first, l:rest] = matchlist(a:text, '^\([^\n]*\)\n\=\(\_.*\)$')[1:2]
   return s:prompt(l:from, l:first, function('s:sent_then', [a:oneoff, a:Then]), l:rest)
 endfunction
@@ -364,24 +376,25 @@ function! s:sent_then(oneoff, Then, persona, request, prompt) abort
 endfunction
 
 " What :Ai with the same arguments would send, in a buffer that sends nothing
-function! prompts#preview(oneoff, range, line1, line2, args) abort
+function! prompts#preview(bang, range, line1, line2, args) abort
   if s:opens_only(a:range, a:args)
-    echomsg 'vim-prompts: :' . prompts#namespace() . (a:oneoff ? '!' : '')
-          \ . ' with these sends nothing: it ' . (a:oneoff ? 'goes back to the last one-off' : 'opens the agent')
+    echomsg 'vim-prompts: :' . prompts#namespace() . (a:bang ? '!' : '')
+          \ . ' with these sends nothing: it ' . (a:bang ? 'goes back to the last one-off' : 'opens the agent')
     return
   endif
-  call s:prompt(s:from(a:range, a:line1, a:line2), a:args, function('s:preview', [a:oneoff]))
+  call s:prompt(extend(s:from(a:range, a:line1, a:line2), {'bang': a:bang}), a:args,
+        \ function('s:preview'))
 endfunction
 
 " One preview buffer, refilled by the next :AiPreview while it is shown
 let s:preview = -1
 
-function! s:preview(oneoff, persona, request, prompt) abort
-  let [l:ok, l:prompt] = s:sent(a:oneoff, a:persona, a:request, a:prompt)
+function! s:preview(persona, request, prompt) abort
+  let [l:ok, l:prompt] = s:sent(a:request.oneoff, a:persona, a:request, a:prompt)
   if !l:ok
     return
   endif
-  let l:line = prompts#agent#line(a:persona.meta, a:request.dirs, a:oneoff, !empty(l:prompt))
+  let l:line = prompts#agent#line(a:persona.meta, a:request.dirs, a:request.oneoff, !empty(l:prompt))
   if bufwinnr(s:preview) > 0
     execute bufwinnr(s:preview) . 'wincmd w'
   else
@@ -400,17 +413,18 @@ function! s:preview(oneoff, persona, request, prompt) abort
         \ . (empty(l:prompt) ? '%=nothing sent: the agent opens bare ' : '%=nothing is sent from here ')
 endfunction
 
-function! prompts#draft(oneoff, range, line1, line2, args) abort
+function! prompts#draft(bang, range, line1, line2, args) abort
   if !prompts#requires(':' . prompts#namespace() . 'Draft', 'vim-draft', 'roumail_draft')
     return
   endif
-  call s:open_draft(a:oneoff, s:from(a:range, a:line1, a:line2), empty(a:args) ? [''] : [a:args, ''])
+  call s:open_draft(extend(s:from(a:range, a:line1, a:line2), {'bang': a:bang}),
+        \ empty(a:args) ? [''] : [a:args, ''])
 endfunction
 
 " The draft holds the ask as :Ai takes it, and is read when it is sent
-function! s:open_draft(oneoff, from, lines) abort
+function! s:open_draft(from, lines) abort
   let l:git_dir = FugitiveGitDir(a:from.bufnr)
-  call roumail_draft#open('ai-draft://ask', a:lines, function('s:send_draft', [a:oneoff, a:from]),
+  call roumail_draft#open('ai-draft://ask', a:lines, function('s:send_draft', [a:from]),
         \ {'split': 'botright vnew', 'saved': 'Draft saved: closing sends it',
         \  'empty': 'Draft empty: closing sends nothing'})
   setlocal filetype=markdown
@@ -421,14 +435,14 @@ function! s:open_draft(oneoff, from, lines) abort
   let &l:statusline = '%f%=:w saves, closing sends, :q! drops '
 endfunction
 
-function! s:send_draft(oneoff, from, text) abort
+function! s:send_draft(from, text) abort
   " Once the draft's window is closed, so the agent's tab isn't the window
   " :wq goes on to close
   " Only its first line is read for a persona, #sources, @files and flags,
   " so a pasted @decorator, #comment or --flag further down stays text
   let [l:first, l:rest] = matchlist(a:text, '^\([^\n]*\)\n\=\(\_.*\)$')[1:2]
-  call timer_start(0, {-> s:prompt(a:from, l:first, function('s:ask', [a:oneoff]), l:rest)
-        \ || s:open_draft(a:oneoff, a:from, split(a:text, "\n", 1))})
+  call timer_start(0, {-> s:prompt(a:from, l:first, function('s:ask'), l:rest)
+        \ || s:open_draft(a:from, split(a:text, "\n", 1))})
 endfunction
 
 function! prompts#complete(lead, cmdline, pos) abort

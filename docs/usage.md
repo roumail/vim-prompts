@@ -21,7 +21,11 @@ the [sources and files](sources/) you add, and a range or visual selection.
   working, and the statusline says when it's done. It needs a question or a
   persona with a task, since there is no session to ask in afterwards.
   `:Ai!` alone goes back to the last answer. Anything the agent would ask
-  you about (an edit in `ask` mode, say) it doesn't do.
+  you about (an edit in `ask` mode, say) it doesn't do. A persona with
+  [`answer: oneoff`](personas.md#frontmatter), `/review` among them, is a
+  one-off without the `!`, and with it opens a session: `:Ai! /review:pr`.
+  A one-off's [`#agent_comments`](sources/agent_comments.md) come in its
+  answer, and are saved for `:AiComments` once it is in.
 - **`--ask-mode`, `--plan-mode`, `--agent-mode` or `--auto-mode`**
   (anywhere before `--`): the [mode](agent.md#modes) the agent starts in, over the persona's
   and `g:prompts_mode`. `:Ai --plan-mode` alone opens it bare that way.
@@ -50,7 +54,7 @@ isn't sent as text. After `--`, everything is your query as typed, so
 ## :AiDraft
 
 `:[range]AiDraft[!] ...` opens a buffer holding the ask, for when it is
-longer than a command line; with `!`, it goes as a one-off, as with `:Ai!`.
+longer than a command line; `!` goes the other way from the persona, as with `:Ai!`.
 Its first line is what you would type after `:Ai`, read when you send it as
 `:Ai` reads its arguments when you press Enter: a persona first, then `#sources`, `@files` and flags anywhere, and
 the rest is your query. After `--`, as with `:Ai`, everything is taken as

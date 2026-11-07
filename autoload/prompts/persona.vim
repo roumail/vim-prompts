@@ -1,7 +1,7 @@
 " Personas: docs/personas.md
 
 let s:bundled = expand('<sfile>:p:h:h:h') . '/personas'
-let s:keys = ['context', 'agent', 'args', 'mode', 'input']
+let s:keys = ['context', 'agent', 'args', 'mode', 'input', 'answer']
 let s:name = '^\a[[:alnum:]_-]*$'
 
 function! s:parse_value(text) abort
@@ -120,6 +120,8 @@ function! s:resolve(stack, i) abort
       throw 'mode: ask, plan, agent or auto'
     elseif index(['', 'required', 'optional'], get(l:meta, 'input', '')) < 0
       throw 'input: required or optional'
+    elseif index(['', 'oneoff', 'session'], get(l:meta, 'answer', '')) < 0
+      throw 'answer: oneoff or session'
     endif
     let l:context = get(l:meta, 'context', [])
     let l:meta.context = []

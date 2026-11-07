@@ -160,7 +160,8 @@ let s:oneoff = -1
 
 " The agent answers once, in the background, into a scratch buffer; with
 " {opts}, into opts.bufnr, and opts.done(status) is called once all of the
-" answer is in
+" answer is in. With opts.comments, the comments it lists (#agent_comments)
+" go to that file then
 function! prompts#agent#oneoff(prompt, meta, dirs, ...) abort
   let l:opts = get(a:, 1, {})
   let l:command = prompts#agent#command(a:meta, a:dirs, 1)
@@ -183,7 +184,7 @@ function! prompts#agent#oneoff(prompt, meta, dirs, ...) abort
   endif
   " Output can still come in after the job exits: done waits for both
   let l:state = {'bufnr': l:bufnr, 'name': l:name, 'Done': get(l:opts, 'done', v:null),
-        \ 'status': v:null, 'closed': 0}
+        \ 'comments': get(l:opts, 'comments', ''), 'status': v:null, 'closed': 0}
   call job_start([&shell, &shellcmdflag, l:cmd], {
         \ 'cwd': empty(l:tree) ? getcwd() : l:tree,
         \ 'in_io': 'null', 'out_io': 'buffer', 'out_buf': l:bufnr, 'out_msg': 0,
@@ -210,12 +211,17 @@ function! s:oneoff_done(state) abort
   if a:state.status is v:null || !a:state.closed
     return
   endif
+  let l:saved = empty(a:state.comments) || !bufexists(a:state.bufnr) ? -1
+        \ : prompts#sources#agent_comments#save(a:state.bufnr, a:state.comments)
   if a:state.Done isnot v:null
     call a:state.Done(a:state.status)
     return
   endif
   call setbufvar(a:state.bufnr, 'prompts_oneoff', a:state.name
-        \ . (a:state.status ? ': failed (' . a:state.status . ')' : ': done'))
+        \ . (a:state.status ? ': failed (' . a:state.status . ')' : ': done')
+        \ . (l:saved >= 0 ? ', ' . l:saved . ' comment' . (l:saved == 1 ? '' : 's')
+        \   . ' for :' . prompts#namespace() . 'Comments'
+        \   : empty(a:state.comments) ? '' : ', no comments'))
   redrawstatus!
 endfunction
 

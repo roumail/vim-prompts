@@ -34,7 +34,7 @@ Ctrl-D, which closes the tab. Or press `Ctrl-\ Ctrl-n` for normal mode, then
 `gt` to another tab, `:q` to hide it, or `:bwipe!` to end it. `:Ai` alone goes
 back to the session it opened.
 
-A one-off (`:Ai!`) runs in the background instead, its answer going to a
+A one-off (`:Ai!`, or a persona with `answer: oneoff`) runs in the background instead, its answer going to a
 scratch buffer opened `botright`; `g:prompts_oneoff_mods` changes that
 (`'vertical botright'`, `'tab'`).
 

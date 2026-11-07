@@ -95,7 +95,9 @@ your query but your rules.
 **If you want it to look at your change** (with fugitive-extras), `/review:pr`
 brings in the diffs you have open, else your branch, committed or not;
 `#changes:staged` narrows it to what's staged. `/review` reviews what you
-give it, a selection or `@files`:
+give it, a selection or `@files`. A review is a one-off: the answer comes
+into a buffer below while you keep working, and its comments on your lines
+into `:AiComments`. `:Ai! /review` opens a session instead, to go on from:
 
 ```vim
 :Ai /review:pr is the error handling consistent
@@ -123,7 +125,8 @@ context to send. `<Tab>` completes everything.
 **If you only want an answer, not a session,** `:Ai!` asks once and puts
 the answer in a scratch buffer below, while you keep working:
 `:'<,'>Ai! what does this return on an empty list`. `:Ai!` alone goes back
-to it ([usage](docs/usage.md#ai)).
+to it ([usage](docs/usage.md#ai)). A persona can answer that way without
+the `!` (`answer: oneoff`, as `/review` does), and then `!` opens a session.
 
 **If the agent left comments on your lines** (with vim-review), reply on one to go back and
 forth on it alone: `:AiReplyDraft` on it in the `:AiComments` list writes a
