@@ -13,8 +13,8 @@ back.
 The file is new for each ask, in the repository's git dir (each worktree's
 own), next to the prompts: `<git dir>/vim-prompts/comments/<time>.txt`.
 Outside a repository it goes where
-[vim-place](https://github.com/roumail/vim-place) keeps the current
-directory's files (`g:roumail_place_dir`, else the XDG state directory),
+[vim-place](https://github.com/vimoured/vim-place) keeps the current
+directory's files (the XDG state directory),
 and the agent is let write there (`--add-dir`); `:AiComments` finds it from
 that directory. The
 agent is told the path and the format, which is

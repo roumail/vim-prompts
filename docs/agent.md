@@ -88,8 +88,8 @@ told to read the file.
 The newest `g:prompts_keep` prompts (50) are kept and older ones deleted. In
 a linked work tree they are in its own git dir, so removing the work tree
 removes them. Outside a repository they go in `vim-prompts/prompts/` where
-[vim-place](https://github.com/roumail/vim-place) keeps plugins' files outside
-a repository (`g:roumail_place_dir`, else the XDG state directory), which,
+[vim-place](https://github.com/vimoured/vim-place) keeps plugins' files outside
+a repository (the XDG state directory), which,
 unlike Vim's temporary files, is still there for an agent reading a long
 prompt after Vim exits.
 

@@ -50,7 +50,8 @@ call writefile(['def add(a, b):', '    return a - b'], s:app . '/app.py')
 call s:git('commit', '-qam', 'subtract')
 call mkdir(s:tmp . '/plain', 'p')
 call writefile(['notes'], s:tmp . '/plain/notes.txt')
-let g:roumail_place_dir = s:tmp . '/saves'
+" Where vim-place keeps files outside a repository
+let $XDG_STATE_HOME = s:tmp . '/saves'
 
 " An agent that is always there, so :AiPreview shows its command line
 let g:prompts_agent_table = {'fake': {'cmd': ['true'], 'prompt': [], 'dir': '--add-dir',
@@ -272,7 +273,7 @@ function! s:test_agent_comments_outside_a_repository() abort
   execute 'edit' fnameescape(s:tmp . '/plain/notes.txt')
   let l:r = s:preview('#agent_comments', '%')
   call assert_equal([], l:r.errors)
-  let l:dir = g:roumail_place_dir . '/plain-' . sha256(s:tmp . '/plain')[:7] . '/vim-prompts/comments'
+  let l:dir = $XDG_STATE_HOME . '/plain-' . sha256(s:tmp . '/plain')[:7] . '/vim-prompts/comments'
   call assert_match('write each comment .* to `' . l:dir . '/', l:r.prompt)
   call assert_match('relative to `' . s:tmp . '/plain`', l:r.prompt)
   " The agent may write there
