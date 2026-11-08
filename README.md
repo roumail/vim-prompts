@@ -20,6 +20,9 @@ and you carry on the conversation there.
   rules apply to every ask. Each project can describe itself once and bring
   its own personas and rules.
 
+**Vim or Neovim:** Vim only, 9.1 and newer. It calls Vim-only functions
+(`job_start()`, `term_getstatus()`), so it doesn't work on Neovim.
+
 ## Install
 
 Requires Vim 9.1+ and the agent CLI, installed and logged in. The core is
@@ -29,17 +32,17 @@ vim-prompts and four plugins:
   repository and runs git.
 - [vim-dispatch](https://github.com/tpope/vim-dispatch): starts the agent
   (`:Start`), in a Vim terminal or a tmux window.
-- [vim-place](https://github.com/roumail/vim-place): where settings are
+- [vim-place](https://github.com/vimoured/vim-place): where settings are
   read from and prompts are kept, for each repository and work tree.
-- [vim-lists](https://github.com/roumail/vim-lists): the lists at the
+- [vim-lists](https://github.com/vimoured/vim-lists): the lists at the
   bottom, `:AiRules`, `:AiPersonas` and `:AiSources`.
 
 ```vim
 Plug 'tpope/vim-fugitive'
 Plug 'tpope/vim-dispatch'
-Plug 'roumail/vim-place'
-Plug 'roumail/vim-lists'
-Plug 'roumail/vim-prompts'
+Plug 'vimoured/vim-place'
+Plug 'vimoured/vim-lists'
+Plug 'vimoured/vim-prompts'
 ```
 
 The core gives you:
@@ -57,9 +60,9 @@ set of plugins it takes besides the core:
 
 | Needs | Module | Adds |
 | --- | --- | --- |
-| [vim-draft](https://github.com/roumail/vim-draft) | Drafts | `:AiDraft`, an ask written in a buffer |
-| [fugitive-extras](https://github.com/roumail/fugitive-extras) | Your branch and your review | `#changes`, diffed against your default branch, and with it `/review:pr`; `#diff_pairs`, which names `:BranchDiff`'s comparisons; `#comments`, your `:Comment`s |
-| [vim-review](https://github.com/roumail/vim-review) | The agent's comments | `#agent_comments`, read in vim-review's format: `:AiComments` steps through them, `:AiReply` and `:AiThread` go back and forth on one, `:AiCommentsList` lists the reviews here, to open or clear, and `:AiCommentsClear` clears them |
+| [vim-draft](https://github.com/vimoured/vim-draft) | Drafts | `:AiDraft`, an ask written in a buffer |
+| [fugitive-extras](https://github.com/vimoured/fugitive-extras) | Your branch and your review | `#changes`, diffed against your default branch, and with it `/review:pr`; `#diff_pairs`, which names `:BranchDiff`'s comparisons; `#comments`, your `:Comment`s |
+| [vim-review](https://github.com/vimoured/vim-review) | The agent's comments | `#agent_comments`, read in vim-review's format: `:AiComments` steps through them, `:AiReply` and `:AiThread` go back and forth on one, `:AiCommentsList` lists the reviews here, to open or clear, and `:AiCommentsClear` clears them |
 | vim-review + vim-draft | Replies in a draft | `:AiReplyDraft` |
 | vim-review + fugitive-extras | The agent's comments as yours | `:AiCommentsLoad`, which puts the agent's comments in fugitive-extras' Review list, to change and post as your own |
 
@@ -68,12 +71,12 @@ All of it:
 ```vim
 Plug 'tpope/vim-fugitive'
 Plug 'tpope/vim-dispatch'
-Plug 'roumail/vim-place'
-Plug 'roumail/vim-lists'
-Plug 'roumail/vim-draft'
-Plug 'roumail/fugitive-extras'
-Plug 'roumail/vim-review'
-Plug 'roumail/vim-prompts'
+Plug 'vimoured/vim-place'
+Plug 'vimoured/vim-lists'
+Plug 'vimoured/vim-draft'
+Plug 'vimoured/fugitive-extras'
+Plug 'vimoured/vim-review'
+Plug 'vimoured/vim-prompts'
 ```
 
 ## Use
