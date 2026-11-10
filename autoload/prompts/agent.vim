@@ -2,8 +2,8 @@
 "
 " Claude's fullscreen renderer doesn't start in a Vim terminal (blank
 " window), so vim_terminal picks the classic one. Copilot has no flag for
-" manual or assisted approval in a session, so ask and auto start it as its
-" config (defaultPermissionMode) says.
+" manual approval in a session, so ask and auto start it as its config
+" (defaultPermissionMode) says.
 let s:agents = {
       \ 'claude': {'cmd': ['claude'], 'prompt': [], 'oneoff': ['-p'], 'dir': '--add-dir',
       \   'vim_terminal': ['--settings', '{"tui":"default"}'],
@@ -16,8 +16,20 @@ let s:agents = {
       \     'auto': []}},
       \ }
 
+" -p ignores defaultPermissionMode (copilot help config) and runs no tool
+" without --allow-all-tools (copilot --help)
+let s:copilot_approval = {'assisted': ['--experimental', '--assisted-approval', '--allow-all-tools'],
+      \ 'all': ['--allow-all-tools']}
+
 function! s:table() abort
-  return extend(copy(s:agents), get(g:, 'prompts_agent_table', {}))
+  let l:agents = deepcopy(s:agents)
+  let l:approval = get(g:, 'prompts_copilot_approval', 'assisted')
+  if !has_key(s:copilot_approval, l:approval)
+    call prompts#error('g:prompts_copilot_approval is assisted or all, not ' . l:approval)
+    let l:approval = 'assisted'
+  endif
+  let l:agents.copilot.oneoff_modes = {'auto': s:copilot_approval[l:approval]}
+  return extend(l:agents, get(g:, 'prompts_agent_table', {}))
 endfunction
 
 function! s:installed(name) abort
@@ -56,9 +68,11 @@ function! prompts#agent#command(meta, dirs, ...) abort
     endif
   endif
   let l:agent = l:table[l:name]
+  " A one-off has no one to ask
   let l:mode = get(a:meta, 'mode', '')
-  let l:mode = empty(l:mode) ? get(g:, 'prompts_mode', 'ask') : l:mode
-  let l:modes = get(l:agent, 'modes', {})
+  let l:mode = !empty(l:mode) ? l:mode : l:oneoff ? get(g:, 'prompts_oneoff_mode', 'auto')
+        \ : get(g:, 'prompts_mode', 'ask')
+  let l:modes = extend(copy(get(l:agent, 'modes', {})), l:oneoff ? get(l:agent, 'oneoff_modes', {}) : {})
   if !has_key(l:modes, l:mode)
     echomsg 'vim-prompts: ' . l:name . ' has no ' . l:mode
           \ . ' mode (g:prompts_agent_table), starting it as is'

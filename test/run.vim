@@ -315,6 +315,55 @@ function! s:test_bang_is_the_other_way() abort
   call assert_match('```vim-prompts-comments', join(getline(1, '$'), "\n"))
 endfunction
 
+function! s:test_oneoff_runs_in_auto() abort
+  let g:prompts_agent_table.modal = {'cmd': ['true'], 'prompt': ['-i'],
+        \ 'modes': {'ask': ['--ask'], 'auto': ['--auto']}, 'oneoff_modes': {'auto': ['--yes']}}
+  let g:prompts_agent = 'modal'
+  try
+    call assert_match('true --ask -i <prompt>', s:preview('-- hi').line)
+    call assert_match('true --yes -p <prompt>', s:oneoff_line('-- hi'))
+    call assert_match('true --ask -p <prompt>', s:oneoff_line('--ask-mode -- hi'))
+  finally
+    call remove(g:prompts_agent_table, 'modal')
+    let g:prompts_agent = 'fake'
+  endtry
+endfunction
+
+function! s:oneoff_line(args) abort
+  silent! bwipeout ai-preview://
+  execute 'AiPreview! ' . a:args
+  let l:line = &l:statusline
+  wincmd p
+  return l:line
+endfunction
+
+function! s:test_copilot_oneoff_approval() abort
+  let l:bin = s:tmp . '/bin'
+  call mkdir(l:bin, 'p')
+  call writefile(['#!/bin/sh'], l:bin . '/copilot')
+  call setfperm(l:bin . '/copilot', 'rwxr-xr-x')
+  let l:path = $PATH
+  let $PATH = l:bin . ':' . $PATH
+  let g:prompts_agent = 'copilot'
+  try
+    call assert_match('copilot --experimental --assisted-approval --allow-all-tools -p <prompt>',
+          \ s:oneoff_line('-- hi'))
+    let g:prompts_copilot_approval = 'all'
+    call assert_match('copilot --allow-all-tools -p <prompt>', s:oneoff_line('-- hi'))
+    let g:prompts_copilot_approval = 'yolo'
+    messages clear
+    call assert_match('copilot --experimental --assisted-approval --allow-all-tools -p <prompt>',
+          \ s:oneoff_line('-- hi'))
+    call assert_match('vim-prompts: g:prompts_copilot_approval is assisted or all, not yolo',
+          \ execute('messages'))
+    call assert_match('copilot -i <prompt>', s:preview('-- hi').line)
+  finally
+    unlet! g:prompts_copilot_approval
+    let $PATH = l:path
+    let g:prompts_agent = 'fake'
+  endtry
+endfunction
+
 function! s:test_oneoff_saves_its_comments() abort
   let l:answer = 'It subtracts.\n```vim-prompts-comments\napp.py:2: 1. [blocking] minus\n'
         \ . '\tshould be plus\napp.py:1-2: 2. [nit] name it\n```\n'
