@@ -320,26 +320,18 @@ function! s:test_oneoff_runs_in_auto() abort
         \ 'modes': {'ask': ['--ask'], 'auto': ['--auto']}, 'oneoff_modes': {'auto': ['--yes']}}
   let g:prompts_agent = 'modal'
   try
-    " A session asks; a one-off has no one to ask, and its own args win
     call assert_match('true --ask -i <prompt>', s:preview('-- hi').line)
-    silent! bwipeout ai-preview://
-    AiPreview! -- hi
-    call assert_match('true --yes -p <prompt>', &l:statusline)
-    wincmd p
-    silent! bwipeout ai-preview://
-    AiPreview! --ask-mode -- hi
-    call assert_match('true --ask -p <prompt>', &l:statusline)
-    wincmd p
+    call assert_match('true --yes -p <prompt>', s:oneoff_line('-- hi'))
+    call assert_match('true --ask -p <prompt>', s:oneoff_line('--ask-mode -- hi'))
   finally
     call remove(g:prompts_agent_table, 'modal')
     let g:prompts_agent = 'fake'
   endtry
 endfunction
 
-" Copilot's one-off auto, as g:prompts_copilot_approval says
-function! s:copilot_oneoff() abort
+function! s:oneoff_line(args) abort
   silent! bwipeout ai-preview://
-  AiPreview! -- hi
+  execute 'AiPreview! ' . a:args
   let l:line = &l:statusline
   wincmd p
   return l:line
@@ -355,16 +347,15 @@ function! s:test_copilot_oneoff_approval() abort
   let g:prompts_agent = 'copilot'
   try
     call assert_match('copilot --experimental --assisted-approval --allow-all-tools -p <prompt>',
-          \ s:copilot_oneoff())
+          \ s:oneoff_line('-- hi'))
     let g:prompts_copilot_approval = 'all'
-    call assert_match('copilot --allow-all-tools -p <prompt>', s:copilot_oneoff())
+    call assert_match('copilot --allow-all-tools -p <prompt>', s:oneoff_line('-- hi'))
     let g:prompts_copilot_approval = 'yolo'
     messages clear
     call assert_match('copilot --experimental --assisted-approval --allow-all-tools -p <prompt>',
-          \ s:copilot_oneoff())
+          \ s:oneoff_line('-- hi'))
     call assert_match('vim-prompts: g:prompts_copilot_approval is assisted or all, not yolo',
           \ execute('messages'))
-    " A session is as its config says
     call assert_match('copilot -i <prompt>', s:preview('-- hi').line)
   finally
     unlet! g:prompts_copilot_approval
