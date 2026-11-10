@@ -191,12 +191,6 @@ A persona of a repository can build on its group's with `{base}`
 
 ## Tests
 
-```sh
-vim -Nu NONE -i NONE -Es -S test/run.vim
-```
-
-They run on [examples/briefing](examples/briefing/)'s fixtures, in a
-temporary `HOME`. The plugins vim-prompts needs (vim-fugitive, vim-dispatch,
-vim-place, vim-lists, fugitive-extras) come from `$PLUGINS`, default the
-directory this checkout is in, else vim-plug's copies. `TEST=<pattern>` runs
-the tests whose names match.
+The specs in [vim-suite](https://github.com/vimoured/vim-suite) define what it
+does: `test/vim-prompts.vim`, `test/vim-prompts-outside-a-repository.vim` and
+`test/vim-prompts-copilot.vim`.
