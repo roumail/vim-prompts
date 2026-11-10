@@ -2,16 +2,17 @@
 function! prompts#sources#changes#info() abort
   " fugitive-extras knows the default branch the branch is diffed against
   return {'needs': prompts#installed('fugitive_extras')
-        \   ? 'changes (on this branch; #changes:staged; #changes:<branch>)' : 'fugitive-extras, which is not installed',
+        \   ? 'changes (on this branch; #changes:staged; #changes:unstaged; #changes:<branch>)' : 'fugitive-extras, which is not installed',
         \ 'arg': 'optional'}
 endfunction
 
-" staged, then the branches, most recent first, as :BranchDiff completes them
+" staged and unstaged, then the branches, most recent first, as :BranchDiff
+" completes them
 function! prompts#sources#changes#complete(lead) abort
   if !prompts#installed('fugitive_extras')
     return []
   endif
-  return filter(['staged'], 'stridx(v:val, a:lead) == 0')
+  return filter(['staged', 'unstaged'], 'stridx(v:val, a:lead) == 0')
         \ + fugitive_extras#complete_branch(a:lead, '', 0)
 endfunction
 
@@ -26,6 +27,8 @@ function! prompts#sources#changes#context(request, arg) abort
   endif
   if a:arg ==# 'staged'
     let [l:args, l:what] = [['--cached'], 'Staged changes']
+  elseif a:arg ==# 'unstaged'
+    let [l:args, l:what] = [[], 'Unstaged changes']
   else
     let l:branch = empty(a:arg) ? 'HEAD' : a:arg
     if s:git(a:request.bufnr, ['rev-parse', '--verify', '--quiet', l:branch . '^{commit}']) is v:null
@@ -60,6 +63,6 @@ function! prompts#sources#changes#context(request, arg) abort
     return ''
   endif
   return l:what . " (status, path):\n" . join(l:files, "\n") . "\n"
-        \ . 'Read each with `git diff ' . join(l:args) . ' -- <path>`'
+        \ . 'Read each with `git diff ' . join(l:args + ['--']) . ' <path>`'
         \ . (empty(a:arg) ? '; a `?` file is new and untracked, read it as it is.' : '.')
 endfunction

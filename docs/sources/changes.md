@@ -6,9 +6,10 @@ The files a change touches, worked out from git: nothing to open first.
 | --- | --- |
 | `#changes` | Your branch: everything since it forked from the default branch (`origin/main`, or `main`/`master`), committed or not, and new untracked files. On the default branch itself, what isn't committed. |
 | `#changes:staged` | What you're about to commit: the index against `HEAD`. |
+| `#changes:unstaged` | What you haven't staged yet: the work tree against the index. New untracked files aren't in it. |
 | `#changes:<branch>` | Another branch's commits since it forked, without checking it out (`#changes:origin/feature`). |
 
-`#changes:<Tab>` completes `staged` and the branches, most recent first.
+`#changes:<Tab>` completes `staged`, `unstaged` and the branches, most recent first.
 
 These are the same scopes as fugitive-extras' `:BranchDiff!` (your branch's
 work tree) and `:BranchDiff <branch>`. The agent gets the
