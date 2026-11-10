@@ -137,7 +137,7 @@ an error, so a typo doesn't pass silently.
 | `context` | The [sources](sources/) the persona always takes, as `name` or `"name:arg"` (`["repo:tpope/vim-dispatch"]`). `[a, b]` is the first of them that has something (`[[diff_pairs, changes]]`). `+name` is a rule for the task (`[here, +testing]`), and `+name?` one it goes without where there is none. The user adds more, and one added whose argument says which of it (`#changes:staged`) takes the place of the persona's of that name. | `[]` |
 | `input` | `required`: refused with nothing to work on, even without a `context` of its own ([refused](#frontmatter)). | `optional` |
 | `agent` | `claude` or `copilot`: the agent to prefer, when installed ([which agent runs](agent.md#which-agent-runs)). | the user's |
-| `mode` | `ask`, `plan`, `agent` or `auto`: the [mode](agent.md#modes) the agent starts in. `--<mode>-mode` in the ask wins. | `g:prompts_mode` |
+| `mode` | `ask`, `plan`, `agent` or `auto`: the [mode](agent.md#modes) the agent starts in. `--<mode>-mode` in the ask wins. | `g:prompts_mode`, or `g:prompts_oneoff_mode` (`auto`) for a one-off |
 | `answer` | `oneoff`: the agent answers once, into a buffer, as with `:Ai!`, and `:Ai!` opens a session instead ([one-off](usage.md#ai)). `session`: it opens a session. | `session` |
 | `args` | Extra CLI arguments: a list, or a map from agent to list (`{claude: [...], copilot: [...]}`); an agent not in the map gets none. | `[]` |
 

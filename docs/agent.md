@@ -47,17 +47,19 @@ The agent starts in one of four modes:
 | `ask` | asks you before each edit or command | `--permission-mode default` | (its config) |
 | `plan` | looks around and plans, but doesn't edit | `--permission-mode plan` | `--plan` |
 | `agent` | edits without asking (commands still ask) | `--permission-mode acceptEdits` | `--allow-tool=write` |
-| `auto` | runs what a model judges safe, asks otherwise | `--permission-mode auto` | (its config) |
+| `auto` | runs what a model judges safe, asks otherwise | `--permission-mode auto` | (its config; a one-off: `g:prompts_copilot_approval`) |
 
-It starts in `ask` unless you say otherwise. The first of these that
-applies:
+A session starts in `ask` and a one-off (`:Ai!`) in `auto` unless you say
+otherwise, as a one-off has no one to ask: whatever would ask, it doesn't
+do. The first of these that applies:
 
 1. `--ask-mode`, `--plan-mode`, `--agent-mode` or `--auto-mode` in the ask.
 2. The persona's `mode:` (`/review` has `mode: ask`).
-3. `g:prompts_mode`.
+3. `g:prompts_mode` for a session, `g:prompts_oneoff_mode` for a one-off.
 
 ```vim
-let g:prompts_mode = 'auto'   " the default is 'ask'
+let g:prompts_mode = 'auto'          " the default is 'ask'
+let g:prompts_oneoff_mode = 'ask'    " the default is 'auto'
 ```
 
 ```vim
@@ -77,6 +79,22 @@ copilot config defaultPermissionMode assisted
 
 `ask` then starts it that way too; switch with `/permissions` in the
 session.
+
+A one-off (`copilot -p`) ignores that config: whatever would ask is denied,
+and it runs no tool at all without `--allow-all-tools`. So a one-off's `auto`
+approves as `g:prompts_copilot_approval` says:
+
+```vim
+let g:prompts_copilot_approval = 'assisted'   " the default
+let g:prompts_copilot_approval = 'all'        " every tool, no judge
+```
+
+`assisted` starts it with `--experimental --assisted-approval
+--allow-all-tools`: the assisted judge refuses what it doesn't judge safe.
+Without assisted approval in your plan nothing judges, so every tool runs.
+`all` starts it with `--allow-all-tools` alone, for when you don't want
+experimental features on. Any other value is an error, and `assisted` is
+used.
 
 ## The prompt it gets
 
@@ -108,5 +126,6 @@ let g:prompts_agent_table = {'mycli': {'cmd': ['mycli', '--tui'], 'prompt': ['--
 unless you say, for `:Ai!`), `dir` before each
 directory it may read outside the repository, and `modes` (optional) maps
 `ask`, `plan`, `agent` and `auto` to the arguments that start it in that
-[mode](#modes); a mode it doesn't have starts it as is. Then add `mycli` to
+[mode](#modes); a mode it doesn't have starts it as is. `oneoff_modes`
+(optional) does the same for a one-off, over `modes`. Then add `mycli` to
 `g:prompts_agents`.

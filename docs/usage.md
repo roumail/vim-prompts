@@ -21,14 +21,15 @@ the [sources and files](sources/) you add, and a range or visual selection.
   working, and the statusline says when it's done. It needs a question or a
   persona with a task, since there is no session to ask in afterwards.
   `:Ai!` alone goes back to the last answer. Anything the agent would ask
-  you about (an edit in `ask` mode, say) it doesn't do. A persona with
+  you about it doesn't do, so a one-off starts in `auto` mode
+  (`g:prompts_oneoff_mode`), unless the persona or the ask names another. A persona with
   [`answer: oneoff`](personas.md#frontmatter), `/review` among them, is a
   one-off without the `!`, and with it opens a session: `:Ai! /review:pr`.
   A one-off's [`#agent_comments`](sources/agent_comments.md) come in its
   answer, and are saved for `:AiComments` once it is in.
 - **`--ask-mode`, `--plan-mode`, `--agent-mode` or `--auto-mode`**
   (anywhere before `--`): the [mode](agent.md#modes) the agent starts in, over the persona's
-  and `g:prompts_mode`. `:Ai --plan-mode` alone opens it bare that way.
+  and `g:prompts_mode` (`g:prompts_oneoff_mode` for a one-off). `:Ai --plan-mode` alone opens it bare that way.
 - **`--bare`** (anywhere before `--`): leaves the [rules](personas.md#rules)
   and the repository's description out, so only the persona, what you name
   (`+name` included) and your query go. `:Ai --bare question` sends the question alone.
