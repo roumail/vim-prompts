@@ -16,10 +16,12 @@ let s:agents = {
       \     'auto': []}},
       \ }
 
-" -p ignores defaultPermissionMode (copilot help config) and runs no tool
-" without --allow-all-tools (copilot --help)
-let s:copilot_approval = {'assisted': ['--experimental', '--assisted-approval', '--allow-all-tools'],
-      \ 'all': ['--allow-all-tools']}
+" -p ignores defaultPermissionMode (copilot help config), runs no tool
+" without --allow-all-tools, and can't ask for a path outside --add-dir or a
+" URL, which the judge doesn't review (copilot --help)
+let s:copilot_approval = {'assisted': ['--experimental', '--assisted-approval', '--allow-all-tools',
+      \   '--allow-all-urls', '--allow-all-paths'],
+      \ 'all': ['--allow-all']}
 
 function! s:table() abort
   let l:agents = deepcopy(s:agents)

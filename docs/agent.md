@@ -81,20 +81,22 @@ copilot config defaultPermissionMode assisted
 session.
 
 A one-off (`copilot -p`) ignores that config: whatever would ask is denied,
-and it runs no tool at all without `--allow-all-tools`. So a one-off's `auto`
-approves as `g:prompts_copilot_approval` says:
+it runs no tool at all without `--allow-all-tools`, and it refuses any path
+outside the work tree and the `--add-dir` directories, and any URL. So a
+one-off's `auto` approves as `g:prompts_copilot_approval` says:
 
 ```vim
 let g:prompts_copilot_approval = 'assisted'   " the default
-let g:prompts_copilot_approval = 'all'        " every tool, no judge
+let g:prompts_copilot_approval = 'all'        " every tool, path and URL, no judge
 ```
 
 `assisted` starts it with `--experimental --assisted-approval
---allow-all-tools`: the assisted judge refuses what it doesn't judge safe.
-Without assisted approval in your plan nothing judges, so every tool runs.
-`all` starts it with `--allow-all-tools` alone, for when you don't want
-experimental features on. Any other value is an error, and `assisted` is
-used.
+--allow-all-tools --allow-all-urls --allow-all-paths`: the assisted judge
+refuses the tools it doesn't judge safe, and every path and URL is allowed,
+as the judge doesn't review them. Without assisted approval in your plan
+nothing judges, so every tool runs. `all` starts it with `--allow-all`, for
+when you don't want experimental features on. Any other value is an error,
+and `assisted` is used.
 
 ## The prompt it gets
 
