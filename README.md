@@ -99,7 +99,8 @@ your query but your rules.
 
 **If you want it to look at your change** (with fugitive-extras), `/review:pr`
 brings in the diffs you have open, else your branch, committed or not;
-`#changes:staged` narrows it to what's staged. `/review` reviews what you
+`#changes:staged` narrows it to what's staged, `#changes:unstaged` to what
+isn't yet. `/review` reviews what you
 give it, a selection or `@files`. A review is a one-off: the answer comes
 into a buffer below while you keep working, and its comments on your lines
 into `:AiComments`. `:Ai! /review` opens a session instead, to go on from:
