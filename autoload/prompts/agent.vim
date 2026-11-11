@@ -171,9 +171,6 @@ function! s:shell(argv, prompt, after) abort
   return l:cmd . join([''] + map(copy(a:after), 'shellescape(v:val)'))
 endfunction
 
-" The last one-off's buffer, for :Ai! alone
-let s:oneoff = -1
-
 " The agent answers once, in the background, into a scratch buffer; with
 " {opts}, into opts.bufnr, and opts.done(status) is called once all of the
 " answer is in. With opts.comments, the comments it lists (#agent_comments)
@@ -195,8 +192,7 @@ function! prompts#agent#oneoff(prompt, meta, dirs, ...) abort
     execute 'silent file' fnameescape('ai-oneoff://' . s:asked)
     let b:prompts_oneoff = l:name . ': answering'
     setlocal statusline=%f%=%{get(b:,'prompts_oneoff','')}\ 
-    let s:oneoff = bufnr()
-    let l:bufnr = s:oneoff
+    let l:bufnr = bufnr()
   endif
   " Output can still come in after the job exits: done waits for both
   let l:state = {'bufnr': l:bufnr, 'name': l:name, 'Done': get(l:opts, 'done', v:null),
@@ -239,16 +235,6 @@ function! s:oneoff_done(state) abort
         \   . ' for :' . prompts#namespace() . 'Comments'
         \   : empty(a:state.comments) ? '' : ', no comments'))
   redrawstatus!
-endfunction
-
-function! prompts#agent#oneoff_last() abort
-  if !bufexists(s:oneoff)
-    call prompts#error('no one-off yet: :Ai! <question>')
-  elseif bufwinnr(s:oneoff) > 0
-    execute bufwinnr(s:oneoff) . 'wincmd w'
-  else
-    execute get(g:, 'prompts_oneoff_mods', 'botright') . ' sbuffer ' . s:oneoff
-  endif
 endfunction
 
 function! s:job_mode(bufnr, timer) abort

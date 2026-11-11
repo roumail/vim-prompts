@@ -6,7 +6,8 @@ let g:loaded_prompts = 1
 let s:ns = prompts#namespace()
 " [/persona[:variant]] [#source[:arg]...] [@path...] [--<mode>-mode] [--bare] [--force]
 " [query] [-- text]: ask the persona (default: `default`) with its context
-" and the sources asked for; with nothing, open the agent
+" and the sources asked for, once, the answer in a buffer; with !, in a
+" session, and with nothing else, open the agent
 execute 'command! -bang -range -nargs=* -complete=customlist,prompts#complete '
       \ . s:ns . ' call prompts#ask(<bang>0, <range>, <line1>, <line2>, <q-args>)'
 " The same, as a draft to edit; :w saves it, closing it sends it

@@ -30,7 +30,7 @@ once. `:AiPersonas` lists where every persona comes from.
 | Persona | Context | Does |
 | --- | --- | --- |
 | `/default` | | Your query, the selection, and what you add. Used without a `/persona`. |
-| `/review` | `#agent_comments` | Reviews what you give it (a selection, `@files`, `#changes`, …), and answers your comments if you add `#comments`; refused with nothing to review (`input: required`). A one-off (`answer: oneoff`): the answer in a buffer, its comments back as a list for `:AiComments`. Ask mode. |
+| `/review` | `#agent_comments` | Reviews what you give it (a selection, `@files`, `#changes`, …), and answers your comments if you add `#comments`; refused with nothing to review (`input: required`). As a one-off (`:Ai /review`), the answer in a buffer and its comments back as a list for `:AiComments`. Ask mode. |
 | `/review:pr` | `[#diff_pairs, #changes]` | [A variant](#variants) of `/review`: the diffs you have open, else your branch's changes. |
 
 ## Where personas go
@@ -138,7 +138,6 @@ an error, so a typo doesn't pass silently.
 | `input` | `required`: refused with nothing to work on, even without a `context` of its own ([refused](#frontmatter)). | `optional` |
 | `agent` | `claude` or `copilot`: the agent to prefer, when installed ([which agent runs](agent.md#which-agent-runs)). | the user's |
 | `mode` | `ask`, `plan`, `agent` or `auto`: the [mode](agent.md#modes) the agent starts in. `--<mode>-mode` in the ask wins. | `g:prompts_mode`, or `g:prompts_oneoff_mode` (`auto`) for a one-off |
-| `answer` | `oneoff`: the agent answers once, into a buffer, as with `:Ai!`, and `:Ai!` opens a session instead ([one-off](usage.md#ai)). `session`: it opens a session. | `session` |
 | `args` | Extra CLI arguments: a list, or a map from agent to list (`{claude: [...], copilot: [...]}`); an agent not in the map gets none. | `[]` |
 
 An ask is refused, saying why, when:

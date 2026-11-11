@@ -297,27 +297,28 @@ function! s:finish(persona, request, parsed, files, Then) abort
   return 1
 endfunction
 
-" Whether an ask goes as a one-off: a reply says; from :Ai, the persona's
-" answer: (a session, unless it says oneoff), and ! the other way
+" Whether an ask goes as a one-off: a reply says; from :Ai, it is one
+" unless ! asks for a session
 function! s:oneoff(from, persona) abort
-  return has_key(a:from, 'oneoff') ? a:from.oneoff
-        \ : get(a:from, 'bang', 0) != (get(a:persona.meta, 'answer', '') ==# 'oneoff')
+  return has_key(a:from, 'oneoff') ? a:from.oneoff : !get(a:from, 'bang', 0)
 endfunction
 
-" Arguments with which :Ai sends nothing: it opens the agent, or the last
-" one-off
+" Arguments with which :Ai sends nothing: :Ai! opens the agent, and :Ai has
+" nothing to ask
 function! s:opens_only(range, args) abort
   return !a:range && a:args =~# '^\%(\s*--\%(\%(ask\|plan\|agent\|auto\)-mode\|bare\|force\)\)*\s*$'
 endfunction
 
-" With !, the other way from the persona's answer: a one-off, where the agent
-" answers once into a buffer, rather than a session, or the other way round
+" A one-off, where the agent answers once into a buffer; with !, a session
+let s:nothing_to_ask = ':' . prompts#namespace() . ' asks once and needs something to ask; :'
+      \ . prompts#namespace() . '! opens a session'
+
 function! prompts#ask(bang, range, line1, line2, args) abort
   if s:opens_only(a:range, a:args)
     if a:bang
-      call prompts#agent#oneoff_last()
-    else
       call prompts#agent#launch('', {'mode': matchstr(a:args, '--\zs\a\+\ze-mode')}, [])
+    else
+      call prompts#error(s:nothing_to_ask)
     endif
     return
   endif
@@ -331,7 +332,8 @@ function! s:sent(oneoff, persona, request, prompt) abort
   if a:oneoff
     " There is no session to ask the question in afterwards
     if empty(trim(a:prompt)) || a:persona.name ==# 'default' && empty(a:request.query)
-      call prompts#error('a one-off needs a question or a persona')
+      call prompts#error('a one-off needs a question or a persona; :' . prompts#namespace()
+            \ . '! opens a session with it')
       return [0, '']
     endif
     return [1, a:prompt]
@@ -382,8 +384,11 @@ endfunction
 " What :Ai with the same arguments would send, in a buffer that sends nothing
 function! prompts#preview(bang, range, line1, line2, args) abort
   if s:opens_only(a:range, a:args)
-    echomsg 'vim-prompts: :' . prompts#namespace() . (a:bang ? '!' : '')
-          \ . ' with these sends nothing: it ' . (a:bang ? 'goes back to the last one-off' : 'opens the agent')
+    if a:bang
+      echomsg 'vim-prompts: :' . prompts#namespace() . '! with these sends nothing: it opens the agent'
+    else
+      call prompts#error(s:nothing_to_ask)
+    endif
     return
   endif
   call s:prompt(extend(s:from(a:range, a:line1, a:line2), {'bang': a:bang}), a:args,

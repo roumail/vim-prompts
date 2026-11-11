@@ -9,35 +9,38 @@
 Asks the [persona](personas.md) (`/default` without one) with its context,
 the [sources and files](sources/) you add, and a range or visual selection.
 
+**`:Ai` asks once, `:Ai!` opens a session**, whatever the persona.
+
 - **Nothing to work on, or a rule missing:** refused, saying what is
   missing ([when](personas.md#frontmatter)).
 - **`/persona:variant`**: a persona's [variant](personas.md#variants),
   `/review:pr`.
-- **Nothing at all** (`:Ai`): opens the agent, or goes back to the session
-  `:Ai` opened before.
-- **`!`, a one-off** (`:'<,'>Ai! what does this do`): instead of a session,
-  the agent answers once, without asking you anything, into a scratch buffer
-  below (`claude -p`, `copilot -p`). The answer comes in while you keep
-  working, and the statusline says when it's done. It needs a question or a
-  persona with a task, since there is no session to ask in afterwards.
-  `:Ai!` alone goes back to the last answer. Anything the agent would ask
-  you about it doesn't do, so a one-off starts in `auto` mode
-  (`g:prompts_oneoff_mode`), unless the persona or the ask names another. A persona with
-  [`answer: oneoff`](personas.md#frontmatter), `/review` among them, is a
-  one-off without the `!`, and with it opens a session: `:Ai! /review:pr`.
+- **Without `!`, a one-off** (`:'<,'>Ai what does this do`): the agent
+  answers once, without asking you anything, into a scratch buffer below
+  (`claude -p`, `copilot -p`). The answer comes in while you keep working,
+  and the statusline says when it's done. It needs a question or a persona
+  with a task, since there is no session to ask in afterwards. Anything the
+  agent would ask you about it doesn't do, so a one-off starts in `auto` mode
+  (`g:prompts_oneoff_mode`), unless the persona or the ask names another.
   A one-off's [`#agent_comments`](sources/agent_comments.md) come in its
   answer, and are saved for `:AiComments` once it is in.
+- **`!`, a session** (`:'<,'>Ai! what does this do`, `:Ai! /review:pr`): the
+  agent opens with the prompt, and you carry on there.
+- **Nothing at all:** `:Ai!` opens the agent, or goes back to the session
+  it opened before. `:Ai` alone is an error, as a one-off with nothing to
+  ask.
 - **`--ask-mode`, `--plan-mode`, `--agent-mode` or `--auto-mode`**
   (anywhere before `--`): the [mode](agent.md#modes) the agent starts in, over the persona's
-  and `g:prompts_mode` (`g:prompts_oneoff_mode` for a one-off). `:Ai --plan-mode` alone opens it bare that way.
+  and `g:prompts_mode` (`g:prompts_oneoff_mode` for a one-off). `:Ai! --plan-mode` alone opens it bare that way.
 - **`--bare`** (anywhere before `--`): leaves the [rules](personas.md#rules)
   and the repository's description out, so only the persona, what you name
   (`+name` included) and your query go. `:Ai --bare question` sends the question alone.
 - **`--force`** (anywhere before `--`): sends a persona with nothing to work
   on, which is refused otherwise: `:Ai /review --force look around
   src/retry.py`. A missing rule is still refused.
-- **Context but no query** (`:Ai @`, `:'<,'>Ai #comments`): sends the context
+- **Context but no query** (`:Ai! @`, `:'<,'>Ai! #comments`): sends the context
   and the agent waits for your question, which you type in the session.
+  Without `!` it is refused, as a one-off has no session to ask in.
 
 ## Typing the query
 
@@ -55,7 +58,7 @@ isn't sent as text. After `--`, everything is your query as typed, so
 ## :AiDraft
 
 `:[range]AiDraft[!] ...` opens a buffer holding the ask, for when it is
-longer than a command line; `!` goes the other way from the persona, as with `:Ai!`.
+longer than a command line; with `!` it opens a session, as `:Ai!` does.
 It asks from where you are when you close it, as `:Ai` would there: open it
 from a listing, open a file in that window, and the file is what `#here`
 sends. A selection you opened it with is kept.
@@ -90,7 +93,7 @@ It works as a git commit message:
 | | |
 | --- | --- |
 | `:w` | Save it; nothing is sent. |
-| `:wq` (or `:q` after `:w`) | Close the draft and send what was last saved; the agent opens. |
+| `:wq` (or `:q` after `:w`) | Close the draft and send what was last saved: a one-off, or a session with `!`. |
 | `:q!` before any `:w` | Drop it. To drop a saved draft, empty it and `:wq`. |
 
 Closing the draft never quits Vim, even when it is the last window (after

@@ -115,7 +115,7 @@ nmap <leader>cr <Plug>(prompts-reply)
 
 ## In a one-off
 
-A one-off (`:Ai!`, or a persona with `answer: oneoff` such as `/review`)
+A one-off (`:Ai` without `!`, `:Ai /review` among them)
 can't be let write a file, as there is no one to ask. So the agent puts its
 comments in a block at the end of its answer instead, opened with
 ` ```vim-prompts-comments `, in the same format. Once the answer is in,
