@@ -7,11 +7,13 @@ Use your coding agent ([Claude Code](https://claude.com/claude-code) or
 :'<,'>Ai why is this loop reversed
 ```
 
-opens the agent already holding your question and the lines you selected,
-and you carry on the conversation there.
+asks the agent once about the lines you selected and puts its answer in a
+buffer below, while you keep working. With a `!`, `:'<,'>Ai!` opens the agent
+already holding your question and those lines, and you carry on the
+conversation there.
 
 - **The agent runs next to your code.** In a Vim terminal tab, or a tmux
-  window under tmux; `:Ai` alone takes you back to it.
+  window under tmux; `:Ai!` alone takes you back to it.
 - **You say what it sees.** A short syntax hands it what Vim knows: a
   selection, `@files`, the change on your branch (`#changes`), your review
   comments (`#comments`). Nothing else is sent, but the rules you set.
@@ -89,9 +91,15 @@ Each step adds one thing to the one before it; stop at whichever is enough.
 :'<,'>Ai why is this loop reversed
 ```
 
-The agent opens with your question and the lines. Carry on the conversation
-there; `:Ai` alone brings you back to it, and `/exit` or Ctrl-D leaves it.
-Only this first prompt is sent from Vim.
+The agent answers once, into a scratch buffer below, while you keep working;
+the statusline says when it's done.
+
+**If you want a conversation,** add a `!`: `:'<,'>Ai! why is this loop
+reversed` opens the agent with your question and the lines. Carry on the
+conversation there; `:Ai!` alone brings you back to it, and `/exit` or
+Ctrl-D leaves it. Only this first prompt is sent from Vim. Every ask works
+this way: without `!` a one-off, with `!` a session
+([usage](docs/usage.md#ai)).
 
 **If you don't want to write a question,** use a persona, a saved prompt
 that asks for you. Without one you get `/default`, which adds nothing to
@@ -101,9 +109,9 @@ your query but your rules.
 brings in the diffs you have open, else your branch, committed or not;
 `#changes:staged` narrows it to what's staged, `#changes:unstaged` to what
 isn't yet. `/review` reviews what you
-give it, a selection or `@files`. A review is a one-off: the answer comes
-into a buffer below while you keep working, and its comments on your lines
-into `:AiComments`. `:Ai! /review` opens a session instead, to go on from:
+give it, a selection or `@files`. The answer comes into a buffer below
+while you keep working, and its comments on your lines into `:AiComments`.
+`:Ai! /review` opens a session instead, to go on from:
 
 ```vim
 :Ai /review:pr is the error handling consistent
@@ -127,12 +135,6 @@ Put together, an ask reads:
 
 A selection, if you made one, always goes. `:Ai` refuses when there's no
 context to send. `<Tab>` completes everything.
-
-**If you only want an answer, not a session,** `:Ai!` asks once and puts
-the answer in a scratch buffer below, while you keep working:
-`:'<,'>Ai! what does this return on an empty list`. `:Ai!` alone goes back
-to it ([usage](docs/usage.md#ai)). A persona can answer that way without
-the `!` (`answer: oneoff`, as `/review` does), and then `!` opens a session.
 
 **If the agent left comments on your lines** (with vim-review), reply on one to go back and
 forth on it alone: `:AiReplyDraft` on it in the `:AiComments` list writes a
