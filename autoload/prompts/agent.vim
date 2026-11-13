@@ -197,10 +197,12 @@ function! prompts#agent#oneoff(prompt, meta, dirs, ...) abort
   " Output can still come in after the job exits: done waits for both
   let l:state = {'bufnr': l:bufnr, 'name': l:name, 'Done': get(l:opts, 'done', v:null),
         \ 'comments': get(l:opts, 'comments', ''), 'status': v:null, 'closed': 0}
+  " err_io 'out' checks err_modifiable too, against the same buffer
+  let l:modifiable = getbufvar(l:bufnr, '&modifiable')
   call job_start([&shell, &shellcmdflag, l:cmd], {
         \ 'cwd': empty(l:tree) ? getcwd() : l:tree,
         \ 'in_io': 'null', 'out_io': 'buffer', 'out_buf': l:bufnr, 'out_msg': 0,
-        \ 'out_modifiable': getbufvar(l:bufnr, '&modifiable'),
+        \ 'out_modifiable': l:modifiable, 'err_modifiable': l:modifiable,
         \ 'err_io': 'out', 'exit_cb': function('s:oneoff_exit', [l:state]),
         \ 'close_cb': function('s:oneoff_close', [l:state])})
   if !has_key(l:opts, 'bufnr')
