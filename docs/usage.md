@@ -179,6 +179,22 @@ list, to make them yours, as `:CommentsLoad` does with a save: they replace
 what the list holds (`:CommentsSave` first to keep those). The same files
 as `:AiComments`, the newest without an argument.
 
+### The save contract and the list of saves
+
+`:AiComments`, `:AiCommentsLoad` and `:AiCommentsClear` take a review as
+vim-place's [save contract](https://github.com/vimoured/vim-place#the-save-contract)
+has a load take a save, scoped to the work tree, and `:AiCommentsList` shows the reviews as vim-lists'
+[list of saves](https://github.com/vimoured/vim-lists#a-list-of-saves), apart
+from these deviations:
+
+| Deviation | |
+| --- | --- |
+| A review's name keeps its `.txt`, typed and in `<Tab>`, and a `.` anywhere in it makes it a path to `<Tab>`. | To align: it came before the contract. |
+| `:AiCommentsList` is named for the verb. | To align: it came before the contract. |
+| No `:AiCommentsSave`. | Needed: the agent writes the reviews. |
+| Two loads: `:AiComments` into a list of its own, `:AiCommentsLoad` into fugitive-extras' `Review` list; `<CR>` in `:AiCommentsList` is `:AiComments`. | Needed: one steps through the agent's comments, the other makes them yours. |
+| `dd` in `:AiCommentsList` deletes the review's threads and what is done in it too. | Needed: they are the review's. |
+
 ## :AiPersonas
 
 `:AiPersonas[!]` lists the personas where you are, a line each: where its
