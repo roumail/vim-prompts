@@ -34,7 +34,7 @@ execute 'command! -bang -nargs=? -complete=customlist,prompts#comments#complete 
 execute 'command! -nargs=? -complete=customlist,prompts#comments#complete '
       \ . s:ns . 'CommentsClear call prompts#comments#clear(<q-args>)'
 " The reviews here, to open or clear
-execute 'command! ' . s:ns . 'CommentsList call prompts#comments#list()'
+execute 'command! ' . s:ns . 'Reviews call prompts#comments#list()'
 " The same comments in fugitive-extras' Review list, as :CommentsLoad
 execute 'command! -nargs=? -complete=customlist,prompts#comments#complete '
       \ . s:ns . 'CommentsLoad call prompts#comments#review(<q-args>)'
