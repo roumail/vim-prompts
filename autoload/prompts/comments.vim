@@ -11,11 +11,18 @@ function! s:files(dir) abort
         \   {a, b -> getftime(a:dir . '/' . b) - getftime(a:dir . '/' . a)})
 endfunction
 
+" A path has a / or starts with ~ or .; anything else is a review's name,
+" without its .txt
+function! s:is_path(arg) abort
+  return a:arg =~# '/' || a:arg =~# '^[~.]'
+endfunction
+
 function! prompts#comments#complete(lead, cmdline, pos) abort
-  if a:lead =~# '[/~.]'
+  if s:is_path(a:lead)
     return getcompletion(a:lead, 'file')
   endif
-  return filter(s:files(prompts#comments#dir(bufnr())), 'stridx(v:val, a:lead) == 0')
+  return filter(map(s:files(prompts#comments#dir(bufnr())), 'fnamemodify(v:val, ":r")'),
+        \ 'stridx(v:val, a:lead) == 0')
 endfunction
 
 function! s:file(file) abort
@@ -28,7 +35,14 @@ function! s:file(file) abort
     endif
     let l:file = l:dir . '/' . l:files[0]
   else
-    let l:file = index(l:files, a:file) >= 0 ? l:dir . '/' . a:file : fnamemodify(expand(a:file), ':p')
+    if !s:is_path(a:file)
+      if !filereadable(l:dir . '/' . a:file . '.txt')
+        call prompts#error('no review ' . a:file . ' here')
+        return ''
+      endif
+      return l:dir . '/' . a:file . '.txt'
+    endif
+    let l:file = fnamemodify(expand(a:file), ':p')
   endif
   if !filereadable(l:file)
     call prompts#error('no file ' . fnamemodify(l:file, ':~'))
@@ -416,11 +430,11 @@ function! s:answered(target, bufnr, at, status) abort
         \ : 'Answered on ' . a:target.label . ': = shows the thread'
 endfunction
 
-" :AiCommentsList: the reviews here, newest first, one a line: when, how many
-" comments, done and threads, and the files they are on. <CR> opens one as
-" :AiComments, dd clears it as :AiCommentsClear
+" :AiReviews: the reviews here, as vim-lists' list of saves, one a line: its
+" name, when, how many comments, done and threads, and the files they are
+" on. <CR> opens one as :AiComments, dd clears it as :AiCommentsClear
 function! prompts#comments#list() abort
-  if !prompts#requires(':' . prompts#namespace() . 'CommentsList', 'vim-review', 'review')
+  if !prompts#requires(':' . prompts#namespace() . 'Reviews', 'vim-review', 'review')
     return
   endif
   let l:dir = prompts#comments#dir(bufnr())
@@ -470,7 +484,7 @@ function! s:list_open() abort
   endif
 endfunction
 
-" :AiCommentsClear [file]: deletes a review, its threads and what is done in
+" :AiCommentsClear [name|file]: deletes a review, its threads and what is done in
 " it, once you say so. Without file, the one in the agent's list
 function! prompts#comments#clear(file) abort
   if empty(a:file)

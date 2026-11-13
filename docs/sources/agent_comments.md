@@ -53,8 +53,8 @@ they were asked in, so removing a work tree removes its reviews.
 
 | Command | What it does |
 | --- | --- |
-| `:AiCommentsList` | The reviews here, newest first: when, how many comments, done and threads, and the files they are on. `<CR>` opens one as `:AiComments`, `dd` clears it as `:AiCommentsClear` does. A [vim-lists](https://github.com/roumail/vim-lists) list: its heading shows its keys, `dd`, `/` (on name and files), `r` and `q` are as in every list. |
-| `:AiCommentsClear [file]` | Delete a review with its threads and what is done in it, once you confirm. Without `file`, the one in the agent's list; `<Tab>` lists them. A list showing it is emptied. |
+| `:AiReviews` | The reviews here, newest first: when, how many comments, done and threads, and the files they are on. `<CR>` opens one as `:AiComments`, `dd` clears it as `:AiCommentsClear` does. A [vim-lists](https://github.com/roumail/vim-lists) list: its heading shows its keys, `dd`, `/` (on name and files), `r` and `q` are as in every list. |
+| `:AiCommentsClear [name\|file]` | Delete a review with its threads and what is done in it, once you confirm. Without an argument, the one in the agent's list; `<Tab>` completes the reviews' names. A list showing it is emptied. |
 
 Your own comments stay where they are: fugitive-extras' `Review` list is a
 list of its own, and `:colder` goes back to it. To make the agent's

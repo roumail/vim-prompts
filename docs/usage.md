@@ -137,11 +137,11 @@ is shown.
 
 ## :AiComments
 
-`:AiComments[!] [file]` opens the agent's comments on lines, written for an ask
+`:AiComments[!] [name|file]` opens the agent's comments on lines, written for an ask
 with [`#agent_comments`](sources/agent_comments.md), as a new quickfix list:
 the newest file without an argument, `<Tab>` for the others. Those you `dd`
 from the list are done and left out next time; `!` shows them too.
-`:AiCommentsList` shows the reviews kept here, `:AiCommentsClear` deletes
+`:AiReviews` shows the reviews kept here, `:AiCommentsClear` deletes
 one with its threads ([keeping them](sources/agent_comments.md#keeping-them)). Step through
 them with `:cnext`; `:colder` goes back to the list before (your `Review`
 comments, say). In its window, `:AiReply` replies on the comment under the
@@ -174,7 +174,7 @@ read-only, as the file is the thread: replies go in with `:AiReply` or
 
 ## :AiCommentsLoad
 
-`:AiCommentsLoad [file]` loads the same comments into fugitive-extras' `Review`
+`:AiCommentsLoad [name|file]` loads the same comments into fugitive-extras' `Review`
 list, to make them yours, as `:CommentsLoad` does with a save: they replace
 what the list holds (`:CommentsSave` first to keep those). The same files
 as `:AiComments`, the newest without an argument.
@@ -183,17 +183,15 @@ as `:AiComments`, the newest without an argument.
 
 `:AiComments`, `:AiCommentsLoad` and `:AiCommentsClear` take a review as
 vim-place's [save contract](https://github.com/vimoured/vim-place#the-save-contract)
-has a load take a save, scoped to the work tree, and `:AiCommentsList` shows the reviews as vim-lists'
+has a load take a save, scoped to the work tree, and `:AiReviews` shows the reviews as vim-lists'
 [list of saves](https://github.com/vimoured/vim-lists#a-list-of-saves), apart
 from these deviations:
 
 | Deviation | |
 | --- | --- |
-| A review's name keeps its `.txt`, typed and in `<Tab>`, and a `.` anywhere in it makes it a path to `<Tab>`. | To align: it came before the contract. |
-| `:AiCommentsList` is named for the verb. | To align: it came before the contract. |
 | No `:AiCommentsSave`. | Needed: the agent writes the reviews. |
-| Two loads: `:AiComments` into a list of its own, `:AiCommentsLoad` into fugitive-extras' `Review` list; `<CR>` in `:AiCommentsList` is `:AiComments`. | Needed: one steps through the agent's comments, the other makes them yours. |
-| `dd` in `:AiCommentsList` deletes the review's threads and what is done in it too. | Needed: they are the review's. |
+| Two loads: `:AiComments` into a list of its own, `:AiCommentsLoad` into fugitive-extras' `Review` list; `<CR>` in `:AiReviews` is `:AiComments`. | Needed: one steps through the agent's comments, the other makes them yours. |
+| `dd` in `:AiReviews` deletes the review's threads and what is done in it too. | Needed: they are the review's. |
 
 ## :AiPersonas
 
@@ -338,5 +336,5 @@ nmap <leader>cr <Plug>(prompts-reply)
 ## Command prefix
 
 ```vim
-let g:prompts_namespace = 'Ai'      " :Ai, :AiDraft, :AiPreview, :AiComments, :AiCommentsLoad, :AiCommentsList, :AiCommentsClear, :AiReply, :AiReplyDraft, :AiThread, :AiPersonas, :AiRules, :AiRule, :AiSources, :AiUnset
+let g:prompts_namespace = 'Ai'      " :Ai, :AiDraft, :AiPreview, :AiComments, :AiCommentsLoad, :AiReviews, :AiCommentsClear, :AiReply, :AiReplyDraft, :AiThread, :AiPersonas, :AiRules, :AiRule, :AiSources, :AiUnset
 ```

@@ -64,7 +64,7 @@ set of plugins it takes besides the core:
 | --- | --- | --- |
 | [vim-draft](https://github.com/vimoured/vim-draft) | Drafts | `:AiDraft`, an ask written in a buffer |
 | [fugitive-extras](https://github.com/vimoured/fugitive-extras) | Your branch and your review | `#changes`, diffed against your default branch, and with it `/review:pr`; `#diff_pairs`, which names `:BranchDiff`'s comparisons; `#comments`, your `:Comment`s |
-| [vim-review](https://github.com/vimoured/vim-review) | The agent's comments | `#agent_comments`, read in vim-review's format: `:AiComments` steps through them, `:AiReply` and `:AiThread` go back and forth on one, `:AiCommentsList` lists the reviews here, to open or clear, and `:AiCommentsClear` clears them |
+| [vim-review](https://github.com/vimoured/vim-review) | The agent's comments | `#agent_comments`, read in vim-review's format: `:AiComments` steps through them, `:AiReply` and `:AiThread` go back and forth on one, `:AiReviews` lists the reviews here, to open or clear, and `:AiCommentsClear` clears them |
 | vim-review + vim-draft | Replies in a draft | `:AiReplyDraft` |
 | vim-review + fugitive-extras | The agent's comments as yours | `:AiCommentsLoad`, which puts the agent's comments in fugitive-extras' Review list, to change and post as your own |
 
